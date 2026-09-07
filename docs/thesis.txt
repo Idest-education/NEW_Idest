@@ -1,0 +1,292 @@
+ĐẠI HỌC QUỐC GIA TP. HỒ CHÍ MINH            CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+        TRƯỜNG ĐẠI HỌC                                   Độc Lập - Tự do - Hạnh Phúc
+    CÔNG NGHỆ THÔNG TIN
+
+
+
+                                  ĐỀ TÀI CHI TIẾT
+   TIẾNG VIỆT: Xây dựng hệ thống hỗ trợ đánh giá bài viết IELTS ứng dụng trí tuệ nhân
+   tạo với sự tham gia của giáo viên.
+
+   TIẾNG ANH: Development of a Teacher-in-the-Loop AI-Assisted System for IELTS
+   Writing Assessment.
+
+   Cán bộ hướng dẫn: TS. Lê Văn Tuấn
+
+   Thời gian thực hiện dự kiến: Từ ngày 07/09/2026 – 28/12/2026
+
+   Sinh viên thực hiện:
+
+        1. Huỳnh Chí Hên – 23520455
+        2. Nguyễn Cao Vũ Phan – 23521137
+
+   Nội dung đề tài:
+
+      1. Lí do chọn đề tài
+
+         Trong bối cảnh nhu cầu học tập và sử dụng tiếng Anh ngày càng tăng, chứng chỉ
+      IELTS trở thành một trong những tiêu chí quan trọng đối với học sinh, sinh viên và
+      người đi làm. Trong đó, Writing là một kỹ năng đòi hỏi người học phải thường xuyên
+      luyện tập và nhận được phản hồi cụ thể để cải thiện.
+         Tuy nhiên, việc đánh giá bài viết IELTS thường yêu cầu giáo viên dành nhiều thời
+      gian để đọc bài, xác định mức độ đáp ứng đề bài, đánh giá tính mạch lạc, từ vựng và
+      ngữ pháp, đồng thời đưa ra nhận xét phù hợp. Khi số lượng học viên tăng, việc đánh
+      giá thủ công có thể gây áp lực cho giáo viên và làm chậm quá trình phản hồi cho
+      người học.
+
+
+                                             1
+   Các công cụ chấm bài bằng trí tuệ nhân tạo có thể hỗ trợ phân tích bài viết và đưa
+ra điểm số, nhận xét hoặc gợi ý cải thiện. Tuy nhiên, kết quả do AI tạo ra không phải
+lúc nào cũng chính xác, ổn định hoặc phù hợp với từng trường hợp cụ thể. Nếu sử
+dụng kết quả AI như kết quả cuối cùng mà không có sự kiểm tra của giáo viên, hệ
+thống có thể đưa ra đánh giá chưa phù hợp với năng lực thực tế của người học.
+   Vì vậy, đề tài tập trung xây dựng một hệ thống đánh giá bài viết IELTS theo mô
+hình teacher-in-the-loop, trong đó AI thực hiện đánh giá sơ bộ, còn giáo viên có
+quyền xem xét, chỉnh sửa và xác nhận kết quả cuối cùng. Hệ thống đồng thời lưu trữ
+kết quả của AI và giáo viên để phục vụ việc đánh giá chất lượng mô hình, thu thập
+dữ liệu thực tế và nghiên cứu các phương pháp cải thiện hệ thống trong tương lai.
+
+2. Mục tiêu đề tài
+  - Xây dựng website hỗ trợ học viên nộp và quản lý bài viết IELTS Writing.
+  - Tích hợp trí tuệ nhân tạo để phân tích và đánh giá sơ bộ bài viết.
+  - Xây dựng chức năng cho giáo viên xem xét, chỉnh sửa và xác nhận kết quả đánh
+     giá của AI.
+  - Đảm bảo giáo viên là người quyết định kết quả đánh giá cuối cùng.
+  - Lưu trữ riêng kết quả đánh giá của AI và kết quả đánh giá của giáo viên.
+  - Thu thập dữ liệu bài viết cùng kết quả đánh giá của giáo viên để phục vụ nghiên
+     cứu và huấn luyện mô hình học máy.
+  - Nghiên cứu, huấn luyện và đánh giá mô hình ML dựa trên dữ liệu được thu thập.
+  - So sánh kết quả giữa mô hình LLM, mô hình ML và đánh giá của giáo viên.
+3. Phạm vi
+  - Nền tảng hỗ trợ: Triển khai trên website
+  - Chức năng:
+      • Chức năng quản lý tài khoản
+           § Hỗ trợ đăng ký, đăng nhập và đăng xuất.
+           § Phân quyền người dùng theo vai trò học viên, giáo viên và quản trị
+              viên.
+
+
+                                        2
+    § Quản lý thông tin tài khoản cơ bản.
+• Chức năng nộp bài IELTS Writing
+     § Học viên có thể nhập trực tiếp bài viết trên website.
+     § Hệ thống hỗ trợ lưu nháp và nộp bài.
+     § Hệ thống ghi nhận đề bài, nội dung bài viết, thời gian nộp và trạng
+        thái xử lý.
+     § Hệ thống lưu trữ lịch sử các bài viết đã nộp.
+• Chức năng đánh giá bài viết bằng AI
+     § Hệ thống sử dụng mô hình ngôn ngữ lớn để phân tích bài viết.
+     § AI đưa ra điểm số sơ bộ theo bốn tiêu chí IELTS Writing.
+     § AI sinh nhận xét về ưu điểm, hạn chế và gợi ý cải thiện bài viết.
+     § Kết quả AI được trả về theo cấu trúc dữ liệu định trước để hệ thống
+        có thể lưu trữ và xử lý.
+     § Kết quả đánh giá của AI chỉ mang tính chất tham khảo và là kết quả
+        sơ bộ, giáo viên có quyền quyết định cuối cùng.
+• Chức năng giáo viên xem xét và đánh giá bài viết
+     § Giáo viên có thể xem danh sách bài viết do học viên nộp.
+     § Giáo viên có thể xem kết quả đánh giá sơ bộ do AI tạo ra.
+     § Giáo viên có thể xem nội dung bài viết, điểm số và nhận xét theo từng
+        tiêu chí.
+     § Giáo viên có thể chỉnh sửa điểm số, nhận xét và gợi ý cải thiện.
+     § Giáo viên có thể xác nhận kết quả đánh giá cuối cùng.
+     § Hệ thống lưu lại kết quả AI ban đầu và kết quả sau khi giáo viên
+        chỉnh sửa.
+• Chức năng xem kết quả đánh giá
+    § Học viên có thể xem kết quả đánh giá sau khi giáo viên xác nhận.
+    § Hệ thống hiển thị điểm tổng và điểm theo từng tiêu chí.
+    § Hệ thống hiển thị nhận xét và gợi ý cải thiện từ giáo viên.
+
+
+                                   3
+           § Học viên có thể xem lại lịch sử kết quả các bài viết đã nộp.
+      • Chức năng lưu trữ và thu thập dữ liệu đánh giá
+           § Hệ thống lưu trữ bài viết, kết quả đánh giá của AI và kết quả đánh giá
+             của giáo viên.
+           § Hệ thống ghi nhận lịch sử chỉnh sửa kết quả đánh giá.
+           § Dữ liệu được tổ chức để phục vụ việc đánh giá chất lượng AI.
+           § Dữ liệu bài viết và đánh giá của giáo viên có thể được sử dụng để xây
+             dựng tập dữ liệu huấn luyện mô hình học máy.
+      • Chức năng nghiên cứu và đánh giá mô hình
+           § Xây dựng tập dữ liệu benchmark gồm bài viết và kết quả đánh giá của
+             giáo viên.
+           § Đánh giá mô hình ngôn ngữ lớn dựa trên kết quả của giáo viên.
+           § Nghiên cứu việc sử dụng các đặc trưng ngôn ngữ để huấn luyện mô
+             hình ML.
+           § So sánh kết quả của mô hình LLM và mô hình ML.
+           § Đánh giá các chỉ số như QWK, độ chính xác và tỉ lệ sai lệch.
+      • Chức năng quản trị hệ thống
+           § Quản trị viên có thể quản lý tài khoản người dùng.
+           § Quản trị viên có thể quản lý vai trò và quyền truy cập cơ bản.
+           § Quản trị viên có thể theo dõi trạng thái hoạt động của hệ thống.
+
+4. Đối tượng sử dụng
+  - Giáo viên: Đối tượng sử dụng chính của hệ thống. Giáo viên có thể xem bài viết
+    của học viên, xem kết quả đánh giá sơ bộ từ AI, chỉnh sửa điểm số và nhận xét,
+    đồng thời xác nhận kết quả đánh giá cuối cùng.
+  - Học viên: Đối tượng sử dụng hệ thống để nộp bài viết IELTS Writing, xem
+    trạng thái xử lý, xem kết quả đánh giá và nhận xét sau khi giáo viên xác nhận.
+    Học viên cũng có thể xem lại lịch sử các bài viết đã nộp.
+
+
+
+                                       4
+  - Quản trị viên: Người có quyền quản lý các tài khoản và quyền truy cập cơ bản
+    của hệ thống, đồng thời theo dõi trạng thái hoạt động của website.
+5. Phương pháp thực hiện
+  - Tìm hiểu công nghệ: NestJS, FastAPI, NextJS
+  - Tìm hiểu các công cụ hỗ trợ: Figma
+  - Quản lý source code: Github
+  - Quản lý công việc: Clickup
+  - Tìm hiểu các ứng dụng hiện có trên thị trường
+  - Thiết kế
+     o Thiết kế đối tượng
+     o Thiết kế dữ liệu
+     o Thiết kế giao diện
+  - Cài đặt
+  - Kiểm thử
+  - Hoàn thiện sản phẩm
+  - Báo cáo
+6. Công nghệ sử dụng
+  - Công cụ thiết kế UI/UX: Figma.
+  - Trí tuệ nhân tạo: Ollama, ChatGPT.
+  - Công cụ xây dựng ứng dụng: Visual Studio Code, Claude Code.
+  - Công nghệ truyền tải dữ liệu: REST, RabbitMQ
+  - Frontend:
+     o Ngôn ngữ sử dụng: TypeScript.
+     o Thư viện sử dụng: NextJS.
+  - Backend:
+     o Ngôn ngữ sử dụng: TypeScript, Python.
+     o Thư viện sử dụng: NestJS, FastAPI.
+  - Cơ sở dữ liệu: PostgreSQL, S3
+
+
+                                      5
+7. Kết quả mong đợi
+  - Hoàn thiện các chức năng cơ bản của website
+  - Đánh giá bằng mô hình LLM
+      o Đánh giá chỉ số QWK của điểm tổng và từng tiêu chí so với giáo viên.
+      o Đánh giá được tỉ lệ dự đoán đúng band.
+      o Đánh giá được tính nhất quán của mô hình qua nhiều lần chạy.
+  - Đánh giá bằng mô hình ML
+      o Xây dựng tập dữ liệu gồm bài viết và kết quả đánh giá của giáo viên.
+      o Huấn luyện được mô hình ML khi dữ liệu đáp ứng yêu cầu.
+      o Đánh giá được QWK và các chỉ số liên quan trên tập kiểm tra.
+      o So sánh được kết quả của ML với LLM.
+  - Hiệu năng và thời gian phản hồi AI
+      o Thời gian xử lý một bài Writing được đo lường và báo cáo.
+      o Hệ thống có khả năng xử lý các yêu cầu đánh giá mà không làm gián
+         đoạn các chức năng chính.
+      o Các bài nộp được ghi nhận trạng thái xử lý như pending, processing,
+         completed hoặc failed.
+  - Về quy trình teacher-in-the-loop
+      o Giáo viên có thể xem kết quả AI trước khi đưa ra đánh giá cuối cùng.
+      o Giáo viên có thể chỉnh sửa điểm số và nhận xét của AI.
+      o Hệ thống lưu trữ được kết quả AI ban đầu và kết quả giáo viên xác nhận.
+      o Học viên chỉ xem kết quả sau khi giáo viên xác nhận.
+8. Hướng phát triển đề tài
+  - Mở rộng hệ thống sang đánh giá IELTS Speaking.
+  - Xây dựng chức năng theo dõi tiến bộ của học viên.
+  - Nghiên cứu các mô hình học máy và mô hình ngôn ngữ khác.
+
+
+
+
+                                       6
+Kế hoạch thực hiện:
+
+ Giai đoạn        Thời gian                  Công việc                        Kết quả
+
+Lên        kế                    Khảo sát quy trình chấm IELTS Hoàn thiện yêu cầu,
+hoạch      &                     Writing; nghiên cứu các tiêu chí phạm vi và định
+                 07/09 – 12/09
+khảo       sát                   đánh giá; xác định yêu cầu và hướng phát triển đề
+phương án                        phạm vi hệ thống.                    tài.
+
+                                 Thiết kế kiến trúc hệ thống, cơ sở
+                                                                      Hoàn thành thiết kế
+Thiết kế hệ                      dữ liệu, giao diện và quy trình
+                 13/09 – 16/09                                        hệ thống và bản
+thống                            tương tác giữa học sinh, giáo viên
+                                                                      thiết kế giao diện.
+                                 và AI.
+
+                                 Xây dựng chức năng tài khoản,
+Phát    triển                                                         Hoàn thành MVP
+                 09/09 – 18/09 phân quyền, nộp bài, quản lý bài
+MVP                                                                   của hệ thống.
+                                 viết và lưu trữ dữ liệu
+
+Kiểm     thử                     Kiểm thử nội bộ, sửa lỗi, chuẩn bị MVP sẵn sàng để
+và chuẩn bị 19/09 – 20/09 dữ liệu và tài liệu hướng dẫn sử giáo viên sử dụng
+dùng thử                         dụng.                                thử.
+
+                                 Mời giáo viên thật sử dụng hệ
+Giáo    viên
+                                 thống; thu thập phản hồi về giao Có phản hồi thực tế
+sử dụng thử Từ 21/09 trở
+                                 diện, quy trình chấm, chất lượng và dữ liệu ban đầu
+và thu thập đi
+                                 đánh giá AI và chức năng chỉnh từ giáo viên.
+phản hồi
+                                 sửa kết quả.
+
+Cải thiện hệ
+                                 Phân tích phản hồi; cải thiện giao Hoàn        thiện   quy
+thống      và
+                                 diện, quy trình đánh giá và chức trình đánh giá có sự
+hoàn thiện 21/09 – 04/10
+                                 năng lưu trữ kết quả AI cùng kết tham gia của giáo
+Teacher-in-
+                                 quả do giáo viên xác nhận.           viên.
+the-Loop
+
+
+                                                7
+Thu thập và                      Thu thập bài viết và điểm số do Có bộ dữ liệu phục
+chuẩn hóa 05/10 – 01/11 giáo viên xác nhận; làm sạch, và vụ huấn luyện và
+dữ liệu                          chuẩn hóa.                          đánh giá mô hình.
+
+Huấn luyện                                                           Có kết quả thực
+                                 Huấn luyện, tinh chỉnh mô hình
+và đánh giá                                                          nghiệm và số liệu
+                 02/11 – 15/11 ML; so sánh kết quả giữa LLM,
+mô        hình                                                       đánh       giá      các
+                                 ML và giáo viên.
+ML                                                                   phương pháp.
+
+Phân      tích                   Phân tích độ chính xác, độ nhất Hoàn thiện kết quả
+kết quả và                       quán và chất lượng phản hồi; cải đánh giá và phiên
+                 16/11 – 29/11
+cải thiện hệ                     thiện hệ thống dựa trên kết quả bản hệ thống ổn
+thống                            thực nghiệm.                        định hơn.
+
+Kiểm       thử                   Kiểm thử chức năng, hiệu năng,
+                                                                     Sản     phẩm      hoàn
+và       hoàn                    tính ổn định và bảo mật; sửa lỗi
+                 30/11 – 13/12                                       chỉnh, đáp ứng các
+thiện      sản                   và hoàn thiện các chức năng còn
+                                                                     yêu cầu đề tài.
+phẩm                             thiếu.
+
+Hoàn thiện                       Hoàn thiện báo cáo khóa luận, tài Hoàn        thành     báo
+báo cáo và                       liệu hướng dẫn sử dụng, nội dung cáo, sản phẩm và
+                 14/12 – 28/12
+chuẩn       bị                   trình bày và chuẩn bị bảo vệ đề các tài liệu phục vụ
+bảo vệ                           tài.                                bảo vệ.
+
+     Xác nhận của CBHD                        TP. HCM, ngày tháng năm 2026
+
+      (Chữ ký và họ tên)                   Sinh viên 1                     Sinh viên 2
+
+                                        (Chữ ký và họ tên)           (Chữ ký và họ tên)
+
+
+
+
+          Lê Văn Tuấn                     Huỳnh Chí Hên             Nguyễn Cao Vũ Phan
+
+
+
+                                              8
+
