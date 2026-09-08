@@ -34,12 +34,17 @@ export class ClerkAuthGuard implements CanActivate {
     }
     const token = header.slice('Bearer '.length);
 
+    // Resolve config OUTSIDE the try so a missing/blank env var propagates as a
+    // real 5xx instead of being masked as a 401 by the catch below.
+    const secretKey = this.config.getOrThrow<string>('CLERK_SECRET_KEY');
+    const authorizedParties = this.config
+      .getOrThrow<string>('CLERK_AUTHORIZED_PARTIES')
+      .split(',');
+
     try {
       const payload = await verifyToken(token, {
-        secretKey: this.config.getOrThrow<string>('CLERK_SECRET_KEY'),
-        authorizedParties: this.config
-          .getOrThrow<string>('CLERK_AUTHORIZED_PARTIES')
-          .split(','),
+        secretKey,
+        authorizedParties,
       });
       request.auth = {
         clerkUserId: payload.sub,

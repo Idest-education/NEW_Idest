@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { ServiceUnavailableException } from '@nestjs/common';
+import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { ClerkClient } from './clerk-client.provider.js';
 import { UserSyncService } from './user-sync.service.js';
@@ -104,17 +104,87 @@ describe('UserSyncService.getOrCreate', () => {
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
-  it('recovers from a unique-constraint race by re-reading', async () => {
+  it('recovers from a clerk_user_id unique-constraint race by re-reading', async () => {
     prisma.user.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'row_race', clerkUserId: 'user_new' });
     clerk.users.getUser.mockResolvedValueOnce(clerkUser());
     prisma.user.create.mockRejectedValueOnce(
-      new Prisma.PrismaClientKnownRequestError('dupe', { code: 'P2002', clientVersion: 'x' }),
+      new Prisma.PrismaClientKnownRequestError('dupe', {
+        code: 'P2002',
+        clientVersion: 'x',
+        meta: { target: ['clerk_user_id'] },
+      }),
     );
 
     const result = await service.getOrCreate({ clerkUserId: 'user_new' });
     expect(result).toEqual({ id: 'row_race', clerkUserId: 'user_new' });
+  });
+
+  it('throws ConflictException on an email unique-constraint violation', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(clerkUser());
+    prisma.user.create.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('dupe', {
+        code: 'P2002',
+        clientVersion: 'x',
+        meta: { target: ['email'] },
+      }),
+    );
+
+    await expect(service.getOrCreate({ clerkUserId: 'user_new' })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(clerk.users.updateUserMetadata).not.toHaveBeenCalled();
+  });
+
+  it('still resolves with the created row when the Clerk metadata mirror fails', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(clerkUser());
+    prisma.user.create.mockResolvedValueOnce({ id: 'row_mirror', role: 'teacher' });
+    clerk.users.updateUserMetadata.mockRejectedValueOnce(new Error('clerk 500'));
+
+    const result = await service.getOrCreate({ clerkUserId: 'user_new' });
+
+    expect(result).toEqual({ id: 'row_mirror', role: 'teacher' });
+    expect(clerk.users.updateUserMetadata).toHaveBeenCalledWith('user_new', {
+      publicMetadata: { role: 'teacher' },
+    });
+  });
+
+  it('self-heals the Clerk publicMetadata mirror on the fast path when the session claim diverges', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: 'row_heal',
+      clerkUserId: 'user_heal',
+      role: 'teacher',
+    });
+    clerk.users.updateUserMetadata.mockResolvedValueOnce({});
+
+    const result = await service.getOrCreate({
+      clerkUserId: 'user_heal',
+      claims: { metadata: {} },
+    });
+
+    expect(result).toEqual({ id: 'row_heal', clerkUserId: 'user_heal', role: 'teacher' });
+    expect(clerk.users.getUser).not.toHaveBeenCalled();
+    expect(clerk.users.updateUserMetadata).toHaveBeenCalledWith('user_heal', {
+      publicMetadata: { role: 'teacher' },
+    });
+  });
+
+  it('does not re-issue the mirror on the fast path when the session claim already matches', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      id: 'row_ok',
+      clerkUserId: 'user_ok',
+      role: 'teacher',
+    });
+
+    await service.getOrCreate({
+      clerkUserId: 'user_ok',
+      claims: { metadata: { role: 'teacher' } },
+    });
+
+    expect(clerk.users.updateUserMetadata).not.toHaveBeenCalled();
   });
 });
 

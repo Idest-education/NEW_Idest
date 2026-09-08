@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -20,11 +21,34 @@ export class UserSyncService {
     @Inject(CLERK_CLIENT) private readonly clerk: ClerkClient,
   ) {}
 
-  async getOrCreate(auth: Pick<RequestAuth, 'clerkUserId'>): Promise<User> {
+  async getOrCreate(
+    auth: Pick<RequestAuth, 'clerkUserId'> & { claims?: RequestAuth['claims'] },
+  ): Promise<User> {
     const existing = await this.prisma.user.findUnique({
       where: { clerkUserId: auth.clerkUserId },
     });
-    if (existing) return existing;
+    if (existing) {
+      // Self-heal a DB<->Clerk divergence: if the local row has a role but the
+      // incoming session claims carry no matching `metadata.role`, the earlier
+      // publicMetadata mirror never landed. Re-issue it (idempotent) so the web
+      // proxy stops bouncing the user out of their role-gated routes.
+      const claimedRole = (
+        auth.claims?.metadata as { role?: Role } | undefined
+      )?.role;
+      if (existing.role && claimedRole !== existing.role) {
+        try {
+          await this.clerk.users.updateUserMetadata(existing.clerkUserId, {
+            publicMetadata: { role: existing.role },
+          });
+        } catch (err) {
+          this.logger.error(
+            `Clerk publicMetadata self-heal failed for ${existing.clerkUserId}`,
+            err as Error,
+          );
+        }
+      }
+      return existing;
+    }
 
     let clerkUser;
     try {
@@ -76,18 +100,40 @@ export class UserSyncService {
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === 'P2002'
       ) {
-        const row = await this.prisma.user.findUnique({
-          where: { clerkUserId: auth.clerkUserId },
-        });
-        if (row) return row;
+        const rawTarget = err.meta?.target;
+        const targets = Array.isArray(rawTarget)
+          ? rawTarget.map(String)
+          : typeof rawTarget === 'string'
+            ? [rawTarget]
+            : [];
+        const onClerkUserId = targets.some((t) => t.includes('clerk_user_id'));
+        if (onClerkUserId) {
+          // Concurrent JIT insert for the same Clerk user won the race — adopt it.
+          const row = await this.prisma.user.findUnique({
+            where: { clerkUserId: auth.clerkUserId },
+          });
+          if (row) return row;
+        } else {
+          // Collision on `email` (empty-string fallback for two email-less Clerk
+          // users, or a soft-deleted user's retained email). Surface it as a
+          // diagnosable 409 rather than an opaque 500 loop.
+          throw new ConflictException({ error: 'email_in_use' });
+        }
       }
       throw err;
     }
 
     if (roleWasDefaulted) {
-      await this.clerk.users.updateUserMetadata(auth.clerkUserId, {
-        publicMetadata: { role: 'teacher' },
-      });
+      try {
+        await this.clerk.users.updateUserMetadata(auth.clerkUserId, {
+          publicMetadata: { role: 'teacher' },
+        });
+      } catch (err) {
+        this.logger.error(
+          `Clerk publicMetadata mirror failed for ${auth.clerkUserId}`,
+          err as Error,
+        );
+      }
     }
     // TODO(persistence): emit an audit_events row once that table exists.
     return created;

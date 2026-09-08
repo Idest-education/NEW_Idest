@@ -16,9 +16,10 @@ This Turborepo includes the following packages/apps:
 
 ### Apps and Packages
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
+- `web`: a [Next.js](https://nextjs.org/) app (Clerk-authenticated frontend)
+- `server`: a [NestJS](https://nestjs.com/) API (Clerk auth, Prisma, PostgreSQL) — see `apps/server/README.md` for setup
+- `@repo/ui`: a stub React component library shared by the apps
+- `@repo/auth-contract`: shared auth types/constants (roles, route access)
 - `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
 - `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 

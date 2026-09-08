@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   HttpCode,
+  Logger,
   Post,
   Req,
 } from '@nestjs/common';
@@ -18,6 +19,8 @@ interface RawRequest {
 
 @Controller('webhooks')
 export class WebhookController {
+  private readonly logger = new Logger(WebhookController.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly userSync: UserSyncService,
@@ -41,7 +44,8 @@ export class WebhookController {
         'svix-signature': req.headers['svix-signature'] ?? '',
       });
       evt = JSON.parse(payload) as WebhookEvent;
-    } catch {
+    } catch (err) {
+      this.logger.debug('Clerk webhook verification failed', err as Error);
       throw new BadRequestException({ error: 'invalid_signature' });
     }
 
