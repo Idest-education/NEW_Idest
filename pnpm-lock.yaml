@@ -38,6 +38,9 @@ importers:
       '@prisma/client':
         specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
+      '@repo/auth-contract':
+        specifier: workspace:*
+        version: link:../../packages/auth-contract
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
