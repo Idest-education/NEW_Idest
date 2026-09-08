@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Authentication (Clerk)
+
+Env lives in the repo-root `.env` (see `.env.example`). Web scripts load it via `dotenv-cli`.
+
+### One-time Clerk dashboard setup
+
+1. **Sessions → Customize session token** — add:
+   ```json
+   { "metadata": "{{user.public_metadata}}" }
+   ```
+   so `sessionClaims.metadata.role` is available in `middleware.ts`.
+2. **Webhooks → Add endpoint** — point it at `<public-url>/webhooks/clerk` on the API
+   (port 3001), subscribe to `user.created`, `user.updated`, `user.deleted`, and copy the
+   signing secret into `CLERK_WEBHOOK_SIGNING_SECRET`.
+
+### Local webhook development
+
+Expose the API with a tunnel, e.g. `npx untun@latest tunnel http://localhost:3001`, and use
+that URL for the webhook endpoint.
