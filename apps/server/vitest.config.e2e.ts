@@ -8,7 +8,7 @@ export default defineConfig({
     root: './',
     include: ['**/*.e2e-spec.ts'],
     env: {
-      DATABASE_URL: 'postgresql://idest:idest@localhost:5432/idest_clerk_test',
+      DATABASE_URL: 'postgresql://idest:idest@localhost:5433/idest_clerk_test',
     },
     globalSetup: ['./test/setup-e2e.ts'],
   },

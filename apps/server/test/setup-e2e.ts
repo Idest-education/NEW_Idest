@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 
-const TEST_DATABASE_URL = 'postgresql://idest:idest@localhost:5432/idest_clerk_test';
+const TEST_DATABASE_URL = 'postgresql://idest:idest@localhost:5433/idest_clerk_test';
 
 export default function setup(): void {
   execSync('pnpm prisma migrate deploy', {
