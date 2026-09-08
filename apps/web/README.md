@@ -45,7 +45,7 @@ Env lives in the repo-root `.env` (see `.env.example`). Web scripts load it via 
    ```json
    { "metadata": "{{user.public_metadata}}" }
    ```
-   so `sessionClaims.metadata.role` is available in `middleware.ts`.
+   so `sessionClaims.metadata.role` is available in `proxy.ts`.
 2. **Webhooks → Add endpoint** — point it at `<public-url>/webhooks/clerk` on the API
    (port 3001), subscribe to `user.created`, `user.updated`, `user.deleted`, and copy the
    signing secret into `CLERK_WEBHOOK_SIGNING_SECRET`.
