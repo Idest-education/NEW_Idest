@@ -19,6 +19,44 @@ enum UserStatus {
   deleted
 }
 
+enum AssignmentStatus {
+  draft
+  active
+  closed
+  archived
+}
+
+enum TaskType {
+  task_1
+  task_2
+}
+
+enum SubmissionStatus {
+  submitted
+  queued
+  scoring
+  scored
+  under_review
+  published
+  failed
+}
+
+enum ScorerType {
+  ai
+  teacher
+}
+
+enum ScoringStatus {
+  completed
+  failed
+}
+
+enum ModelStatus {
+  experimental
+  active
+  retired
+}
+
 model User {
   id              String     @id @default(uuid()) @db.Uuid
   clerkUserId     String     @unique @map("clerk_user_id")
@@ -33,5 +71,161 @@ model User {
   updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz(6)
 
+  // Relations
+  assignments      Assignment[]      @relation("TeacherAssignments")
+  submissions      Submission[]      @relation("StudentSubmissions")
+  scoringResults   ScoringResult[]   @relation("TeacherScoringResults")
+  scoreRevisions   ScoreRevision[]   @relation("TeacherScoreRevisions")
+  publishedResults PublishedResult[] @relation("TeacherPublishedResults")
+  auditEvents      AuditEvent[]      @relation("ActorAuditEvents")
+
   @@map("users")
+}
+
+model Assignment {
+  id         String           @id @default(uuid()) @db.Uuid
+  teacherId  String           @map("teacher_id") @db.Uuid
+  teacher    User             @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  title      String           @db.VarChar(255)
+  taskPrompt String           @map("task_prompt") @db.Text
+  taskType   TaskType         @map("task_type")
+  status     AssignmentStatus @default(draft)
+  dueAt      DateTime?        @map("due_at") @db.Timestamptz(6)
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt  DateTime?        @map("deleted_at") @db.Timestamptz(6)
+
+  submissions Submission[]
+
+  @@index([teacherId], map: "assignments_teacher_id_index")
+  @@index([status], map: "assignments_status_index")
+  @@index([dueAt], map: "assignments_due_at_index")
+  @@map("assignments")
+}
+
+model Submission {
+  id             String           @id @default(uuid()) @db.Uuid
+  assignmentId   String           @map("assignment_id") @db.Uuid
+  assignment     Assignment       @relation(fields: [assignmentId], references: [id])
+  studentId      String           @map("student_id") @db.Uuid
+  student        User             @relation("StudentSubmissions", fields: [studentId], references: [id])
+  attemptNumber  Int              @map("attempt_number")
+  essayText      String           @map("essay_text") @db.Text
+  wordCount      Int              @map("word_count")
+  status         SubmissionStatus @default(submitted)
+  idempotencyKey String?          @map("idempotency_key")
+  submittedAt    DateTime         @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  scoringResults   ScoringResult[]
+  scoreRevisions   ScoreRevision[]
+  publishedResults PublishedResult[]
+
+  @@unique([assignmentId, studentId, attemptNumber])
+  @@index([assignmentId], map: "submissions_assignment_id_index")
+  @@index([studentId], map: "submissions_student_id_index")
+  @@index([status], map: "submissions_status_index")
+  @@index([submittedAt], map: "submissions_submitted_at_index")
+  @@map("submissions")
+}
+
+model AiModelVersion {
+  id           String      @id @default(uuid()) @db.Uuid
+  modelName    String      @map("model_name") @db.VarChar(100)
+  modelVersion String      @map("model_version") @db.VarChar(100)
+  provider     String      @db.VarChar(50)
+  taskType     String      @map("task_type") @db.VarChar(20)
+  configuration Json       @db.JsonB
+  status       ModelStatus @default(active)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  scoringResults ScoringResult[]
+
+  @@unique([modelName, modelVersion])
+  @@map("ai_model_versions")
+}
+
+model ScoringResult {
+  id                 String          @id @default(uuid()) @db.Uuid
+  submissionId       String          @map("submission_id") @db.Uuid
+  submission         Submission      @relation(fields: [submissionId], references: [id])
+  scorerId           String?         @map("scorer_id") @db.Uuid
+  scorer             User?           @relation("TeacherScoringResults", fields: [scorerId], references: [id])
+  modelVersionId     String?         @map("model_version_id") @db.Uuid
+  modelVersion       AiModelVersion? @relation(fields: [modelVersionId], references: [id])
+  scorerType         ScorerType      @map("scorer_type")
+  status             ScoringStatus   @default(completed)
+  scores             Json            @db.JsonB
+  feedback           Json            @db.JsonB
+  rawOutput          Json?           @map("raw_output") @db.JsonB
+  processingMetadata Json?           @map("processing_metadata") @db.JsonB
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  scoreRevisions ScoreRevision[]
+
+  @@index([submissionId], map: "scoring_results_submission_id_index")
+  @@index([scorerId], map: "scoring_results_scorer_id_index")
+  @@index([modelVersionId], map: "scoring_results_model_version_id_index")
+  @@index([createdAt], map: "scoring_results_created_at_index")
+  @@map("scoring_results")
+}
+
+model ScoreRevision {
+  id             String        @id @default(uuid()) @db.Uuid
+  submissionId   String        @map("submission_id") @db.Uuid
+  submission     Submission    @relation(fields: [submissionId], references: [id])
+  baseResultId   String        @map("base_result_id") @db.Uuid
+  baseResult     ScoringResult @relation(fields: [baseResultId], references: [id])
+  revisedBy      String        @map("revised_by") @db.Uuid
+  revisedByUser  User          @relation("TeacherScoreRevisions", fields: [revisedBy], references: [id])
+  revisionNumber Int           @map("revision_number")
+  changes        Json          @db.JsonB
+  finalScores    Json          @map("final_scores") @db.JsonB
+  finalFeedback  Json          @map("final_feedback") @db.JsonB
+  revisionNote   String?       @map("revision_note") @db.Text
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  publishedResults PublishedResult[]
+
+  @@unique([submissionId, revisionNumber])
+  @@index([submissionId], map: "score_revisions_submission_id_index")
+  @@index([revisedBy], map: "score_revisions_revised_by_index")
+  @@index([baseResultId], map: "score_revisions_base_result_id_index")
+  @@map("score_revisions")
+}
+
+model PublishedResult {
+  id            String        @id @default(uuid()) @db.Uuid
+  submissionId  String        @map("submission_id") @db.Uuid
+  submission    Submission    @relation(fields: [submissionId], references: [id])
+  revisionId    String        @map("revision_id") @db.Uuid
+  revision      ScoreRevision @relation(fields: [revisionId], references: [id])
+  publishedBy   String        @map("published_by") @db.Uuid
+  publishedUser User          @relation("TeacherPublishedResults", fields: [publishedBy], references: [id])
+  finalScores   Json          @map("final_scores") @db.JsonB
+  finalFeedback Json          @map("final_feedback") @db.JsonB
+  publishedAt   DateTime      @default(now()) @map("published_at") @db.Timestamptz(6)
+  unpublishedAt DateTime?     @map("unpublished_at") @db.Timestamptz(6)
+
+  @@index([submissionId], map: "published_results_submission_id_index")
+  @@index([publishedBy], map: "published_results_published_by_index")
+  @@index([publishedAt], map: "published_results_published_at_index")
+  @@map("published_results")
+}
+
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actor      User?    @relation("ActorAuditEvents", fields: [actorId], references: [id])
+  eventType  String   @map("event_type") @db.VarChar(100)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.Uuid
+  metadata   Json?    @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([actorId], map: "audit_events_actor_id_index")
+  @@index([entityType, entityId], map: "audit_events_entity_index")
+  @@index([eventType], map: "audit_events_event_type_index")
+  @@index([createdAt], map: "audit_events_created_at_index")
+  @@map("audit_events")
 }
