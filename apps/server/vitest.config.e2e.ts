@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
+    fileParallelism: false,
     include: ['**/*.e2e-spec.ts'],
     env: {
       DATABASE_URL: 'postgresql://idest:idest@localhost:5433/idest_clerk_test',
