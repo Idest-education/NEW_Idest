@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from './prisma/prisma.module.js';
+import { PrismaModule } from './prisma/prisma.module.js'; // Wait, let's check prisma import path
 import { AuthModule } from './auth/auth.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { RabbitMQModule } from './rabbitmq/rabbitmq.module.js';
+import { AssignmentsModule } from './assignments/assignments.module.js';
+import { SubmissionsModule } from './submissions/submissions.module.js';
+import { AssessmentsModule } from './assessments/assessments.module.js';
 import { ClerkAuthGuard } from './auth/clerk-auth.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
 import { AllExceptionsFilter } from './auth/auth.exception-filter.js';
@@ -14,15 +19,15 @@ import { AppService } from './app.service.js';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env'] }),
     PrismaModule,
     AuthModule,
+    AuditModule,
+    RabbitMQModule,
+    AssignmentsModule,
+    SubmissionsModule,
+    AssessmentsModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // Register the guards as ordinary providers and bind them globally via
-    // `useExisting`. This is the shape NestJS documents for "overriding globally
-    // registered enhancers": `overrideProvider(ClerkAuthGuard)` in tests only
-    // reaches the guard when the APP_GUARD slot points at the class token rather
-    // than instantiating its own copy via `useClass`.
     ClerkAuthGuard,
     { provide: APP_GUARD, useExisting: ClerkAuthGuard },
     RolesGuard,

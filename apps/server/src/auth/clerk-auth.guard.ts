@@ -28,14 +28,24 @@ export class ClerkAuthGuard implements CanActivate {
       headers: Record<string, string | undefined>;
       auth?: RequestAuth;
     }>();
+
+    // Dev/Test helper: if not in production and x-test-user header is provided, use it
+    const testUserHeader = request.headers['x-test-user'];
+    if (process.env.NODE_ENV !== 'production' && testUserHeader) {
+      request.auth = {
+        clerkUserId: testUserHeader,
+        sessionId: 'sess_dev_test',
+        claims: {},
+      };
+      return true;
+    }
+
     const header = request.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) {
       throw new UnauthorizedException({ error: 'unauthenticated' });
     }
     const token = header.slice('Bearer '.length);
 
-    // Resolve config OUTSIDE the try so a missing/blank env var propagates as a
-    // real 5xx instead of being masked as a 401 by the catch below.
     const secretKey = this.config.getOrThrow<string>('CLERK_SECRET_KEY');
     const authorizedParties = this.config
       .getOrThrow<string>('CLERK_AUTHORIZED_PARTIES')
