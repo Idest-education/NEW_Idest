@@ -174,24 +174,31 @@ export class AssessmentPersistenceService implements OnModuleInit {
       throw new ForbiddenException('You are not authorized to manage this assignment');
     }
 
-    if (submission.status !== SubmissionStatus.scored && submission.status !== SubmissionStatus.under_review) {
-      throw new BadRequestException(`Cannot create revision for submission with status '${submission.status}'`);
+    // A teacher may grade before the AI has scored the essay, or because the AI
+    // is unavailable or failed; only a published result requires unpublishing
+    // first, since publishing is the one commitment the system treats as final.
+    if (submission.status === SubmissionStatus.published) {
+      throw new BadRequestException('Unpublish the current result before creating a new revision');
     }
 
-    const baseResult = await this.prisma.scoringResult.findUnique({
-      where: { id: dto.baseResultId },
-    });
-    if (!baseResult || baseResult.submissionId !== submissionId) {
-      throw new BadRequestException('Invalid base scoring result for this submission');
+    let baseResult: { scores: unknown } | null = null;
+    if (dto.baseResultId) {
+      baseResult = await this.prisma.scoringResult.findUnique({
+        where: { id: dto.baseResultId },
+      });
+      if (!baseResult || (baseResult as { submissionId?: string }).submissionId !== submissionId) {
+        throw new BadRequestException('Invalid base scoring result for this submission');
+      }
     }
 
     // Validate IELTS score values
     validateIeltsScores(dto.finalScores);
 
-    // Calculate changes if not provided
+    // Calculate changes if not provided. With no AI result to compare against,
+    // every teacher-set criterion is recorded as a change from nothing.
     let changes = dto.changes;
     if (!changes || !changes.score_changes || Object.keys(changes).length === 0) {
-      changes = calculateScoreChanges((baseResult.scores as Record<string, any>) || {}, dto.finalScores);
+      changes = calculateScoreChanges((baseResult?.scores as Record<string, any>) || {}, dto.finalScores);
     }
 
     const existingRevisions = await this.prisma.scoreRevision.findMany({
@@ -205,7 +212,7 @@ export class AssessmentPersistenceService implements OnModuleInit {
       const rev = await tx.scoreRevision.create({
         data: {
           submissionId,
-          baseResultId: dto.baseResultId,
+          baseResultId: dto.baseResultId ?? null,
           revisedBy: teacherId,
           revisionNumber: nextRevisionNumber,
           changes,

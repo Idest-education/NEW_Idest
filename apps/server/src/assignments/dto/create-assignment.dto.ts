@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsDateString, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskType } from '@prisma/client';
 
@@ -24,4 +24,9 @@ export class CreateAssignmentDto {
   @IsOptional()
   @IsDateString()
   dueAt?: string;
+
+  @ApiPropertyOptional({ description: 'Class this assignment is given to. Omit to give it to every student.' })
+  @IsOptional()
+  @IsUUID()
+  classId?: string;
 }

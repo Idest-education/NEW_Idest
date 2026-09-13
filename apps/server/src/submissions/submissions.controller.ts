@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubmissionsService } from './submissions.service.js';
 import { CreateSubmissionDto } from './dto/create-submission.dto.js';
+import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { User } from '@prisma/client';
@@ -25,6 +26,13 @@ export class SubmissionsController {
     return this.submissionsService.submitEssay(user.id, assignmentId, dto);
   }
 
+  @Get('submissions')
+  @Roles('student', 'teacher', 'admin')
+  @ApiOperation({ summary: 'List every submission the caller may see, across all assignments' })
+  async getAllSubmissions(@CurrentUser() user: User) {
+    return this.submissionsService.getAllSubmissions(user.id, user.role);
+  }
+
   @Get('submissions/:id')
   @Roles('student', 'teacher', 'admin')
   @ApiOperation({ summary: 'Get submission attempt by ID' })
@@ -45,5 +53,28 @@ export class SubmissionsController {
     @Param('assignmentId') assignmentId: string,
   ) {
     return this.submissionsService.getSubmissionsByAssignment(assignmentId, user.id, user.role);
+  }
+
+  @Post('submissions/:id/redo-requests')
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Ask the student to redo this essay (Teacher only)' })
+  @ApiResponse({ status: 409, description: 'A redo request is already open for this submission' })
+  async createRedoRequest(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: CreateRedoRequestDto,
+  ) {
+    return this.submissionsService.createRedoRequest(user.id, id, user.role, dto);
+  }
+
+  @Delete('submissions/:id/redo-requests/:requestId')
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Cancel an open redo request (Teacher only)' })
+  async cancelRedoRequest(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('requestId') requestId: string,
+  ) {
+    return this.submissionsService.cancelRedoRequest(user.id, id, requestId, user.role);
   }
 }

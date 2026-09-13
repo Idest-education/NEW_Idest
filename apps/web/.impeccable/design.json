@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T00:00:00.000Z",
+  "title": "Design System: Idest",
+  "extensions": {
+    "colorMeta": {
+      "board": {
+        "role": "neutral",
+        "displayName": "Board Stock",
+        "canonical": "oklch(97.0% 0.004 91.4)",
+        "tonalRamp": [
+          "oklch(15% 0.004 91.4)",
+          "oklch(27% 0.004 91.4)",
+          "oklch(39% 0.004 91.4)",
+          "oklch(51% 0.004 91.4)",
+          "oklch(63% 0.004 91.4)",
+          "oklch(74% 0.004 91.4)",
+          "oklch(85% 0.004 91.4)",
+          "oklch(95% 0.004 91.4)"
+        ]
+      },
+      "board-deep": {
+        "role": "neutral",
+        "displayName": "Board Shade",
+        "canonical": "oklch(94.3% 0.007 88.6)",
+        "tonalRamp": [
+          "oklch(15% 0.007 88.6)",
+          "oklch(27% 0.007 88.6)",
+          "oklch(39% 0.007 88.6)",
+          "oklch(51% 0.007 88.6)",
+          "oklch(63% 0.007 88.6)",
+          "oklch(74% 0.007 88.6)",
+          "oklch(85% 0.007 88.6)",
+          "oklch(95% 0.007 88.6)"
+        ]
+      },
+      "rack": {
+        "role": "neutral",
+        "displayName": "Rack Board",
+        "canonical": "oklch(92.2% 0.010 87.5)",
+        "tonalRamp": [
+          "oklch(15% 0.010 87.5)",
+          "oklch(27% 0.010 87.5)",
+          "oklch(39% 0.010 87.5)",
+          "oklch(51% 0.010 87.5)",
+          "oklch(63% 0.010 87.5)",
+          "oklch(74% 0.010 87.5)",
+          "oklch(85% 0.010 87.5)",
+          "oklch(95% 0.010 87.5)"
+        ]
+      },
+      "rack-edge": {
+        "role": "neutral",
+        "displayName": "Rack Edge",
+        "canonical": "oklch(86.1% 0.014 88.7)",
+        "tonalRamp": [
+          "oklch(15% 0.014 88.7)",
+          "oklch(27% 0.014 88.7)",
+          "oklch(39% 0.014 88.7)",
+          "oklch(51% 0.014 88.7)",
+          "oklch(63% 0.014 88.7)",
+          "oklch(74% 0.014 88.7)",
+          "oklch(85% 0.014 88.7)",
+          "oklch(95% 0.014 88.7)"
+        ]
+      },
+      "stock": {
+        "role": "neutral",
+        "displayName": "Strip Stock",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(27% 0 0)",
+          "oklch(39% 0 0)",
+          "oklch(51% 0 0)",
+          "oklch(63% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(85% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "stock-edge": {
+        "role": "neutral",
+        "displayName": "Cut Edge",
+        "canonical": "oklch(90.4% 0.011 89.7)",
+        "tonalRamp": [
+          "oklch(15% 0.011 89.7)",
+          "oklch(27% 0.011 89.7)",
+          "oklch(39% 0.011 89.7)",
+          "oklch(51% 0.011 89.7)",
+          "oklch(63% 0.011 89.7)",
+          "oklch(74% 0.011 89.7)",
+          "oklch(85% 0.011 89.7)",
+          "oklch(95% 0.011 89.7)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Board Ink",
+        "canonical": "oklch(27.5% 0.007 67.5)",
+        "tonalRamp": [
+          "oklch(15% 0.007 67.5)",
+          "oklch(27% 0.007 67.5)",
+          "oklch(39% 0.007 67.5)",
+          "oklch(51% 0.007 67.5)",
+          "oklch(63% 0.007 67.5)",
+          "oklch(74% 0.007 67.5)",
+          "oklch(85% 0.007 67.5)",
+          "oklch(95% 0.007 67.5)"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "oklch(41.9% 0.013 76.5)",
+        "tonalRamp": [
+          "oklch(15% 0.013 76.5)",
+          "oklch(27% 0.013 76.5)",
+          "oklch(39% 0.013 76.5)",
+          "oklch(51% 0.013 76.5)",
+          "oklch(63% 0.013 76.5)",
+          "oklch(74% 0.013 76.5)",
+          "oklch(85% 0.013 76.5)",
+          "oklch(95% 0.013 76.5)"
+        ]
+      },
+      "ink-quiet": {
+        "role": "neutral",
+        "displayName": "Quiet Ink",
+        "canonical": "oklch(48.1% 0.015 75.2)",
+        "tonalRamp": [
+          "oklch(15% 0.015 75.2)",
+          "oklch(27% 0.015 75.2)",
+          "oklch(39% 0.015 75.2)",
+          "oklch(51% 0.015 75.2)",
+          "oklch(63% 0.015 75.2)",
+          "oklch(74% 0.015 75.2)",
+          "oklch(85% 0.015 75.2)",
+          "oklch(95% 0.015 75.2)"
+        ]
+      },
+      "machine": {
+        "role": "secondary",
+        "displayName": "Machine Grey",
+        "canonical": "oklch(48.1% 0.013 76.5)",
+        "tonalRamp": [
+          "oklch(15% 0.013 76.5)",
+          "oklch(27% 0.013 76.5)",
+          "oklch(39% 0.013 76.5)",
+          "oklch(51% 0.013 76.5)",
+          "oklch(63% 0.013 76.5)",
+          "oklch(74% 0.013 76.5)",
+          "oklch(85% 0.013 76.5)",
+          "oklch(95% 0.013 76.5)"
+        ]
+      },
+      "orange": {
+        "role": "primary",
+        "displayName": "Brand Orange",
+        "canonical": "oklch(75.4% 0.165 62.7)",
+        "tonalRamp": [
+          "oklch(15% 0.165 62.7)",
+          "oklch(27% 0.165 62.7)",
+          "oklch(39% 0.165 62.7)",
+          "oklch(51% 0.165 62.7)",
+          "oklch(63% 0.165 62.7)",
+          "oklch(74% 0.165 62.7)",
+          "oklch(85% 0.165 62.7)",
+          "oklch(95% 0.165 62.7)"
+        ]
+      },
+      "orange-deep": {
+        "role": "primary",
+        "displayName": "Mark Orange",
+        "canonical": "oklch(50.6% 0.136 48.4)",
+        "tonalRamp": [
+          "oklch(15% 0.136 48.4)",
+          "oklch(27% 0.136 48.4)",
+          "oklch(39% 0.136 48.4)",
+          "oklch(51% 0.136 48.4)",
+          "oklch(63% 0.136 48.4)",
+          "oklch(74% 0.136 48.4)",
+          "oklch(85% 0.136 48.4)",
+          "oklch(95% 0.136 48.4)"
+        ]
+      },
+      "orange-wash": {
+        "role": "primary",
+        "displayName": "Mark Wash",
+        "canonical": "oklch(96.1% 0.025 73.2)",
+        "tonalRamp": [
+          "oklch(15% 0.025 73.2)",
+          "oklch(27% 0.025 73.2)",
+          "oklch(39% 0.025 73.2)",
+          "oklch(51% 0.025 73.2)",
+          "oklch(63% 0.025 73.2)",
+          "oklch(74% 0.025 73.2)",
+          "oklch(85% 0.025 73.2)",
+          "oklch(95% 0.025 73.2)"
+        ]
+      },
+      "alert": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "oklch(46.5% 0.150 30.2)",
+        "tonalRamp": [
+          "oklch(15% 0.150 30.2)",
+          "oklch(27% 0.150 30.2)",
+          "oklch(39% 0.150 30.2)",
+          "oklch(51% 0.150 30.2)",
+          "oklch(63% 0.150 30.2)",
+          "oklch(74% 0.150 30.2)",
+          "oklch(85% 0.150 30.2)",
+          "oklch(95% 0.150 30.2)"
+        ]
+      },
+      "alert-wash": {
+        "role": "tertiary",
+        "displayName": "Alert Wash",
+        "canonical": "oklch(92.8% 0.023 34.3)",
+        "tonalRamp": [
+          "oklch(15% 0.023 34.3)",
+          "oklch(27% 0.023 34.3)",
+          "oklch(39% 0.023 34.3)",
+          "oklch(51% 0.023 34.3)",
+          "oklch(63% 0.023 34.3)",
+          "oklch(74% 0.023 34.3)",
+          "oklch(85% 0.023 34.3)",
+          "oklch(95% 0.023 34.3)"
+        ]
+      },
+      "cleared": {
+        "role": "tertiary",
+        "displayName": "Cleared Green",
+        "canonical": "oklch(48.0% 0.110 136.1)",
+        "tonalRamp": [
+          "oklch(15% 0.110 136.1)",
+          "oklch(27% 0.110 136.1)",
+          "oklch(39% 0.110 136.1)",
+          "oklch(51% 0.110 136.1)",
+          "oklch(63% 0.110 136.1)",
+          "oklch(74% 0.110 136.1)",
+          "oklch(85% 0.110 136.1)",
+          "oklch(95% 0.110 136.1)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline Rule",
+        "canonical": "oklch(88.6% 0.013 86.8)",
+        "tonalRamp": [
+          "oklch(15% 0.013 86.8)",
+          "oklch(27% 0.013 86.8)",
+          "oklch(39% 0.013 86.8)",
+          "oklch(51% 0.013 86.8)",
+          "oklch(63% 0.013 86.8)",
+          "oklch(74% 0.013 86.8)",
+          "oklch(85% 0.013 86.8)",
+          "oklch(95% 0.013 86.8)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "oklch(80.2% 0.018 88.0)",
+        "tonalRamp": [
+          "oklch(15% 0.018 88.0)",
+          "oklch(27% 0.018 88.0)",
+          "oklch(39% 0.018 88.0)",
+          "oklch(51% 0.018 88.0)",
+          "oklch(63% 0.018 88.0)",
+          "oklch(74% 0.018 88.0)",
+          "oklch(85% 0.018 88.0)",
+          "oklch(95% 0.018 88.0)"
+        ]
+      },
+      "cleared-wash": {
+        "role": "tertiary",
+        "displayName": "Cleared Wash",
+        "canonical": "oklch(96.8% 0.018 127.1)",
+        "tonalRamp": [
+          "oklch(15% 0.018 127.1)",
+          "oklch(27% 0.018 127.1)",
+          "oklch(39% 0.018 127.1)",
+          "oklch(51% 0.018 127.1)",
+          "oklch(63% 0.018 127.1)",
+          "oklch(74% 0.018 127.1)",
+          "oklch(85% 0.018 127.1)",
+          "oklch(95% 0.018 127.1)"
+        ]
+      },
+      "bay-current": {
+        "role": "neutral",
+        "displayName": "Current Bay",
+        "canonical": "oklch(88.3% 0.013 86.8)",
+        "tonalRamp": [
+          "oklch(15% 0.013 86.8)",
+          "oklch(27% 0.013 86.8)",
+          "oklch(39% 0.013 86.8)",
+          "oklch(51% 0.013 86.8)",
+          "oklch(63% 0.013 86.8)",
+          "oklch(74% 0.013 86.8)",
+          "oklch(85% 0.013 86.8)",
+          "oklch(95% 0.013 86.8)"
+        ]
+      },
+      "press-ink": {
+        "role": "neutral",
+        "displayName": "Press Ink",
+        "canonical": "oklch(21.9% 0.005 67.6)",
+        "tonalRamp": [
+          "oklch(15% 0.005 67.6)",
+          "oklch(27% 0.005 67.6)",
+          "oklch(39% 0.005 67.6)",
+          "oklch(51% 0.005 67.6)",
+          "oklch(63% 0.005 67.6)",
+          "oklch(74% 0.005 67.6)",
+          "oklch(85% 0.005 67.6)",
+          "oklch(95% 0.005 67.6)"
+        ]
+      },
+      "press-hover": {
+        "role": "neutral",
+        "displayName": "Press Hover",
+        "canonical": "oklch(34.0% 0.009 67.5)",
+        "tonalRamp": [
+          "oklch(15% 0.009 67.5)",
+          "oklch(27% 0.009 67.5)",
+          "oklch(39% 0.009 67.5)",
+          "oklch(51% 0.009 67.5)",
+          "oklch(63% 0.009 67.5)",
+          "oklch(74% 0.009 67.5)",
+          "oklch(85% 0.009 67.5)",
+          "oklch(95% 0.009 67.5)"
+        ]
+      },
+      "press-label": {
+        "role": "neutral",
+        "displayName": "Press Label",
+        "canonical": "oklch(97.6% 0.004 91.4)",
+        "tonalRamp": [
+          "oklch(15% 0.004 91.4)",
+          "oklch(27% 0.004 91.4)",
+          "oklch(39% 0.004 91.4)",
+          "oklch(51% 0.004 91.4)",
+          "oklch(63% 0.004 91.4)",
+          "oklch(74% 0.004 91.4)",
+          "oklch(85% 0.004 91.4)",
+          "oklch(95% 0.004 91.4)"
+        ]
+      },
+      "orange-ink": {
+        "role": "primary",
+        "displayName": "Mark Wash Ink",
+        "canonical": "oklch(42.4% 0.112 48.9)",
+        "tonalRamp": [
+          "oklch(15% 0.112 48.9)",
+          "oklch(27% 0.112 48.9)",
+          "oklch(39% 0.112 48.9)",
+          "oklch(51% 0.112 48.9)",
+          "oklch(63% 0.112 48.9)",
+          "oklch(74% 0.112 48.9)",
+          "oklch(85% 0.112 48.9)",
+          "oklch(95% 0.112 48.9)"
+        ]
+      },
+      "alert-ink": {
+        "role": "tertiary",
+        "displayName": "Alert Wash Ink",
+        "canonical": "oklch(39.8% 0.126 30.4)",
+        "tonalRamp": [
+          "oklch(15% 0.126 30.4)",
+          "oklch(27% 0.126 30.4)",
+          "oklch(39% 0.126 30.4)",
+          "oklch(51% 0.126 30.4)",
+          "oklch(63% 0.126 30.4)",
+          "oklch(74% 0.126 30.4)",
+          "oklch(85% 0.126 30.4)",
+          "oklch(95% 0.126 30.4)"
+        ]
+      },
+      "cleared-ink": {
+        "role": "tertiary",
+        "displayName": "Cleared Wash Ink",
+        "canonical": "oklch(41.6% 0.094 135.9)",
+        "tonalRamp": [
+          "oklch(15% 0.094 135.9)",
+          "oklch(27% 0.094 135.9)",
+          "oklch(39% 0.094 135.9)",
+          "oklch(51% 0.094 135.9)",
+          "oklch(63% 0.094 135.9)",
+          "oklch(74% 0.094 135.9)",
+          "oklch(85% 0.094 135.9)",
+          "oklch(95% 0.094 135.9)"
+        ]
+      },
+      "clip-rib": {
+        "role": "neutral",
+        "displayName": "Clip Rib",
+        "canonical": "rgb(255 255 255 / 0.28)",
+        "tonalRamp": []
+      },
+      "clip-edge": {
+        "role": "neutral",
+        "displayName": "Clip Edge",
+        "canonical": "rgb(42 39 36 / 0.18)",
+        "tonalRamp": []
+      },
+      "board-rib": {
+        "role": "neutral",
+        "displayName": "Board Rib",
+        "canonical": "rgb(42 39 36 / 0.014)",
+        "tonalRamp": []
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The public entry page's single headline; splits across two lines to hold the machine/teacher contrast."
+      },
+      "figure-monumental": {
+        "displayName": "Monumental Band",
+        "purpose": "The overall band on a marking sheet. Largest object on the screen, one per sheet."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles, balanced wrap."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section heads above a hairline rule; blank-state titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All Vietnamese interface prose."
+      },
+      "specimen": {
+        "displayName": "Specimen",
+        "purpose": "Text a person wrote: the task prompt, the essay at 68ch, sentence rewrites."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Criterion values and the teacher's written fields; tabular mono."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Micro-labels, column heads, refs, state chips, timeline titles, colophon."
+      },
+      "figure-preview": {
+        "displayName": "Preview Figure",
+        "purpose": "The band inside the commit block's student preview."
+      },
+      "figure-strip": {
+        "displayName": "Strip Figure",
+        "purpose": "The overall band printed on a strip; weight 500 in machine grey while it is still the AI's."
+      },
+      "body-strong": {
+        "displayName": "Body Strong",
+        "purpose": "Strip names, subtitles, sentence-mark text."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "Text fields and secondary prose."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Button labels, notices, navigation links."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Criterion names, adopt list, commit preview prose."
+      },
+      "caption-sm": {
+        "displayName": "Caption Small",
+        "purpose": "Empty-bay text and sentence-mark rationale."
+      },
+      "figure-sm": {
+        "displayName": "Small Figure",
+        "purpose": "Refs, essay line numbers, deviations, timeline figures."
+      },
+      "label-sm": {
+        "displayName": "Small Label",
+        "purpose": "Field labels and the colophon."
+      },
+      "chip": {
+        "displayName": "State Chip",
+        "purpose": "The uppercase state label on a strip."
+      },
+      "abbr": {
+        "displayName": "Abbreviation",
+        "purpose": "Criterion abbreviations and strip band labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "seat",
+        "value": "0 1px 0 #d5d1c7, 0 10px 18px -14px rgb(42 39 36 / 0.45)",
+        "purpose": "Paper at rest in its holder. Strips, sheets, prompts, rail blocks only."
+      },
+      {
+        "name": "seat-lift",
+        "value": "0 2px 0 #d5d1c7, 0 22px 34px -22px rgb(42 39 36 / 0.5)",
+        "purpose": "Paper lifted on hover of an interactive strip, paired with translateY(-2px)."
+      },
+      {
+        "name": "press-edge",
+        "value": "0 2px 0 #1c1a18",
+        "purpose": "The thickness of a pressable key. Collapses to 0 0 0 on :active as the control drops 2px."
+      },
+      {
+        "name": "press-edge-quiet",
+        "value": "0 2px 0 #d5d1c7",
+        "purpose": "Press edge for the quiet button on stock."
+      },
+      {
+        "name": "seated-inset",
+        "value": "inset 0 0 0 1px #eeece7",
+        "purpose": "The under-review strip, pressed one step further into its holder."
+      },
+      {
+        "name": "adopt-inset",
+        "value": "inset 0 1px 0 rgb(42 39 36 / 0.06)",
+        "purpose": "The adopt box's pressed paper lip."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-press",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The only easing in the system: exponential press-and-seat settle."
+      },
+      {
+        "name": "press",
+        "value": "0.12s",
+        "purpose": "Button press and release."
+      },
+      {
+        "name": "hover",
+        "value": "0.16s - 0.18s",
+        "purpose": "Hover colour, border, and strip lift."
+      },
+      {
+        "name": "stamp-press",
+        "value": "0.4s (0.28s on the adopt tick)",
+        "purpose": "The stamp lands from scale(1.5) rotate(-9deg) and settles at rotate(-2.5deg)."
+      },
+      {
+        "name": "strip-seat",
+        "value": "0.3s",
+        "purpose": "A strip seating into its bay: translateY(-8px) to 0, seat-lift relaxing to seat."
+      },
+      {
+        "name": "rule-through",
+        "value": "0.34s",
+        "purpose": "The 2px orange bar drawn scaleX(0) to 1 across a machine figure."
+      },
+      {
+        "name": "strip-wait",
+        "value": "1.4s linear infinite",
+        "purpose": "Skeleton strip sweep on the waiting rack."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.001ms",
+        "purpose": "Every animation and transition under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sheet-collapse",
+        "value": "60rem"
+      },
+      {
+        "name": "strip-stack",
+        "value": "44rem"
+      }
+    ],
+    "typeScale": {
+      "unit": "rem",
+      "steps": [
+        1.6,
+        1.5,
+        1.18,
+        1.05,
+        1,
+        0.95,
+        0.92,
+        0.88,
+        0.84,
+        0.78,
+        0.68,
+        0.62,
+        0.6,
+        0.58,
+        0.55
+      ],
+      "clamps": [
+        "clamp(3.4rem, 8vw, 4.6rem)",
+        "clamp(2.4rem, 6vw, 4rem)",
+        "clamp(1.6rem, 3.4vw, 2.4rem)",
+        "clamp(1.45rem, 3vw, 2rem)"
+      ],
+      "purpose": "The whole ramp: fifteen rem steps and four clamps. Fine-grained because the board is clerical and dense; two steps closer than 0.03rem apart are the same step."
+    }
+  },
+  "components": [
+    {
+      "name": "Press (Primary Button)",
+      "kind": "button",
+      "refersTo": "press",
+      "description": "The primary action on the board — sign, submit, open. Square, ink-dark, with a key-thickness edge that collapses when pressed. Never orange.",
+      "html": "<button class=\"ds-press\">Ký duyệt</button>",
+      "css": ".ds-press { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; background: #2a2724; color: #f8f7f4; border: 1px solid #1c1a18; border-radius: 0; box-shadow: 0 2px 0 #1c1a18; padding: 0.55rem 1.1rem; font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.88rem; font-weight: 600; letter-spacing: 0.01em; cursor: pointer; transition: transform 0.12s cubic-bezier(0.16,1,0.3,1), box-shadow 0.12s cubic-bezier(0.16,1,0.3,1), background 0.16s cubic-bezier(0.16,1,0.3,1); } .ds-press:hover { background: #3b3733; } .ds-press:focus-visible { outline: 2px solid #2a2724; outline-offset: 2px; } .ds-press:active { transform: translateY(2px); box-shadow: 0 0 0 #1c1a18; } .ds-press:disabled { background: #d5d1c7; border-color: #c3beb2; color: #635d55; box-shadow: none; cursor: not-allowed; }"
+    },
+    {
+      "name": "Quiet Press (Secondary Button)",
+      "kind": "button",
+      "refersTo": "press-quiet",
+      "description": "Secondary action — save a revision, withdraw a signature. Stock paper with a rack-edge key thickness.",
+      "html": "<button class=\"ds-press-quiet\">Lưu bản sửa</button>",
+      "css": ".ds-press-quiet { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; background: #ffffff; color: #2a2724; border: 1px solid #c3beb2; border-radius: 0; box-shadow: 0 2px 0 #d5d1c7; padding: 0.55rem 1.1rem; font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: transform 0.12s cubic-bezier(0.16,1,0.3,1), box-shadow 0.12s cubic-bezier(0.16,1,0.3,1), border-color 0.16s cubic-bezier(0.16,1,0.3,1); } .ds-press-quiet:hover { border-color: #635d55; } .ds-press-quiet:focus-visible { outline: 2px solid #2a2724; outline-offset: 2px; } .ds-press-quiet:active { transform: translateY(2px); box-shadow: 0 0 0 #d5d1c7; } .ds-press-quiet:disabled { color: #635d55; box-shadow: none; cursor: not-allowed; }"
+    },
+    {
+      "name": "Strip",
+      "kind": "custom",
+      "refersTo": "strip",
+      "description": "One submission seated in a holder. The ribbed left clip carries the state; the uppercase mono label states it in words. Shown here in the under-review treatment.",
+      "html": "<a class=\"ds-strip ds-strip-review\" href=\"#\"><span class=\"ds-strip-ref\">BB-C1CF09/1</span><span class=\"ds-strip-body\"><span class=\"ds-strip-name\">Trần Quốc Khánh</span><span class=\"ds-strip-meta\"><span>TASK 2</span><span>268 TỪ</span><span>13/09/2026</span></span></span><span class=\"ds-strip-end\"><span class=\"ds-strip-overall\">6.5</span><span class=\"ds-strip-state\">CHỜ GIÁO VIÊN</span></span></a>",
+      "css": ".ds-strip { position: relative; display: grid; grid-template-columns: 7.5rem minmax(0,1fr) auto; align-items: center; gap: 0.5rem 1rem; background: #ffffff; border: 1px solid #e2dfd7; border-radius: 0; box-shadow: 0 1px 0 #d5d1c7, 0 10px 18px -14px rgb(42 39 36 / 0.45); padding: 0.6rem 0.85rem 0.6rem 1.35rem; --ds-holder: #c3beb2; text-decoration: none; color: #2a2724; cursor: pointer; transition: transform 0.18s cubic-bezier(0.16,1,0.3,1), box-shadow 0.18s cubic-bezier(0.16,1,0.3,1); } .ds-strip::before { content: \"\"; position: absolute; inset: -1px auto -1px -1px; width: 0.55rem; background: repeating-linear-gradient(to bottom, rgb(255 255 255 / 0.28) 0 2px, transparent 2px 5px), var(--ds-holder); border-right: 1px solid rgb(42 39 36 / 0.18); } .ds-strip-review { --ds-holder: #2a2724; box-shadow: inset 0 0 0 1px #eeece7, 0 1px 0 #d5d1c7, 0 10px 18px -14px rgb(42 39 36 / 0.45); } .ds-strip:hover { transform: translateY(-2px); box-shadow: 0 2px 0 #d5d1c7, 0 22px 34px -22px rgb(42 39 36 / 0.5); } .ds-strip:focus-visible { outline: 2px solid #2a2724; outline-offset: 2px; } .ds-strip:active { transform: translateY(0); box-shadow: 0 1px 0 #d5d1c7; } .ds-strip-ref { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.68rem; letter-spacing: 0.05em; color: #625d56; font-variant-numeric: tabular-nums; } .ds-strip-body { min-width: 0; } .ds-strip-name { display: block; font-weight: 600; font-size: 0.95rem; letter-spacing: -0.01em; } .ds-strip-meta { display: flex; gap: 0.9rem; flex-wrap: wrap; margin-top: 0.12rem; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.68rem; letter-spacing: 0.05em; color: #635d55; } .ds-strip-end { display: flex; align-items: center; gap: 0.9rem; justify-self: end; } .ds-strip-overall { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 500; letter-spacing: -0.03em; line-height: 1; color: #625d56; } .ds-strip-state { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.58rem; letter-spacing: 0.13em; text-transform: uppercase; color: #514c45; white-space: nowrap; border-bottom: 2px solid #c3beb2; padding-bottom: 0.1rem; }"
+    },
+    {
+      "name": "Criterion Row",
+      "kind": "input",
+      "refersTo": "criterion-field",
+      "description": "The overwrite. The AI's figure is printed in machine grey and ruled through; the teacher's figure is written over it in orange; the deviation prints signed on one rule. An out-of-band figure is refused in place — alert on alert-wash, aria-invalid, and no deviation printed.",
+      "html": "<div class=\"ds-criterion\"><span class=\"ds-criterion-name\">Lexical Resource<span class=\"ds-criterion-abbr\">LR</span></span><span class=\"ds-criterion-machine ds-struck\">6.0</span><input class=\"ds-criterion-field\" type=\"text\" inputmode=\"decimal\" value=\"6.5\" aria-label=\"Điểm giáo viên, 0 đến 9, bước 0.5\" /><span class=\"ds-deviation ds-deviation-up\">+0.5</span></div><div class=\"ds-criterion\"><span class=\"ds-criterion-name\">Lexical Resource<span class=\"ds-criterion-abbr\">LR</span></span><span class=\"ds-criterion-machine ds-struck\">6.0</span><input class=\"ds-criterion-field\" type=\"text\" inputmode=\"decimal\" value=\"66.5\" aria-invalid=\"true\" aria-label=\"Điểm giáo viên, 0 đến 9, bước 0.5\" /><span class=\"ds-deviation\"></span></div>",
+      "css": ".ds-criterion { display: grid; grid-template-columns: minmax(0,1fr) 3.1rem 4.2rem 2.6rem; align-items: center; gap: 0.5rem; padding-block: 0.62rem; border-bottom: 1px dotted #ddd9d0; } .ds-criterion-name { font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.84rem; font-weight: 500; color: #2a2724; } .ds-criterion-abbr { display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.55rem; letter-spacing: 0.12em; color: #635d55; } .ds-criterion-machine { position: relative; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.95rem; text-align: right; color: #625d56; } .ds-struck::after { content: \"\"; position: absolute; left: -0.12em; right: -0.12em; top: 52%; height: 2px; background: #a04703; } .ds-criterion-field { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 1.18rem; font-weight: 700; color: #a04703; text-align: right; width: 100%; background: transparent; border: 0; border-bottom: 2px solid #f7941e; border-radius: 0; padding: 0.1rem 0.3rem 0.15rem 0; } .ds-criterion-field:hover { background: #fdf0e0; } .ds-criterion-field:focus-visible { outline: 2px solid #a04703; outline-offset: 1px; background: #fdf0e0; } .ds-criterion-field[aria-invalid=\"true\"] { color: #9c2c1f; border-bottom-color: #9c2c1f; background: #f6e2dd; } .ds-deviation { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.68rem; text-align: right; color: #514c45; } .ds-deviation-up { color: #3f6b27; } .ds-deviation-down { color: #9c2c1f; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "The standard written field — revision notes, feedback to the student. Square, stock paper, hairline border that darkens on hover.",
+      "html": "<label class=\"ds-field-wrap\"><span class=\"ds-field-label\">Ghi chú nội bộ</span><input class=\"ds-field\" placeholder=\"Nâng LR vì đoạn 2 dùng từ chính xác hơn\" /></label>",
+      "css": ".ds-field-label { display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: #514c45; margin-bottom: 0.35rem; } .ds-field { display: block; width: 100%; background: #ffffff; border: 1px solid #c3beb2; border-radius: 0; padding: 0.6rem 0.7rem; font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.92rem; line-height: 1.55; color: #2a2724; } .ds-field::placeholder { color: #635d55; opacity: 1; } .ds-field:hover { border-color: #635d55; } .ds-field:focus-visible { outline: 2px solid #2a2724; outline-offset: 1px; border-color: #2a2724; }"
+    },
+    {
+      "name": "Masthead",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "The only navigation in the system. A tonal band closed by a 2px rule, with the orange wordmark, an optional mono role chip, and underline-on-active links. No sidebar rail exists.",
+      "html": "<header class=\"ds-masthead\"><div class=\"ds-masthead-inner\"><span class=\"ds-wordmark\">Idest</span><span class=\"ds-role\">Giáo viên</span><nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Bảng chấm</a><a class=\"ds-nav-link\" href=\"#\">Tài khoản</a><a class=\"ds-nav-link\" href=\"#\">Đăng xuất</a></nav></div></header>",
+      "css": ".ds-masthead { border-bottom: 2px solid #c3beb2; background: linear-gradient(to bottom, #eeece7, #f6f5f2); } .ds-masthead-inner { display: flex; align-items: center; gap: 0.75rem 1.4rem; flex-wrap: wrap; padding-inline: clamp(1rem, 3vw, 2.5rem); padding-block: 0.7rem; } .ds-wordmark { font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; color: #a04703; } .ds-role { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: #514c45; border: 1px solid #c3beb2; padding: 0.2rem 0.45rem; } .ds-nav { margin-left: auto; display: flex; align-items: center; gap: 1.1rem; } .ds-nav-link { font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.88rem; font-weight: 500; color: #514c45; text-decoration: none; padding-block: 0.15rem; border-bottom: 2px solid transparent; transition: color 0.16s cubic-bezier(0.16,1,0.3,1), border-color 0.16s cubic-bezier(0.16,1,0.3,1); } .ds-nav-link:hover { color: #2a2724; border-bottom-color: #635d55; } .ds-nav-link:focus-visible { outline: 2px solid #2a2724; outline-offset: 2px; } .ds-nav-link-active { color: #2a2724; border-bottom-color: #2a2724; }"
+    },
+    {
+      "name": "Stamp",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "The signed mark. A rotated, 2px-bordered mono block in cleared green; the pending variant sits square and grey until a teacher signs.",
+      "html": "<span class=\"ds-stamp\">Đã ký · 13/09/2026</span> <span class=\"ds-stamp ds-stamp-pending\">Chưa ký</span>",
+      "css": ".ds-stamp { display: inline-flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: #3f6b27; border: 2px solid #3f6b27; border-radius: 0; padding: 0.28rem 0.6rem; transform: rotate(-2.5deg); animation: ds-stamp-press 0.4s cubic-bezier(0.16,1,0.3,1) both; } .ds-stamp-pending { color: #635d55; border-color: #c3beb2; transform: none; animation: none; } @keyframes ds-stamp-press { 0% { transform: scale(1.5) rotate(-9deg); opacity: 0; } 55% { transform: scale(0.94) rotate(-3deg); opacity: 1; } 100% { transform: scale(1) rotate(-2.5deg); opacity: 1; } }"
+    },
+    {
+      "name": "Commit Block",
+      "kind": "card",
+      "refersTo": "commit",
+      "description": "The visible threshold before signing: the only orange-bordered surface in the system, holding the adopt list and a preview of the exact sheet the student will read.",
+      "html": "<section class=\"ds-commit\"><p class=\"ds-commit-head\">Trước khi ký</p><label class=\"ds-adopt\"><input class=\"ds-adopt-box\" type=\"checkbox\" checked /><span>Replace repeated phrases with more precise alternatives</span></label><div class=\"ds-commit-preview\"><span class=\"ds-commit-label\">Học viên sẽ đọc đúng bản này</span><p><span class=\"ds-commit-figure\">7.0</span> 6.5 · 7.0 · 6.5 · 6.0</p></div></section>",
+      "css": ".ds-commit { border: 2px solid #a04703; border-radius: 0; background: #fdf0e0; padding: 0.9rem 1rem 1.05rem; } .ds-commit-head { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #7d3703; margin: 0 0 0.5rem; } .ds-adopt { display: grid; grid-template-columns: 1.05rem minmax(0,1fr); gap: 0.5rem; align-items: start; padding-block: 0.4rem; font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.84rem; line-height: 1.5; color: #2a2724; cursor: pointer; } .ds-adopt-box { appearance: none; position: relative; width: 1.05rem; height: 1.05rem; margin: 0.18rem 0 0; border: 1px solid #c3beb2; border-radius: 0; background: #ffffff; box-shadow: inset 0 1px 0 rgb(42 39 36 / 0.06); cursor: pointer; } .ds-adopt-box:hover { border-color: #a04703; } .ds-adopt-box:focus-visible { outline: 2px solid #2a2724; outline-offset: 2px; } .ds-adopt-box:checked::after { content: \"\"; position: absolute; left: 0.2rem; top: 0.06rem; width: 0.36rem; height: 0.62rem; border: solid #a04703; border-width: 0 2px 2px 0; transform: rotate(38deg); } .ds-commit-preview { background: #ffffff; border: 1px solid #c3beb2; padding: 0.7rem 0.8rem; font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.84rem; line-height: 1.5; color: #514c45; } .ds-commit-label { display: block; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: #514c45; margin-bottom: 0.2rem; } .ds-commit-figure { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 1.6rem; font-weight: 700; color: #2a2724; letter-spacing: -0.03em; }"
+    },
+    {
+      "name": "Notice",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "A flat bordered bar for system messages. Three tones — plain, alert, cleared — each carrying its words, never colour alone.",
+      "html": "<p class=\"ds-notice\">Bài nộp đã vào hàng chờ.</p><p class=\"ds-notice ds-notice-alert\" role=\"alert\">Máy chấm lỗi ở lần này. Bài viết vẫn còn nguyên vẹn.</p><p class=\"ds-notice ds-notice-ok\">Đã ký duyệt. Học viên đang đọc bản này.</p>",
+      "css": ".ds-notice { border: 1px solid #c3beb2; border-radius: 0; background: #ffffff; padding: 0.7rem 0.9rem; font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.88rem; color: #514c45; margin: 0 0 0.6rem; } .ds-notice-alert { border-color: #9c2c1f; background: #f6e2dd; color: #7d2318; } .ds-notice-ok { border-color: #3f6b27; background: var(--cleared-wash, #f1f7ea); color: #33571f; }"
+    },
+    {
+      "name": "Bay",
+      "kind": "card",
+      "refersTo": "bay",
+      "description": "A column of the board. Rack ground, dashed head rule, mono count; the current bay takes a tonal gradient and an inset top bar rather than a colour change.",
+      "html": "<div class=\"ds-bays\"><div class=\"ds-bay ds-bay-current\"><div class=\"ds-bay-head\"><span class=\"ds-bay-label\">Chờ giáo viên</span><span class=\"ds-bay-count\">3</span></div><p class=\"ds-bay-empty\">Không có bài nào trong khay này</p></div><div class=\"ds-bay\"><div class=\"ds-bay-head\"><span class=\"ds-bay-label\">Đã ký</span><span class=\"ds-bay-count\">12</span></div></div></div>",
+      "css": ".ds-bays { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1px; background: #d5d1c7; border: 1px solid #d5d1c7; } .ds-bay { background: #e8e5de; padding: 0.75rem 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.55rem; min-height: 9rem; } .ds-bay-current { background: linear-gradient(to bottom, #dcd8cf, #e8e5de); box-shadow: inset 0 3px 0 #635d55; } .ds-bay-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px dashed #d5d1c7; } .ds-bay-label { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: #514c45; } .ds-bay-count { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 1rem; font-weight: 700; color: #2a2724; } .ds-bay-empty { font-family: var(--font-be-vietnam, 'Be Vietnam Pro', system-ui, sans-serif); font-size: 0.78rem; color: #635d55; font-style: italic; margin: 0; padding-block: 0.4rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Strip Bay",
+    "overview": "Idest looks like a warm, well-used operations board rather than software. Every submission is a paper strip seated in a holder; holders sit in bays; bays sit on a neutral warm ground that carries a faint 1px vertical rib at full page scale. Work moves by being pulled out of one bay and seated into the next, and the board records what happened in machine print and in the teacher's own hand. Density is high and deliberately clerical: rules and dotted separators do the dividing, not whitespace and not containers.\n\nThe system is built around a single conflict made visible — the machine's figure versus the teacher's figure. The machine prints in JetBrains Mono at machine grey; the teacher writes in orange over the top, and the machine's number is ruled through but left legible beneath it. Append-only history is therefore seen rather than explained. The overall band is the largest object on the marking sheet, set in mono at up to 4.6rem, because the band is the product.\n\nThe palette was resolved during the build, not before it: an earlier steer toward an orange console was rejected on sight, and the ground settled at neutral warm stock with orange cut back to three places. That ration is now the system's most load-bearing rule. The world refuses the ed-tech dashboard (sidebar rail, white cards, coloured status pills, score donuts) and the gamified learner app (streaks, confetti, progress rings); it also refuses rounded panels outright — every radius in the build is 0.",
+    "keyCharacteristics": [
+      "Neutral warm ground (board) at full page scale, with a 1px vertical rib in body ink at 1.4% alpha.",
+      "Three type voices with fixed jobs: sans for Vietnamese UI, mono for every machine-set figure, serif for the essay specimen only.",
+      "Zero radius, hairline rules, hatching, and seat depth instead of cards and shadows-as-decoration.",
+      "Orange rationed to the marking rail, the teacher's own marks, and the logo.",
+      "State is always physical treatment plus a text label; never colour alone.",
+      "The mascot rasters appear only where the board is empty or broken."
+    ],
+    "rules": [
+      {
+        "name": "The Rationed Orange Rule",
+        "body": "Orange appears in exactly three places: the marking rail, the teacher's own marks, and the logo. Nothing the board itself is made of — bays, strips, the masthead, primary buttons — is ever orange. Audit test: cover the marking rail and the wordmark; if any orange remains on screen, it is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Hands Rule",
+        "body": "Grey is the machine's; orange is the teacher's. A figure never changes hands by moving — the machine's print stays where it was printed and is ruled through, and the teacher's figure is written beside it.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Colour-Only Rule",
+        "body": "No state is carried by hue alone. Every state pairs a physical treatment (holder colour value, hatching, seat depth, a stamp) with an always-present uppercase mono text label.",
+        "section": "colors"
+      },
+      {
+        "name": "The Machine-Set Figure Rule",
+        "body": "Every number a reader might compare — band, word count, ref, timestamp, deviation, count — is JetBrains Mono with font-variant-numeric: tabular-nums. A band is always printed to one decimal, or an em dash when absent; a deviation is always signed (+0.5, −0.5, ±0.0).",
+        "section": "typography"
+      },
+      {
+        "name": "The Specimen Rule",
+        "body": "Source Serif 4 is reserved for text a person wrote: the prompt, the essay, and sentence rewrites. The student's own drafting textarea is set in it too, at the same 1.05rem the specimen is read at — a student writes on the same material a teacher reads. It never sets interface chrome.",
+        "section": "typography"
+      },
+      {
+        "name": "The Label-Not-Kicker Rule",
+        "body": "Uppercase mono micro-labels are column heads, field labels, and state chips sitting within or beside their content. They are never stacked above a headline as an eyebrow.",
+        "section": "typography"
+      },
+      {
+        "name": "The Fine Ladder Rule",
+        "body": "Fifteen rem steps plus four clamps is the whole ramp. Two steps closer than 0.03rem apart are the same step — pick the documented one rather than adding a neighbour.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Edge Rule",
+        "body": "Masthead, main, and colophon all resolve to the same clamp(1rem, 3vw, 2.5rem) inline padding and the same max width. Nothing on the page starts at a different left edge.",
+        "section": "layout"
+      },
+      {
+        "name": "The Paper-Only Shadow Rule",
+        "body": "Seat and Seat Lift belong to stock. If an element is not paper, it gets a border, a rule, or a tonal step — never a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Press-Collapse Rule",
+        "body": "A hard offset edge is only ever the thickness of a pressable control and must collapse on :active. A hard offset that never collapses is decoration and does not belong in this world.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Square Corner Rule",
+        "body": "Nothing in this system is rounded. A radius is a card tell, and there are no cards here.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Physical State Rule",
+        "body": "Every strip and every field state carries a physical treatment and a text label. Adding a new state means inventing its material — a holder value, a hatch, a seat depth, a stamp — not picking a new hue.",
+        "section": "components"
+      },
+      {
+        "name": "The Mascot Rule",
+        "body": "The four assignment mascots and the 404 raster appear only where the board is empty or broken. They never sit beside working content and never carry meaning (alt=\"\").",
+        "section": "components"
+      },
+      {
+        "name": "The Press and Seat Rule",
+        "body": "Motion is press and seat on cubic-bezier(0.16, 1, 0.3, 1): 0.12s for presses, 0.16–0.18s for hover, 0.28–0.4s for stamps and rule-throughs, 0.3s for a strip seating. Under prefers-reduced-motion everything drops to 0.001ms.",
+        "section": "components"
+      },
+      {
+        "name": "The Refused Figure Rule",
+        "body": "A figure the system cannot accept is shown, marked, and refused — never silently cleared, rounded, or allowed downstream. Refusal propagates: the deviation goes blank, the actions disable, and the student preview refuses to render rather than previewing a sheet that could never be signed.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do keep orange to the marking rail, the teacher's own marks, and the logo; the board's own furniture is never orange.",
+      "Do give every new state a physical treatment and an uppercase mono label — holder colour value, hatching, seat depth, or a stamp.",
+      "Do set every comparable number in JetBrains Mono with tabular-nums, bands to one decimal and deviations signed.",
+      "Do rule the machine's figure through and leave it legible; append-only history must be visible, not described.",
+      "Do reserve Source Serif 4 for text a person wrote — the prompt, the essay, and sentence rewrites.",
+      "Do reach for a 1px rule or a tonal step to separate content; only paper gets Seat or Seat Lift.",
+      "Do keep the overall band the largest object on a marking sheet, one per sheet.",
+      "Do hold masthead, main, and colophon on the same max width and clamp(1rem, 3vw, 2.5rem) gutter.",
+      "Do show mascot rasters only on empty, broken, or 404 surfaces, with alt=\"\".",
+      "Do keep a refused figure on screen in alert on alert-wash, blank its deviation, disable the actions, and refuse to render the student preview until it is valid.",
+      "Do drop an accent to its wash ink (orange-ink, alert-ink, cleared-ink) whenever it is set as text on its own wash.",
+      "Do pick a step off the documented ladder; never interpolate a new one within 0.03rem of an existing step."
+    ],
+    "donts": [
+      "Don't round anything. Every radius in this system is 0.",
+      "Don't build cards, coloured status pills, score donuts, progress rings, streaks, or confetti.",
+      "Don't signal a state with colour alone, and don't delete a machine figure to show it was overruled.",
+      "Don't put a hard offset shadow on anything that cannot be pressed, and don't let one survive :active.",
+      "Don't stack an uppercase mono label above a headline as an eyebrow or kicker; labels belong inside or beside their content.",
+      "Don't show a student the failed strip's alert hatch, the machine's draft, or any internal note.",
+      "Don't add a sidebar navigation rail; the masthead is the only navigation.",
+      "Don't set interface chrome in the serif, or Vietnamese prose in the mono.",
+      "Don't use press-ink, press-hover, or press-label anywhere but the primary press, or clip-rib/clip-edge/board-rib as anything but material.",
+      "Don't clear, round, or quietly accept a figure outside 0–9 in steps of 0.5."
+    ]
+  }
+}

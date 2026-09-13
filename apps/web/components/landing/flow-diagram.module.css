@@ -1,0 +1,150 @@
+.flow {
+  width: 100%;
+}
+
+.track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+}
+
+.track::before {
+  content: "";
+  position: absolute;
+  top: 1.4rem;
+  left: calc(12.5% - 0.75px);
+  right: calc(12.5% - 0.75px);
+  height: 1.5px;
+  background: var(--rule-strong);
+}
+
+.trackFill {
+  position: absolute;
+  top: 1.4rem;
+  left: 12.5%;
+  height: 1.5px;
+  width: 0%;
+  background: var(--orange-deep);
+  transition: width 0.35s var(--ease-press);
+  z-index: 1;
+}
+
+.node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  background: none;
+  border: none;
+  padding: 0 0.5rem;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.nodeDot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 999px;
+  background: var(--board);
+  border: 1.5px solid var(--rule-strong);
+  font-family: var(--font-figure);
+  font-weight: 700;
+  color: var(--ink-quiet);
+  transition:
+    transform 0.25s var(--ease-press),
+    background-color 0.25s var(--ease-press),
+    border-color 0.25s var(--ease-press),
+    color 0.25s var(--ease-press);
+}
+
+.nodeActive .nodeDot {
+  background: var(--orange-wash);
+  border-color: var(--orange-deep);
+  color: var(--orange-deep);
+}
+
+.nodeCurrent .nodeDot {
+  background: var(--orange-deep);
+  border-color: var(--orange-deep);
+  color: #fff8f0;
+  transform: scale(1.15);
+}
+
+.nodeLabel {
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink-quiet);
+  transition: color 0.25s var(--ease-press);
+  max-width: 11rem;
+}
+
+.nodeCurrent .nodeLabel {
+  color: var(--ink);
+}
+
+.node:focus-visible .nodeDot {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.panel {
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--rule);
+  min-height: 6.5rem;
+  display: flex;
+  align-items: flex-start;
+}
+
+.panelInner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.panelArt {
+  flex: none;
+  width: 3.75rem;
+  height: 3.75rem;
+  color: var(--orange-deep);
+}
+
+.panelText {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+@media (max-width: 44rem) {
+  .track {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .nodeLabel {
+    font-size: 0.72rem;
+  }
+
+  .panelInner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .panelArt {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .panelText {
+    font-size: 1rem;
+  }
+}

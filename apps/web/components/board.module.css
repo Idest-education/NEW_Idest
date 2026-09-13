@@ -1,0 +1,1396 @@
+/* Strip Bay — board furniture. Strips seat in holders; nothing is a card. */
+
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  width: min(100%, 84rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+  padding-block: clamp(1.25rem, 3vw, 2.25rem) clamp(3rem, 6vw, 5rem);
+}
+
+.wide {
+  width: min(100%, 96rem);
+}
+
+/* ── Masthead ─────────────────────────────────────────── */
+
+.masthead {
+  border-bottom: 2px solid var(--rule-strong);
+  background: linear-gradient(to bottom, var(--board-deep), var(--board));
+}
+
+.mastheadInner {
+  width: min(100%, 96rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+  padding-block: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1.4rem;
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wordmarkImg {
+  display: block;
+  height: 1.55rem;
+  width: auto;
+}
+
+.mastheadRole {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule-strong);
+  padding: 0.2rem 0.45rem;
+}
+
+.mastheadNav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.navLink {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding-block: 0.15rem;
+  border-bottom: 2px solid transparent;
+  transition: color 0.16s var(--ease-press), border-color 0.16s var(--ease-press);
+}
+
+.navLink:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink-quiet);
+}
+
+.navLinkActive {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* ── Typography ───────────────────────────────────────── */
+
+.label {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.figure {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  max-width: 62ch;
+  margin-top: 0.5rem;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2.75rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ── Bays ─────────────────────────────────────────────── */
+
+.bays {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1px;
+  background: var(--rack-edge);
+  border: 1px solid var(--rack-edge);
+  margin-top: 1.25rem;
+}
+
+.bay {
+  background: var(--rack);
+  padding: 0.75rem 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 9rem;
+}
+
+.bayCurrent {
+  background: linear-gradient(to bottom, #dcd8cf, var(--rack));
+  box-shadow: inset 0 3px 0 var(--ink-quiet);
+}
+
+.bayHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px dashed var(--rack-edge);
+}
+
+.bayCount {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.bayEmpty {
+  font-size: 0.78rem;
+  color: var(--ink-quiet);
+  font-style: italic;
+  padding-block: 0.4rem;
+}
+
+/* ── Strips ───────────────────────────────────────────── */
+
+.rack {
+  border: 1px solid var(--rack-edge);
+  background: var(--rack);
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.strip {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 0.6rem 0.85rem 0.6rem 1.35rem;
+  --holder: var(--rule-strong);
+  text-align: left;
+  width: 100%;
+  transition:
+    transform 0.18s var(--ease-press),
+    box-shadow 0.18s var(--ease-press);
+  animation: strip-seat 0.3s var(--ease-press) both;
+}
+
+.strip::before {
+  content: "";
+  position: absolute;
+  inset: -1px auto -1px -1px;
+  width: 0.55rem;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.28) 0 2px,
+      transparent 2px 5px
+    ),
+    var(--holder);
+  border-right: 1px solid rgb(42 39 36 / 0.18);
+}
+
+a.strip,
+button.strip {
+  cursor: pointer;
+}
+
+a.strip:hover,
+button.strip:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--seat-lift);
+}
+
+a.strip:active,
+button.strip:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 0 var(--rack-edge);
+}
+
+/* Physical treatment per state — never colour alone. */
+.stripWaiting {
+  --holder: var(--rule-strong);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 7px,
+    rgb(53 36 26 / 0.045) 7px 8px
+  );
+}
+
+.stripScored {
+  --holder: var(--ink-quiet);
+}
+
+.stripReview {
+  --holder: var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--board-deep),
+    var(--seat);
+}
+
+.stripSigned {
+  --holder: var(--cleared);
+  background: linear-gradient(to right, var(--cleared-wash), var(--stock));
+}
+
+.stripFailed {
+  --holder: var(--alert);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 9px,
+    var(--alert-wash) 9px 18px
+  );
+}
+
+.stripRef {
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--machine);
+  font-variant-numeric: tabular-nums;
+}
+
+.stripBody {
+  min-width: 0;
+}
+
+.stripName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripMeta {
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-quiet);
+  margin-top: 0.12rem;
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.stripEnd {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  justify-self: end;
+}
+
+/* Machine-printed band figures on the strip. */
+.stripBands {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stripBand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 2.1rem;
+}
+
+.stripBandLabel {
+  font-family: var(--font-figure);
+  font-size: 0.55rem;
+  letter-spacing: 0.09em;
+  color: var(--machine);
+}
+
+.stripBandValue {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--machine);
+}
+
+.stripOverall {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+  min-width: 2.6rem;
+  text-align: right;
+}
+
+.stripOverallMachine {
+  color: var(--machine);
+  font-weight: 500;
+}
+
+.stripState {
+  font-family: var(--font-figure);
+  font-size: 0.58rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  border-bottom: 2px solid var(--rule-strong);
+  padding-bottom: 0.1rem;
+}
+
+.stripStateSigned {
+  color: var(--cleared);
+  border-bottom-color: var(--cleared);
+}
+
+.stripStateFailed {
+  color: var(--alert);
+  border-bottom-color: var(--alert);
+}
+
+/* ── The sheet (one submission, pulled out of the bay) ── */
+
+.sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem);
+  gap: clamp(1.5rem, 3.5vw, 3rem);
+  align-items: start;
+  margin-top: 1.5rem;
+}
+
+.slugLine {
+  border-bottom: 2px solid var(--rule-strong);
+  padding-bottom: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 1.4rem;
+}
+
+.slugRef {
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--machine);
+}
+
+.slugMeta {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.2rem;
+}
+
+.prompt {
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 0.9rem 1.1rem;
+  margin-top: 1.1rem;
+  font-family: var(--font-essay);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.essaySheet {
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  margin-top: 1rem;
+  padding: 1.4rem clamp(1rem, 2.5vw, 1.9rem) 1.7rem;
+  /* tractor-feed punch down the outer edge */
+  background-image: radial-gradient(
+    circle at 0.62rem 0,
+    var(--board) 0 0.2rem,
+    transparent 0.2rem
+  );
+  background-size: 100% 1.3rem;
+  background-repeat: repeat-y;
+}
+
+.essay {
+  font-family: var(--font-essay);
+  font-size: 1.05rem;
+  line-height: 1.72;
+  color: var(--ink);
+  max-width: 68ch;
+  margin-left: 1.6rem;
+}
+
+.essayPara {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.9rem;
+}
+
+.essayPara + .essayPara {
+  margin-top: 1.1rem;
+}
+
+.essayNum {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  color: var(--machine);
+  text-align: right;
+  padding-top: 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Marking rail ─────────────────────────────────────── */
+
+.rail {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.railBlock {
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.railHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.85rem;
+}
+
+/* The overall band is the largest object on the sheet. */
+.overall {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.overallFigure {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(3.4rem, 8vw, 4.6rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.82;
+  color: var(--orange-deep);
+}
+
+.overallFigureMachine {
+  color: var(--machine);
+  font-weight: 500;
+}
+
+.overallSide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-bottom: 0.3rem;
+  align-items: flex-start;
+}
+
+.overallCaption {
+  font-family: var(--font-figure);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Machine print, ruled through but still legible. */
+.struck {
+  position: relative;
+  display: inline-block;
+  font-size: 0.92rem;
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  color: var(--machine);
+}
+
+.struck::after {
+  content: "";
+  position: absolute;
+  left: -0.1em;
+  right: -0.1em;
+  top: 52%;
+  height: 2px;
+  background: var(--orange-deep);
+  transform-origin: left center;
+  animation: rule-through 0.34s var(--ease-press) both;
+}
+
+/* ── Criterion rows ───────────────────────────────────── */
+
+.criterion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.1rem 4.2rem 2.6rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.62rem;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.criterion:last-child {
+  border-bottom: 0;
+}
+
+.criterionName {
+  font-size: 0.84rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  min-width: 0;
+}
+
+.criterionAbbr {
+  font-family: var(--font-figure);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-quiet);
+  display: block;
+}
+
+.criterionSigned {
+  grid-template-columns: minmax(0, 1fr) 4.2rem;
+}
+
+.criterionMachine {
+  position: relative;
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.95rem;
+  text-align: right;
+  color: var(--machine);
+}
+
+/* The teacher writes over the machine: its figure is ruled, never deleted. */
+.criterionMachineStruck::after {
+  content: "";
+  position: absolute;
+  left: -0.12em;
+  right: -0.12em;
+  top: 52%;
+  height: 2px;
+  background: var(--orange-deep);
+  transform-origin: left center;
+  animation: rule-through 0.34s var(--ease-press) both;
+}
+
+.criterionField {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--orange-deep);
+  text-align: right;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--orange);
+  padding: 0.1rem 0.3rem 0.15rem 0;
+  appearance: textfield;
+}
+
+.criterionField::-webkit-outer-spin-button,
+.criterionField::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* Out of band: the figure is written but refused, and says so. */
+.criterionFieldInvalid {
+  color: var(--alert);
+  border-bottom-color: var(--alert);
+  background: var(--alert-wash);
+}
+
+.criterionField:hover {
+  background: var(--orange-wash);
+}
+
+.criterionField:focus-visible {
+  outline: 2px solid var(--orange-deep);
+  outline-offset: 1px;
+  background: var(--orange-wash);
+}
+
+.criterionValue {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--orange-deep);
+  text-align: right;
+}
+
+.deviation {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.deviationUp {
+  color: var(--cleared);
+}
+
+.deviationDown {
+  color: var(--alert);
+}
+
+/* ── Feedback ─────────────────────────────────────────── */
+
+.machineNote {
+  border-left: 1px solid var(--machine);
+  padding-left: 0.8rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--machine);
+}
+
+.noteList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.noteItem {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  display: grid;
+  grid-template-columns: 0.9rem minmax(0, 1fr);
+  gap: 0.4rem;
+}
+
+.noteBullet {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  color: var(--machine);
+  padding-top: 0.22rem;
+}
+
+.field {
+  display: block;
+  width: 100%;
+  background: var(--stock);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.field:hover {
+  border-color: var(--ink-quiet);
+}
+
+.field:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+  border-color: var(--ink);
+}
+
+.fieldLabel {
+  display: block;
+  font-family: var(--font-figure);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.35rem;
+}
+
+.fieldRow {
+  margin-top: 0.9rem;
+}
+
+.fieldHint {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  color: var(--ink-quiet);
+  margin-top: 0.3rem;
+}
+
+/* ── Actions ──────────────────────────────────────────── */
+
+.press {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: var(--ink);
+  color: #f8f7f4;
+  border: 1px solid #1c1a18;
+  box-shadow: 0 2px 0 #1c1a18;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.12s var(--ease-press),
+    box-shadow 0.12s var(--ease-press),
+    background 0.16s var(--ease-press);
+}
+
+.press:hover {
+  background: #3b3733;
+}
+
+.press:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #1c1a18;
+}
+
+.press:disabled {
+  background: var(--rack-edge);
+  border-color: var(--rule-strong);
+  color: var(--ink-quiet);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.pressQuiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: var(--stock);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  box-shadow: 0 2px 0 var(--rack-edge);
+  padding: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.12s var(--ease-press),
+    box-shadow 0.12s var(--ease-press),
+    border-color 0.16s var(--ease-press);
+}
+
+.pressQuiet:hover {
+  border-color: var(--ink-quiet);
+}
+
+.pressQuiet:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--rack-edge);
+}
+
+.pressQuiet:disabled {
+  color: var(--ink-quiet);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+/* ── Commit threshold + stamp ─────────────────────────── */
+
+.commit {
+  border: 2px solid var(--orange-deep);
+  background: var(--orange-wash);
+  padding: 0.9rem 1rem 1.05rem;
+}
+
+.commitHead {
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d3703;
+  margin-bottom: 0.5rem;
+}
+
+.commitAdopt {
+  background: var(--stock);
+  border: 1px solid var(--rule-strong);
+  border-bottom: 0;
+  padding: 0.6rem 0.8rem 0.35rem;
+}
+
+.commitPreview {
+  background: var(--stock);
+  border: 1px solid var(--rule-strong);
+  padding: 0.7rem 0.8rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.commitPreviewFigure {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cleared);
+  border: 2px solid var(--cleared);
+  padding: 0.28rem 0.6rem;
+  transform: rotate(-2.5deg);
+  animation: stamp-press 0.4s var(--ease-press) both;
+}
+
+.stampPending {
+  color: var(--ink-quiet);
+  border-color: var(--rule-strong);
+  transform: none;
+  animation: none;
+}
+
+/* ── Timeline ─────────────────────────────────────────── */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: 0.85rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.timelineTick {
+  width: 0.85rem;
+  height: 2px;
+  background: var(--machine);
+  margin-top: 0.55rem;
+}
+
+.timelineTickTeacher {
+  background: var(--orange-deep);
+  height: 3px;
+}
+
+.timelineTickSigned {
+  background: var(--cleared);
+  height: 3px;
+}
+
+.timelineBody {
+  border-bottom: 1px dotted var(--rule);
+  padding-bottom: 0.6rem;
+  min-width: 0;
+}
+
+.timelineTitle {
+  font-family: var(--font-figure);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.timelineMeta {
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.15rem;
+}
+
+/* ── States ───────────────────────────────────────────── */
+
+.notice {
+  border: 1px solid var(--rule-strong);
+  background: var(--stock);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin-top: 1rem;
+}
+
+.noticeAlert {
+  border-color: var(--alert);
+  background: var(--alert-wash);
+  color: #7d2318;
+}
+
+.noticeOk {
+  border-color: var(--cleared);
+  background: var(--cleared-wash);
+  color: #33571f;
+}
+
+.blank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.55rem;
+  padding-block: clamp(2rem, 6vw, 4rem);
+}
+
+.blankArt {
+  width: clamp(7rem, 16vw, 10rem);
+  height: auto;
+}
+
+.blankTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.blankText {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  max-width: 44ch;
+}
+
+.skeletonRack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.skeletonStrip {
+  height: 3.4rem;
+  border: 1px solid var(--stock-edge);
+  padding-left: 0.55rem;
+  background-image: linear-gradient(
+    to right,
+    var(--rack-edge) 0 0.55rem,
+    transparent 0.55rem
+  );
+  background: linear-gradient(
+    100deg,
+    var(--stock) 30%,
+    var(--board-deep) 50%,
+    var(--stock) 70%
+  );
+  background-size: 300% 100%;
+  animation: strip-wait 1.4s linear infinite;
+}
+
+@keyframes strip-wait {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+
+@media (max-width: 60rem) {
+  .sheet {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rail {
+    position: static;
+  }
+}
+
+@media (max-width: 44rem) {
+  .strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.45rem;
+  }
+
+  .stripEnd {
+    justify-self: start;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .essay {
+    margin-left: 0;
+    font-size: 1rem;
+  }
+
+  .essayPara {
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .essaySheet {
+    background-image: none;
+  }
+}
+
+/* ── AI sentence marks ────────────────────────────────── */
+
+.mark {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 0.6rem 0.85rem 0.65rem 1.35rem;
+}
+
+.mark::before {
+  content: "";
+  position: absolute;
+  inset: -1px auto -1px -1px;
+  width: 0.55rem;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.28) 0 2px,
+      transparent 2px 5px
+    ),
+    var(--machine);
+  border-right: 1px solid rgb(42 39 36 / 0.18);
+}
+
+.markRef {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--machine);
+}
+
+.markOriginal {
+  font-family: var(--font-essay);
+  font-size: 0.95rem;
+  color: var(--machine);
+  text-decoration: line-through;
+  text-decoration-color: var(--orange-deep);
+  text-decoration-thickness: 2px;
+}
+
+.markSuggestion {
+  display: block;
+  font-family: var(--font-essay);
+  font-size: 0.95rem;
+  color: var(--orange-deep);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.markWhy {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-top: 0.3rem;
+}
+
+@media (max-width: 44rem) {
+  .mark {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Adopting an AI suggestion into the signed sheet ──── */
+
+.adopt {
+  display: grid;
+  grid-template-columns: 1.05rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: start;
+  padding-block: 0.4rem;
+  border-bottom: 1px dotted var(--rule);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.adopt:last-of-type {
+  border-bottom: 0;
+}
+
+.adoptBox {
+  appearance: none;
+  position: relative;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0.18rem 0 0;
+  border: 1px solid var(--rule-strong);
+  background: var(--stock);
+  box-shadow: inset 0 1px 0 rgb(42 39 36 / 0.06);
+  cursor: pointer;
+  flex: none;
+}
+
+.adoptBox:hover:not(:disabled) {
+  border-color: var(--orange-deep);
+}
+
+.adoptBox:disabled {
+  cursor: not-allowed;
+  background: var(--board-deep);
+}
+
+/* The tick is stamped, not ticked: a short mark pressed at an angle. */
+.adoptBox:checked::after {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 0.06rem;
+  width: 0.36rem;
+  height: 0.62rem;
+  border: solid var(--orange-deep);
+  border-width: 0 2px 2px 0;
+  transform: rotate(38deg);
+  animation: stamp-press 0.28s var(--ease-press) both;
+}
+
+.adoptTaken {
+  color: var(--ink);
+}
+
+/* ── Dashboard stat tiles and quick-access grid ────────── */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  background: var(--rack-edge);
+  border: 1px solid var(--rack-edge);
+  margin-top: 1.25rem;
+}
+
+.statTile {
+  background: var(--rack);
+  padding: 0.85rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.statFigure {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+}
+
+.quickLink {
+  position: relative;
+  display: block;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 0.9rem 1.1rem 1rem 1.35rem;
+  --holder: var(--ink);
+  transition:
+    transform 0.18s var(--ease-press),
+    box-shadow 0.18s var(--ease-press);
+}
+
+.quickLink::before {
+  content: "";
+  position: absolute;
+  inset: -1px auto -1px -1px;
+  width: 0.55rem;
+  background:
+    repeating-linear-gradient(to bottom, rgb(255 255 255 / 0.28) 0 2px, transparent 2px 5px),
+    var(--holder);
+  border-right: 1px solid rgb(42 39 36 / 0.18);
+}
+
+.quickLink:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--seat-lift);
+}
+
+.quickLinkTitle {
+  font-weight: 600;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+
+.quickLinkHint {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  margin-top: 0.25rem;
+  line-height: 1.5;
+}
+
+.quickLinkList {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.quickLinkAction {
+  font-family: var(--font-figure);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* ── Roster row (class members) ──────────────────────────── */
+
+.rosterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.55rem;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.rosterRow:last-child {
+  border-bottom: 0;
+}
+
+.rosterName {
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.rosterMeta {
+  font-family: var(--font-figure);
+  font-size: 0.66rem;
+  color: var(--ink-quiet);
+}
+
+/* ── Big highlighted assignment (student) ────────────────── */
+
+.hero {
+  position: relative;
+  display: block;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat-lift);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  margin-top: 1.25rem;
+  --holder: var(--ink);
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -1px auto -1px -1px;
+  width: 0.7rem;
+  background:
+    repeating-linear-gradient(to bottom, rgb(255 255 255 / 0.28) 0 2px, transparent 2px 5px),
+    var(--holder);
+  border-right: 1px solid rgb(42 39 36 / 0.18);
+}
+
+.heroKicker {
+  font-family: var(--font-figure);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.heroTitle {
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-top: 0.4rem;
+  max-width: 32ch;
+}
+
+.heroMeta {
+  font-family: var(--font-figure);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.2rem;
+}
+
+.heroPrompt {
+  margin-top: 1.1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+@media (max-width: 44rem) {
+  .rosterRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+}

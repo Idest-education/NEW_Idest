@@ -19,6 +19,17 @@ enum UserStatus {
   deleted
 }
 
+enum ClassStatus {
+  active
+  archived
+}
+
+enum RedoStatus {
+  open
+  resolved
+  cancelled
+}
+
 enum AssignmentStatus {
   draft
   active
@@ -73,6 +84,10 @@ model User {
 
   // Relations
   assignments      Assignment[]      @relation("TeacherAssignments")
+  classes          Class[]           @relation("TeacherClasses")
+  classMemberships ClassMember[]     @relation("StudentClassMemberships")
+  inviteLinks      InviteLink[]      @relation("TeacherInviteLinks")
+  redoRequests     RedoRequest[]     @relation("TeacherRedoRequests")
   submissions      Submission[]      @relation("StudentSubmissions")
   scoringResults   ScoringResult[]   @relation("TeacherScoringResults")
   scoreRevisions   ScoreRevision[]   @relation("TeacherScoreRevisions")
@@ -83,23 +98,29 @@ model User {
 }
 
 model Assignment {
-  id         String           @id @default(uuid()) @db.Uuid
-  teacherId  String           @map("teacher_id") @db.Uuid
-  teacher    User             @relation("TeacherAssignments", fields: [teacherId], references: [id])
-  title      String           @db.VarChar(255)
-  taskPrompt String           @map("task_prompt") @db.Text
-  taskType   TaskType         @map("task_type")
-  status     AssignmentStatus @default(draft)
-  dueAt      DateTime?        @map("due_at") @db.Timestamptz(6)
-  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt  DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  id          String           @id @default(uuid()) @db.Uuid
+  teacherId   String           @map("teacher_id") @db.Uuid
+  teacher     User             @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  classId     String?          @map("class_id") @db.Uuid
+  class       Class?           @relation(fields: [classId], references: [id])
+  title       String           @db.VarChar(255)
+  taskPrompt  String           @map("task_prompt") @db.Text
+  taskType    TaskType         @map("task_type")
+  status      AssignmentStatus @default(draft)
+  /// One assignment per teacher may be pinned to the top of the student's page.
+  highlighted Boolean          @default(false)
+  dueAt       DateTime?        @map("due_at") @db.Timestamptz(6)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime?        @map("deleted_at") @db.Timestamptz(6)
 
   submissions Submission[]
 
   @@index([teacherId], map: "assignments_teacher_id_index")
+  @@index([classId], map: "assignments_class_id_index")
   @@index([status], map: "assignments_status_index")
   @@index([dueAt], map: "assignments_due_at_index")
+  @@index([highlighted], map: "assignments_highlighted_index")
   @@map("assignments")
 }
 
@@ -120,6 +141,7 @@ model Submission {
   scoringResults   ScoringResult[]
   scoreRevisions   ScoreRevision[]
   publishedResults PublishedResult[]
+  redoRequests     RedoRequest[]
 
   @@unique([assignmentId, studentId, attemptNumber])
   @@index([assignmentId], map: "submissions_assignment_id_index")
@@ -130,14 +152,14 @@ model Submission {
 }
 
 model AiModelVersion {
-  id           String      @id @default(uuid()) @db.Uuid
-  modelName    String      @map("model_name") @db.VarChar(100)
-  modelVersion String      @map("model_version") @db.VarChar(100)
-  provider     String      @db.VarChar(50)
-  taskType     String      @map("task_type") @db.VarChar(20)
-  configuration Json       @db.JsonB
-  status       ModelStatus @default(active)
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  id            String      @id @default(uuid()) @db.Uuid
+  modelName     String      @map("model_name") @db.VarChar(100)
+  modelVersion  String      @map("model_version") @db.VarChar(100)
+  provider      String      @db.VarChar(50)
+  taskType      String      @map("task_type") @db.VarChar(20)
+  configuration Json        @db.JsonB
+  status        ModelStatus @default(active)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
   scoringResults ScoringResult[]
 
@@ -171,19 +193,20 @@ model ScoringResult {
 }
 
 model ScoreRevision {
-  id             String        @id @default(uuid()) @db.Uuid
-  submissionId   String        @map("submission_id") @db.Uuid
-  submission     Submission    @relation(fields: [submissionId], references: [id])
-  baseResultId   String        @map("base_result_id") @db.Uuid
-  baseResult     ScoringResult @relation(fields: [baseResultId], references: [id])
-  revisedBy      String        @map("revised_by") @db.Uuid
-  revisedByUser  User          @relation("TeacherScoreRevisions", fields: [revisedBy], references: [id])
-  revisionNumber Int           @map("revision_number")
-  changes        Json          @db.JsonB
-  finalScores    Json          @map("final_scores") @db.JsonB
-  finalFeedback  Json          @map("final_feedback") @db.JsonB
-  revisionNote   String?       @map("revision_note") @db.Text
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  id             String         @id @default(uuid()) @db.Uuid
+  submissionId   String         @map("submission_id") @db.Uuid
+  submission     Submission     @relation(fields: [submissionId], references: [id])
+  /// Null when the teacher graded before the machine did, or after it failed.
+  baseResultId   String?        @map("base_result_id") @db.Uuid
+  baseResult     ScoringResult? @relation(fields: [baseResultId], references: [id])
+  revisedBy      String         @map("revised_by") @db.Uuid
+  revisedByUser  User           @relation("TeacherScoreRevisions", fields: [revisedBy], references: [id])
+  revisionNumber Int            @map("revision_number")
+  changes        Json           @db.JsonB
+  finalScores    Json           @map("final_scores") @db.JsonB
+  finalFeedback  Json           @map("final_feedback") @db.JsonB
+  revisionNote   String?        @map("revision_note") @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
   publishedResults PublishedResult[]
 
@@ -211,6 +234,80 @@ model PublishedResult {
   @@index([publishedBy], map: "published_results_published_by_index")
   @@index([publishedAt], map: "published_results_published_at_index")
   @@map("published_results")
+}
+
+/// A teacher's group of students. Assignments may be given to one class.
+model Class {
+  id          String      @id @default(uuid()) @db.Uuid
+  teacherId   String      @map("teacher_id") @db.Uuid
+  teacher     User        @relation("TeacherClasses", fields: [teacherId], references: [id])
+  name        String      @db.VarChar(160)
+  description String?     @db.Text
+  status      ClassStatus @default(active)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime?   @map("deleted_at") @db.Timestamptz(6)
+
+  members     ClassMember[]
+  assignments Assignment[]
+  inviteLinks InviteLink[]
+
+  @@index([teacherId], map: "classes_teacher_id_index")
+  @@index([status], map: "classes_status_index")
+  @@map("classes")
+}
+
+/// Roster row. Removal is recorded, never deleted.
+model ClassMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  classId   String    @map("class_id") @db.Uuid
+  class     Class     @relation(fields: [classId], references: [id])
+  studentId String    @map("student_id") @db.Uuid
+  student   User      @relation("StudentClassMemberships", fields: [studentId], references: [id])
+  joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  removedAt DateTime? @map("removed_at") @db.Timestamptz(6)
+
+  @@unique([classId, studentId])
+  @@index([classId], map: "class_members_class_id_index")
+  @@index([studentId], map: "class_members_student_id_index")
+  @@map("class_members")
+}
+
+/// A shareable join link for one class.
+model InviteLink {
+  id        String    @id @default(uuid()) @db.Uuid
+  classId   String    @map("class_id") @db.Uuid
+  class     Class     @relation(fields: [classId], references: [id])
+  teacherId String    @map("teacher_id") @db.Uuid
+  teacher   User      @relation("TeacherInviteLinks", fields: [teacherId], references: [id])
+  token     String    @unique @db.VarChar(64)
+  label     String?   @db.VarChar(160)
+  maxUses   Int?      @map("max_uses")
+  useCount  Int       @default(0) @map("use_count")
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([classId], map: "invite_links_class_id_index")
+  @@index([token], map: "invite_links_token_index")
+  @@map("invite_links")
+}
+
+/// The teacher asking a student to write the essay again.
+model RedoRequest {
+  id           String     @id @default(uuid()) @db.Uuid
+  submissionId String     @map("submission_id") @db.Uuid
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  teacherId    String     @map("teacher_id") @db.Uuid
+  teacher      User       @relation("TeacherRedoRequests", fields: [teacherId], references: [id])
+  reason       String     @db.Text
+  status       RedoStatus @default(open)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt   DateTime?  @map("resolved_at") @db.Timestamptz(6)
+
+  @@index([submissionId], map: "redo_requests_submission_id_index")
+  @@index([status], map: "redo_requests_status_index")
+  @@map("redo_requests")
 }
 
 model AuditEvent {

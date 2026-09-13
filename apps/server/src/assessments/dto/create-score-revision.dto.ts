@@ -2,9 +2,14 @@ import { IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateScoreRevisionDto {
-  @ApiProperty({ example: '00000000-0000-0000-0000-000000000000', description: 'ID of the base AI scoring result' })
+  @ApiPropertyOptional({
+    example: '00000000-0000-0000-0000-000000000000',
+    description:
+      'ID of the base AI scoring result this revises. Omit when the teacher is grading before the AI has scored the essay, or because the AI is unavailable — the revision is then fully teacher-authored.',
+  })
+  @IsOptional()
   @IsUUID()
-  baseResultId!: string;
+  baseResultId?: string;
 
   @ApiProperty({
     example: { task_response: 7.0, coherence_cohesion: 7.0, lexical_resource: 6.5, grammatical_range_accuracy: 6.5, overall: 7.0 },

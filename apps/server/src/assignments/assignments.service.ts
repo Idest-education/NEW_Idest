@@ -1,26 +1,38 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { CreateAssignmentDto } from './dto/create-assignment.dto.js';
 import { UpdateAssignmentStatusDto } from './dto/update-assignment-status.dto.js';
-import { AssignmentStatus, Role } from '@prisma/client';
+import { UpdateAssignmentDto } from '../classes/dto/class.dto.js';
+import { AssignmentStatus, Prisma, Role } from '@prisma/client';
 
 @Injectable()
 export class AssignmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-  ) { }
+  ) {}
+
+  /** Confirms the class belongs to this teacher before an assignment may target it. */
+  private async assertOwnsClass(teacherId: string, classId: string | null | undefined) {
+    if (!classId) return;
+    const klass = await this.prisma.class.findUnique({ where: { id: classId } });
+    if (!klass || klass.deletedAt || klass.teacherId !== teacherId) {
+      throw new BadRequestException('That class does not belong to you');
+    }
+  }
 
   async createAssignment(teacherId: string, dto: CreateAssignmentDto) {
     const user = await this.prisma.user.findUnique({ where: { id: teacherId } });
     if (!user || user.role !== Role.teacher) {
       throw new ForbiddenException('Only teachers can create assignments');
     }
+    await this.assertOwnsClass(teacherId, dto.classId);
 
     const assignment = await this.prisma.assignment.create({
       data: {
         teacherId,
+        classId: dto.classId ?? null,
         title: dto.title,
         taskPrompt: dto.taskPrompt,
         taskType: dto.taskType,
@@ -40,14 +52,17 @@ export class AssignmentsService {
     return assignment;
   }
 
-  async updateStatus(teacherId: string, id: string, dto: UpdateAssignmentStatusDto) {
+  private async owned(teacherId: string, id: string) {
     const assignment = await this.prisma.assignment.findUnique({ where: { id } });
-    if (!assignment) {
-      throw new NotFoundException('Assignment not found');
-    }
+    if (!assignment || assignment.deletedAt) throw new NotFoundException('Assignment not found');
     if (assignment.teacherId !== teacherId) {
       throw new ForbiddenException('You do not own this assignment');
     }
+    return assignment;
+  }
+
+  async updateStatus(teacherId: string, id: string, dto: UpdateAssignmentStatusDto) {
+    const assignment = await this.owned(teacherId, id);
 
     const updated = await this.prisma.assignment.update({
       where: { id },
@@ -65,24 +80,135 @@ export class AssignmentsService {
     return updated;
   }
 
+  /** Title, prompt, class, highlight, and deadline are editable at any status. */
+  async updateAssignment(teacherId: string, id: string, dto: UpdateAssignmentDto) {
+    await this.owned(teacherId, id);
+    if (dto.classId !== undefined) await this.assertOwnsClass(teacherId, dto.classId);
+
+    if (dto.highlighted === true) {
+      // Only one assignment is pinned to the top of a student's page at a time.
+      await this.prisma.assignment.updateMany({
+        where: { teacherId, highlighted: true, id: { not: id } },
+        data: { highlighted: false },
+      });
+    }
+
+    const updated = await this.prisma.assignment.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
+        ...(dto.taskPrompt !== undefined ? { taskPrompt: dto.taskPrompt.trim() } : {}),
+        ...(dto.classId !== undefined ? { classId: dto.classId } : {}),
+        ...(dto.highlighted !== undefined ? { highlighted: dto.highlighted } : {}),
+        ...(dto.dueAt !== undefined ? { dueAt: dto.dueAt ? new Date(dto.dueAt) : null } : {}),
+      },
+    });
+
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'assignment.updated',
+      entityType: 'assignment',
+      entityId: id,
+      metadata: { fields: Object.keys(dto) },
+    });
+
+    return updated;
+  }
+
+  /** Soft delete. Existing submissions and their history stay intact and readable. */
+  async deleteAssignment(teacherId: string, id: string) {
+    await this.owned(teacherId, id);
+
+    await this.prisma.assignment.update({
+      where: { id },
+      data: { deletedAt: new Date(), status: AssignmentStatus.archived },
+    });
+
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'assignment.deleted',
+      entityType: 'assignment',
+      entityId: id,
+    });
+
+    return { message: 'Assignment deleted', assignmentId: id };
+  }
+
+  /** Bare fetch used internally (e.g. by submission creation); no visibility check. */
   async getAssignment(id: string) {
     const assignment = await this.prisma.assignment.findUnique({ where: { id } });
-    if (!assignment) {
+    if (!assignment || assignment.deletedAt) {
       throw new NotFoundException('Assignment not found');
     }
     return assignment;
   }
 
-  async getAssignments(userId: string, role: string) {
-    const where: any = {};
+  /** Authenticated detail read: enforces ownership/visibility and adds counts. */
+  async getAssignmentDetail(id: string, userId: string, role: string) {
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id },
+      include: {
+        class: { select: { id: true, name: true } },
+        _count: { select: { submissions: true } },
+      },
+    });
+    if (!assignment || assignment.deletedAt) throw new NotFoundException('Assignment not found');
+
     if (role === Role.teacher) {
-      where.teacherId = userId;
-    } else if (role === Role.student) {
-      where.status = AssignmentStatus.active;
+      if (assignment.teacherId !== userId) {
+        throw new ForbiddenException('You do not own this assignment');
+      }
+      return assignment;
+    }
+
+    if (role === Role.student) {
+      if (assignment.status !== AssignmentStatus.active) {
+        throw new ForbiddenException('This assignment is not open');
+      }
+      if (assignment.classId) {
+        const member = await this.prisma.classMember.findUnique({
+          where: { classId_studentId: { classId: assignment.classId, studentId: userId } },
+        });
+        if (!member || member.removedAt) {
+          throw new ForbiddenException('This assignment belongs to a class you are not in');
+        }
+      }
+      return assignment;
+    }
+
+    return assignment;
+  }
+
+  async getAssignments(userId: string, role: string) {
+    if (role === Role.teacher) {
+      const assignments = await this.prisma.assignment.findMany({
+        where: { teacherId: userId, deletedAt: null },
+        include: { class: { select: { id: true, name: true } }, _count: { select: { submissions: true } } },
+        orderBy: [{ highlighted: 'desc' }, { createdAt: 'desc' }],
+      });
+      return assignments.map((a) => ({ ...a, submissionCount: a._count.submissions }));
+    }
+
+    if (role === Role.student) {
+      const memberships = await this.prisma.classMember.findMany({
+        where: { studentId: userId, removedAt: null },
+        select: { classId: true },
+      });
+      const classIds = memberships.map((m) => m.classId);
+      const where: Prisma.AssignmentWhereInput = {
+        status: AssignmentStatus.active,
+        deletedAt: null,
+        OR: [{ classId: null }, { classId: { in: classIds } }],
+      };
+      return this.prisma.assignment.findMany({
+        where,
+        include: { class: { select: { id: true, name: true } } },
+        orderBy: [{ highlighted: 'desc' }, { dueAt: 'asc' }],
+      });
     }
 
     return this.prisma.assignment.findMany({
-      where,
+      where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
   }
