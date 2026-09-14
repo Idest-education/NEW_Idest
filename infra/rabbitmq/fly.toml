@@ -1,0 +1,13 @@
+app = "idest-rabbitmq"
+primary_region = "sin"
+
+[build]
+  image = "rabbitmq:3.13-management"
+
+[mounts]
+  source = "rabbitmq_data"
+  destination = "/var/lib/rabbitmq"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
