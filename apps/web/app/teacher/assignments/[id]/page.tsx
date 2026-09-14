@@ -14,7 +14,7 @@ import {
 } from "../../../../lib/idest";
 import { day, stamp } from "../../../../lib/format";
 import { useAction, useResource } from "../../../../lib/use-api";
-import { Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../../../components/board";
+import { ActionMenu, Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../../../components/board";
 
 export default function AssignmentDesk({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -32,6 +32,20 @@ export default function AssignmentDesk({ params }: { params: Promise<{ id: strin
     [data],
   );
 
+  const toggleHighlight = async () => {
+    if (!data) return;
+    const done = await run((token) =>
+      updateAssignment(token, data.assignment.id, { highlighted: !data.assignment.highlighted }),
+    );
+    if (done) await reload();
+  };
+
+  const setStatus = async (status: "active" | "closed") => {
+    if (!data) return;
+    const done = await run((token) => updateAssignmentStatus(token, data.assignment.id, status));
+    if (done) await reload();
+  };
+
   return (
     <Shell role="teacher" wide>
       {state === "loading" ? <WaitingRack /> : null}
@@ -45,63 +59,63 @@ export default function AssignmentDesk({ params }: { params: Promise<{ id: strin
               {data.assignment.title}
               {data.assignment.highlighted ? " ★" : ""}
             </h1>
-            <span className={s.slugMeta}>
-              <span>{ASSIGNMENT_STATUS_LABEL[data.assignment.status]}</span>
-              <span>hạn {day(data.assignment.dueAt)}</span>
-              <span>{rows.length} bài nộp</span>
-            </span>
+            <ActionMenu label="Tùy chọn bài tập">
+              <button type="button" className={s.actionMenuItem} disabled={busy} onClick={toggleHighlight}>
+                {data.assignment.highlighted ? "Bỏ ghim nổi bật" : "Ghim nổi bật"}
+              </button>
+              {data.assignment.status !== "active" ? (
+                <button type="button" className={s.actionMenuItem} disabled={busy} onClick={() => setStatus("active")}>
+                  Mở bài tập
+                </button>
+              ) : (
+                <button type="button" className={s.actionMenuItem} disabled={busy} onClick={() => setStatus("closed")}>
+                  Đóng bài tập
+                </button>
+              )}
+              <Link href="/teacher/assignments" className={s.actionMenuItem}>
+                Sửa chi tiết / xóa
+              </Link>
+            </ActionMenu>
           </div>
 
-          <p className={s.prompt}>{data.assignment.taskPrompt}</p>
+          <div className={s.slugMeta} style={{ marginTop: "0.6rem" }}>
+            <span
+              className={
+                data.assignment.status === "active" ? s.paperStamp : `${s.paperStamp} ${s.paperStampQuiet}`
+              }
+            >
+              {ASSIGNMENT_STATUS_LABEL[data.assignment.status]}
+            </span>
+            <span>hạn {day(data.assignment.dueAt)}</span>
+            <span>
+              <span className={s.figure}>{rows.length}</span> bài nộp
+            </span>
+            {data.assignment.class ? (
+              <span>
+                <span className={s.figure}>{data.assignment.class.memberCount ?? "—"}</span> học viên nhận bài (
+                {data.assignment.class.name})
+              </span>
+            ) : (
+              <span>Gửi cho tất cả học viên</span>
+            )}
+          </div>
+
+          <div className={s.promptPop}>
+            <span className={s.promptPopMark} aria-hidden="true">
+              “
+            </span>
+            <p className={s.promptPopText}>{data.assignment.taskPrompt}</p>
+          </div>
+          {data.assignment.taskImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={data.assignment.taskImageUrl} alt="Biểu đồ/sơ đồ của đề bài" className={s.promptImage} />
+          ) : null}
 
           {actionError ? <Notice tone="alert">{actionError}</Notice> : null}
-          <div className={s.actionRow}>
-            <button
-              type="button"
-              className={s.pressQuiet}
-              disabled={busy}
-              onClick={async () => {
-                const done = await run((token) =>
-                  updateAssignment(token, data.assignment.id, { highlighted: !data.assignment.highlighted }),
-                );
-                if (done) await reload();
-              }}
-            >
-              {data.assignment.highlighted ? "Bỏ ghim nổi bật" : "Ghim nổi bật"}
-            </button>
-            {data.assignment.status !== "active" ? (
-              <button
-                type="button"
-                className={s.pressQuiet}
-                disabled={busy}
-                onClick={async () => {
-                  const done = await run((token) => updateAssignmentStatus(token, data.assignment.id, "active"));
-                  if (done) await reload();
-                }}
-              >
-                Mở bài tập
-              </button>
-            ) : (
-              <button
-                type="button"
-                className={s.pressQuiet}
-                disabled={busy}
-                onClick={async () => {
-                  const done = await run((token) => updateAssignmentStatus(token, data.assignment.id, "closed"));
-                  if (done) await reload();
-                }}
-              >
-                Đóng bài tập
-              </button>
-            )}
-            <Link href="/teacher/assignments" className={s.navLink}>
-              Sửa chi tiết / xóa →
-            </Link>
-          </div>
 
-          <div className={s.sectionHead}>
+          <div className={s.sectionHead} style={{ marginTop: "1.5rem" }}>
             <h2 className={s.sectionTitle}>Bài nộp của bài tập này</h2>
-            <Link href="/teacher" className={s.navLink}>
+            <Link href="/teacher" className={s.pressQuiet}>
               ← Tổng quan
             </Link>
           </div>

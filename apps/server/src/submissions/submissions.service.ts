@@ -10,6 +10,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
 import { CreateSubmissionDto } from './dto/create-submission.dto.js';
 import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
+import { ListSubmissionsQueryDto } from './dto/list-submissions-query.dto.js';
 import { AssignmentStatus, Prisma, RedoStatus, SubmissionStatus, Role } from '@prisma/client';
 
 const STUDENT_ROW_SELECT = {
@@ -275,7 +276,7 @@ export class SubmissionsService {
    * the "all submissions" dashboard for a teacher, or a student's own history.
    * Students never receive AI scores, revisions, or notes; rule 4.
    */
-  async getAllSubmissions(userId: string, role: string) {
+  async getAllSubmissions(userId: string, role: string, query: ListSubmissionsQueryDto = {}) {
     if (role === Role.student) {
       const rows = await this.prisma.submission.findMany({
         where: { studentId: userId },
@@ -291,39 +292,68 @@ export class SubmissionsService {
       }));
     }
 
-    const where: Prisma.SubmissionWhereInput =
-      role === Role.teacher ? { assignment: { teacherId: userId } } : {};
-
-    const rows = await this.prisma.submission.findMany({
-      where,
-      include: {
-        assignment: {
-          select: { id: true, title: true, taskType: true, classId: true, class: { select: { id: true, name: true } } },
-        },
-        student: { select: { id: true, displayName: true, email: true } },
-        scoringResults: {
-          where: { scorerType: 'ai', status: 'completed' },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { id: true, scores: true, createdAt: true },
-        },
-        publishedResults: {
-          where: { unpublishedAt: null },
-          select: { id: true, publishedAt: true, finalScores: true },
-        },
-        redoRequests: { where: { status: RedoStatus.open }, select: { id: true, reason: true, createdAt: true } },
+    const q = query.q?.trim();
+    const where: Prisma.SubmissionWhereInput = {
+      ...(role === Role.teacher ? { assignment: { teacherId: userId } } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(q
+        ? {
+            OR: [
+              { student: { displayName: { contains: q, mode: 'insensitive' } } },
+              { student: { email: { contains: q, mode: 'insensitive' } } },
+              { assignment: { title: { contains: q, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    };
+    const include = {
+      assignment: {
+        select: { id: true, title: true, taskType: true, classId: true, class: { select: { id: true, name: true } } },
       },
-      orderBy: { submittedAt: 'desc' },
-    });
+      student: { select: { id: true, displayName: true, email: true } },
+      scoringResults: {
+        where: { scorerType: 'ai' as const, status: 'completed' as const },
+        orderBy: { createdAt: 'desc' as const },
+        take: 1,
+        select: { id: true, scores: true, createdAt: true },
+      },
+      publishedResults: {
+        where: { unpublishedAt: null },
+        select: { id: true, publishedAt: true, finalScores: true },
+      },
+      redoRequests: { where: { status: RedoStatus.open }, select: { id: true, reason: true, createdAt: true } },
+    } satisfies Prisma.SubmissionInclude;
+    const orderBy: Prisma.SubmissionOrderByWithRelationInput = { submittedAt: 'desc' };
 
-    return rows.map((row) => ({
+    const shape = <T extends { scoringResults: { scores: unknown }[]; publishedResults: unknown[]; redoRequests: unknown[] }>(
+      row: T,
+    ) => ({
       ...row,
       aiScores: row.scoringResults[0]?.scores ?? null,
       publishedResult: row.publishedResults[0] ?? null,
       openRedoRequest: row.redoRequests[0] ?? null,
       scoringResults: undefined,
       redoRequests: undefined,
-    }));
+    });
+
+    if (query.page || query.limit) {
+      const limit = Math.min(query.limit ?? 20, 100);
+      const page = query.page ?? 1;
+      const [total, rows] = await Promise.all([
+        this.prisma.submission.count({ where }),
+        this.prisma.submission.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
+      ]);
+      return {
+        data: rows.map(shape),
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      };
+    }
+
+    const rows = await this.prisma.submission.findMany({ where, include, orderBy });
+    return rows.map(shape);
   }
 
   private async ownedSubmission(submissionId: string, teacherId: string, role: string) {
@@ -390,5 +420,43 @@ export class SubmissionsService {
     });
 
     return { message: 'Redo request cancelled', submissionId, requestId };
+  }
+
+  /** Re-queues AI scoring after a failed attempt. The essay itself is untouched. */
+  async retryScoring(teacherId: string, submissionId: string, role: string) {
+    const submission = await this.ownedSubmission(submissionId, teacherId, role);
+    if (submission.status !== SubmissionStatus.failed) {
+      throw new BadRequestException(`Only failed submissions can be retried (status: ${submission.status})`);
+    }
+
+    const publishSuccess = await this.rabbitmqService.publishScoringJob({
+      submissionId: submission.id,
+      assignmentId: submission.assignmentId,
+      studentId: submission.studentId,
+      attemptNumber: submission.attemptNumber,
+      taskPrompt: submission.assignment.taskPrompt,
+      taskType: submission.assignment.taskType,
+      essayText: submission.essayText,
+      wordCount: submission.wordCount,
+      submittedAt: submission.submittedAt.toISOString(),
+    });
+
+    if (!publishSuccess) {
+      throw new ConflictException('Scoring queue is unavailable right now — try again shortly');
+    }
+
+    const queuedSubmission = await this.prisma.submission.update({
+      where: { id: submissionId },
+      data: { status: SubmissionStatus.queued },
+    });
+
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'submission.retry_queued',
+      entityType: 'submission',
+      entityId: submissionId,
+    });
+
+    return queuedSubmission;
   }
 }

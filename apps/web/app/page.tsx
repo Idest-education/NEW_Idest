@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Role } from "@repo/auth-contract";
@@ -117,8 +118,16 @@ export default async function Landing() {
               <path d="M74 46l14 10-16 6" />
             </svg>
             <span className={styles.stickerArrowNote} aria-hidden="true">
-              đỉnh hem quí vị :)))
+              Quá đỉnh :))
             </span>
+            <Image
+              src="/logo-icon.png"
+              alt=""
+              width={64}
+              height={64}
+              className={styles.stickerLogo}
+              aria-hidden="true"
+            />
             <svg
               className={styles.stickerSpark}
               viewBox="0 0 40 40"

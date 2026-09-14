@@ -1,6 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  multer: "^2.3.0"
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true

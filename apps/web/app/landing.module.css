@@ -191,11 +191,23 @@
   white-space: nowrap;
 }
 
+.stickerLogo {
+  position: absolute;
+  bottom: -1.3rem;
+  left: -1.6rem;
+  z-index: 3;
+  width: 3.4rem;
+  height: 3.4rem;
+  transform: rotate(-14deg);
+  filter: drop-shadow(0 6px 12px rgb(42 39 36 / 0.3));
+}
+
 @media (max-width: 60rem) {
   .stickerTape,
   .stickerSpark,
   .stickerArrow,
-  .stickerArrowNote {
+  .stickerArrowNote,
+  .stickerLogo {
     display: none;
   }
 }

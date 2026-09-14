@@ -1,5 +1,7 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+const MAX_ESSAY_LENGTH = 20_000;
 
 export class CreateSubmissionDto {
   @ApiProperty({
@@ -8,10 +10,12 @@ export class CreateSubmissionDto {
   })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(MAX_ESSAY_LENGTH)
   essayText!: string;
 
   @ApiPropertyOptional({ example: 'idem_key_abc123', description: 'Optional unique key for idempotency handling' })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   idempotencyKey?: string;
 }

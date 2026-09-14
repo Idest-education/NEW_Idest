@@ -70,8 +70,13 @@ export class UserSyncService {
       role?: Role;
       invitedBy?: string;
     };
+    // Client-settable, so only ever trusted for the one low-privilege signal it
+    // carries: "I signed up from a class invite link, treat me as a student."
+    // Anything else (teacher/admin) is ignored and falls through to the default.
+    const unsafeMetadata = (clerkUser.unsafeMetadata ?? {}) as { role?: string };
+    const unsafeRoleHint: Role | undefined = unsafeMetadata.role === 'student' ? 'student' : undefined;
     const roleWasDefaulted = !metadata.role;
-    const role: Role = metadata.role ?? 'teacher';
+    const role: Role = metadata.role ?? unsafeRoleHint ?? 'teacher';
 
     const email =
       clerkUser.primaryEmailAddress?.emailAddress ??
@@ -130,7 +135,7 @@ export class UserSyncService {
     if (roleWasDefaulted) {
       try {
         await this.clerk.users.updateUserMetadata(auth.clerkUserId, {
-          publicMetadata: { role: 'teacher' },
+          publicMetadata: { role },
         });
       } catch (err) {
         this.logger.error(

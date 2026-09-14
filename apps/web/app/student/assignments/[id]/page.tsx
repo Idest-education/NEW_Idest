@@ -87,6 +87,10 @@ export default function WriteEssay({ params }: { params: Promise<{ id: string }>
           </div>
 
           <p className={s.prompt}>{data.taskPrompt}</p>
+          {data.taskImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={data.taskImageUrl} alt="Biểu đồ/sơ đồ của đề bài" className={s.promptImage} />
+          ) : null}
 
           {restored ? <Notice>Đã khôi phục bản nháp bạn viết dở trên máy này.</Notice> : null}
 

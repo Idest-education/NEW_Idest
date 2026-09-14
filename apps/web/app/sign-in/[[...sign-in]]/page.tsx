@@ -1,4 +1,5 @@
 import { SignIn } from "@clerk/nextjs";
+import styles from "../../auth.module.css";
 
 export default function Page() {
   return (
@@ -8,6 +9,8 @@ export default function Page() {
     // claim is visible, and Clerk's own redirect-loop guard then renders
     // this page blank instead of erroring. Landing on "/" is always public,
     // does its own single server-verified role redirect, and never loops.
-    <SignIn signUpUrl="/sign-up" forceRedirectUrl="/" />
+    <div className={styles.wrap}>
+      <SignIn signUpUrl="/sign-up" forceRedirectUrl="/" />
+    </div>
   );
 }

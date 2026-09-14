@@ -10,6 +10,12 @@ describe("isPublicPath", () => {
     expect(isPublicPath("/sign-up/verify-email-address")).toBe(true);
   });
 
+  it("treats an invite link and its sign-in/sign-up steps as public", () => {
+    expect(isPublicPath("/join/abc123")).toBe(true);
+    expect(isPublicPath("/join/abc123/sign-in")).toBe(true);
+    expect(isPublicPath("/join/abc123/sign-up")).toBe(true);
+  });
+
   it("treats everything else as protected", () => {
     expect(isPublicPath("/teacher")).toBe(false);
     expect(isPublicPath("/student/assignments")).toBe(false);

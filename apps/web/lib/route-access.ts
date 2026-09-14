@@ -4,6 +4,9 @@ const PUBLIC_PATHS: RegExp[] = [
   /^\/$/,
   /^\/sign-in(?:\/.*)?$/,
   /^\/sign-up(?:\/.*)?$/,
+  // An invite link must be viewable — and its own sign-in/sign-up steps
+  // reachable — before the visitor has an account at all.
+  /^\/join(?:\/.*)?$/,
 ];
 
 export function isPublicPath(pathname: string): boolean {

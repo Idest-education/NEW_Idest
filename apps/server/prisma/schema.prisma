@@ -99,21 +99,24 @@ model User {
 }
 
 model Assignment {
-  id          String           @id @default(uuid()) @db.Uuid
-  teacherId   String           @map("teacher_id") @db.Uuid
-  teacher     User             @relation("TeacherAssignments", fields: [teacherId], references: [id])
-  classId     String?          @map("class_id") @db.Uuid
-  class       Class?           @relation(fields: [classId], references: [id])
-  title       String           @db.VarChar(255)
-  taskPrompt  String           @map("task_prompt") @db.Text
-  taskType    TaskType         @map("task_type")
-  status      AssignmentStatus @default(draft)
+  id                String           @id @default(uuid()) @db.Uuid
+  teacherId         String           @map("teacher_id") @db.Uuid
+  teacher           User             @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  classId           String?          @map("class_id") @db.Uuid
+  class             Class?           @relation(fields: [classId], references: [id])
+  title             String           @db.VarChar(255)
+  taskPrompt        String           @map("task_prompt") @db.Text
+  taskType          TaskType         @map("task_type")
+  /// Task 1 prompts are illustrated by a chart/graph/diagram the student must describe.
+  taskImageUrl      String?          @map("task_image_url") @db.Text
+  taskImagePublicId String?          @map("task_image_public_id") @db.VarChar(255)
+  status            AssignmentStatus @default(draft)
   /// One assignment per teacher may be pinned to the top of the student's page.
-  highlighted Boolean          @default(false)
-  dueAt       DateTime?        @map("due_at") @db.Timestamptz(6)
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt   DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  highlighted       Boolean          @default(false)
+  dueAt             DateTime?        @map("due_at") @db.Timestamptz(6)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?        @map("deleted_at") @db.Timestamptz(6)
 
   submissions Submission[]
 

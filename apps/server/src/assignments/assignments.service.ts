@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 import { CreateAssignmentDto } from './dto/create-assignment.dto.js';
 import { UpdateAssignmentStatusDto } from './dto/update-assignment-status.dto.js';
+import { ListAssignmentsQueryDto } from './dto/list-assignments-query.dto.js';
 import { UpdateAssignmentDto } from '../classes/dto/class.dto.js';
 import { AssignmentStatus, Prisma, Role } from '@prisma/client';
 
@@ -11,6 +13,7 @@ export class AssignmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly cloudinary: CloudinaryService,
   ) {}
 
   /** Confirms the class belongs to this teacher before an assignment may target it. */
@@ -134,6 +137,54 @@ export class AssignmentsService {
     return { message: 'Assignment deleted', assignmentId: id };
   }
 
+  /** Replaces the Task 1 chart/graph/diagram image, deleting any previous one on Cloudinary. */
+  async uploadTaskImage(teacherId: string, id: string, file: Express.Multer.File | undefined) {
+    const assignment = await this.owned(teacherId, id);
+    if (!file) throw new BadRequestException('No image file provided');
+    if (!file.mimetype.startsWith('image/')) throw new BadRequestException('File must be an image');
+
+    if (assignment.taskImagePublicId) {
+      await this.cloudinary.deleteImage(assignment.taskImagePublicId).catch(() => undefined);
+    }
+
+    const uploaded = await this.cloudinary.uploadImage(file.buffer, `idest/assignments/${teacherId}`);
+
+    const updated = await this.prisma.assignment.update({
+      where: { id },
+      data: { taskImageUrl: uploaded.secure_url, taskImagePublicId: uploaded.public_id },
+    });
+
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'assignment.image_uploaded',
+      entityType: 'assignment',
+      entityId: id,
+    });
+
+    return updated;
+  }
+
+  async deleteTaskImage(teacherId: string, id: string) {
+    const assignment = await this.owned(teacherId, id);
+    if (assignment.taskImagePublicId) {
+      await this.cloudinary.deleteImage(assignment.taskImagePublicId).catch(() => undefined);
+    }
+
+    const updated = await this.prisma.assignment.update({
+      where: { id },
+      data: { taskImageUrl: null, taskImagePublicId: null },
+    });
+
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'assignment.image_removed',
+      entityType: 'assignment',
+      entityId: id,
+    });
+
+    return updated;
+  }
+
   /** Bare fetch used internally (e.g. by submission creation); no visibility check. */
   async getAssignment(id: string) {
     const assignment = await this.prisma.assignment.findUnique({ where: { id } });
@@ -158,7 +209,14 @@ export class AssignmentsService {
       if (assignment.teacherId !== userId) {
         throw new ForbiddenException('You do not own this assignment');
       }
-      return assignment;
+      const memberCount = assignment.classId
+        ? await this.prisma.classMember.count({ where: { classId: assignment.classId, removedAt: null } })
+        : null;
+      return {
+        ...assignment,
+        submissionCount: assignment._count.submissions,
+        class: assignment.class ? { ...assignment.class, memberCount } : null,
+      };
     }
 
     if (role === Role.student) {
@@ -179,13 +237,51 @@ export class AssignmentsService {
     return assignment;
   }
 
-  async getAssignments(userId: string, role: string) {
+  async getAssignments(userId: string, role: string, query: ListAssignmentsQueryDto = {}) {
     if (role === Role.teacher) {
-      const assignments = await this.prisma.assignment.findMany({
-        where: { teacherId: userId, deletedAt: null },
-        include: { class: { select: { id: true, name: true } }, _count: { select: { submissions: true } } },
-        orderBy: [{ highlighted: 'desc' }, { createdAt: 'desc' }],
-      });
+      const where: Prisma.AssignmentWhereInput = {
+        teacherId: userId,
+        deletedAt: null,
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.taskType ? { taskType: query.taskType } : {}),
+        ...(query.classId === 'none'
+          ? { classId: null }
+          : query.classId
+            ? { classId: query.classId }
+            : {}),
+      };
+      const orderBy: Prisma.AssignmentOrderByWithRelationInput[] = [
+        { highlighted: 'desc' },
+        { createdAt: 'desc' },
+      ];
+      const include = {
+        class: { select: { id: true, name: true } },
+        _count: { select: { submissions: true } },
+      } satisfies Prisma.AssignmentInclude;
+
+      if (query.page || query.limit) {
+        const limit = Math.min(query.limit ?? 20, 100);
+        const page = query.page ?? 1;
+        const [total, assignments] = await Promise.all([
+          this.prisma.assignment.count({ where }),
+          this.prisma.assignment.findMany({
+            where,
+            include,
+            orderBy,
+            skip: (page - 1) * limit,
+            take: limit,
+          }),
+        ]);
+        return {
+          data: assignments.map((a) => ({ ...a, submissionCount: a._count.submissions })),
+          total,
+          page,
+          limit,
+          totalPages: Math.max(1, Math.ceil(total / limit)),
+        };
+      }
+
+      const assignments = await this.prisma.assignment.findMany({ where, include, orderBy });
       return assignments.map((a) => ({ ...a, submissionCount: a._count.submissions }));
     }
 

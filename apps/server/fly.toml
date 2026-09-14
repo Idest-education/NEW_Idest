@@ -3,6 +3,9 @@ primary_region = "sin"
 
 [build]
 
+[deploy]
+  release_command = "pnpm --filter server exec prisma migrate deploy"
+
 [env]
   PORT = "3001"
 

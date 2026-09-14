@@ -1,8 +1,10 @@
-import { Controller, Post, Get, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubmissionsService } from './submissions.service.js';
 import { CreateSubmissionDto } from './dto/create-submission.dto.js';
 import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
+import { ListSubmissionsQueryDto } from './dto/list-submissions-query.dto.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { User } from '@prisma/client';
@@ -15,6 +17,7 @@ export class SubmissionsController {
 
   @Post('assignments/:assignmentId/submissions')
   @Roles('student')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'Submit an essay for an active assignment (Student only)' })
   @ApiResponse({ status: 201, description: 'Essay submitted, queued for AI scoring' })
   @ApiResponse({ status: 400, description: 'Assignment closed/inactive or essay length invalid' })
@@ -28,9 +31,13 @@ export class SubmissionsController {
 
   @Get('submissions')
   @Roles('student', 'teacher', 'admin')
-  @ApiOperation({ summary: 'List every submission the caller may see, across all assignments' })
-  async getAllSubmissions(@CurrentUser() user: User) {
-    return this.submissionsService.getAllSubmissions(user.id, user.role);
+  @ApiOperation({
+    summary:
+      'List every submission the caller may see, across all assignments. ' +
+      'Pass page & limit to paginate; omit both for the full unpaginated list.',
+  })
+  async getAllSubmissions(@CurrentUser() user: User, @Query() query: ListSubmissionsQueryDto) {
+    return this.submissionsService.getAllSubmissions(user.id, user.role, query);
   }
 
   @Get('submissions/:id')
@@ -76,5 +83,14 @@ export class SubmissionsController {
     @Param('requestId') requestId: string,
   ) {
     return this.submissionsService.cancelRedoRequest(user.id, id, requestId, user.role);
+  }
+
+  @Post('submissions/:id/retry-scoring')
+  @Roles('teacher', 'admin')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @ApiOperation({ summary: 'Re-queue AI scoring for a failed submission (Teacher only)' })
+  @ApiResponse({ status: 400, description: 'Submission is not in a failed state' })
+  async retryScoring(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.submissionsService.retryScoring(user.id, id, user.role);
   }
 }

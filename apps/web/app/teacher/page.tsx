@@ -69,7 +69,7 @@ export default function TeacherDashboard() {
               <span className={s.statFigure}>{stats.signed}</span>
             </div>
             <div className={s.statTile}>
-              <span className={s.label}>Chấm lỗi</span>
+              <span className={s.label}>AI Chấm lỗi</span>
               <span className={s.statFigure}>{stats.failed}</span>
             </div>
             <div className={s.statTile}>
@@ -83,25 +83,37 @@ export default function TeacherDashboard() {
           </div>
           <div className={s.quickGrid}>
             <Link href="/teacher/assignments" className={s.quickLink}>
-              <span className={s.quickLinkTitle}>Bài tập</span>
+              <span className={s.quickLinkHead}>
+                <span className={s.quickLinkTitle}>Bài tập</span>
+                <span className={s.quickLinkArrow} aria-hidden="true">→</span>
+              </span>
               <p className={s.quickLinkHint}>
                 Xem, tạo, sửa, xóa, ghim nổi bật và đặt hạn nộp cho từng bài tập.
               </p>
             </Link>
             <Link href="/teacher/classes" className={s.quickLink}>
-              <span className={s.quickLinkTitle}>Lớp học</span>
+              <span className={s.quickLinkHead}>
+                <span className={s.quickLinkTitle}>Lớp học</span>
+                <span className={s.quickLinkArrow} aria-hidden="true">→</span>
+              </span>
               <p className={s.quickLinkHint}>
                 Xem, tạo, sửa lớp; thêm/xóa học viên; tạo liên kết mời vào lớp.
               </p>
             </Link>
             <Link href="/teacher/submissions" className={s.quickLink}>
-              <span className={s.quickLinkTitle}>Bài nộp</span>
+              <span className={s.quickLinkHead}>
+                <span className={s.quickLinkTitle}>Bài nộp</span>
+                <span className={s.quickLinkArrow} aria-hidden="true">→</span>
+              </span>
               <p className={s.quickLinkHint}>
                 Xem toàn bộ bài nộp, chấm điểm, và yêu cầu học viên làm lại.
               </p>
             </Link>
             <Link href="/profile" className={s.quickLink}>
-              <span className={s.quickLinkTitle}>Cài đặt</span>
+              <span className={s.quickLinkHead}>
+                <span className={s.quickLinkTitle}>Cài đặt</span>
+                <span className={s.quickLinkArrow} aria-hidden="true">→</span>
+              </span>
               <p className={s.quickLinkHint}>
                 Hồ sơ cá nhân, mời học viên qua email, tạo liên kết mời vào lớp.
               </p>

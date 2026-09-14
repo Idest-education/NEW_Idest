@@ -2,14 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(ConfigService);
 
+  app.use(helmet());
   app.enableCors({
-    origin: config.getOrThrow<string>('CLERK_AUTHORIZED_PARTIES').split(','),
+    origin: (config.get<string>('CORS_ORIGINS') ?? config.getOrThrow<string>('CLERK_AUTHORIZED_PARTIES')).split(
+      ',',
+    ),
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
     credentials: true,
   });

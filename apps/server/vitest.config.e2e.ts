@@ -10,6 +10,7 @@ export default defineConfig({
     include: ['**/*.e2e-spec.ts'],
     env: {
       DATABASE_URL: 'postgresql://idest:idest@localhost:5433/idest_clerk_test',
+      ALLOW_TEST_AUTH: 'true',
     },
     globalSetup: ['./test/setup-e2e.ts'],
   },

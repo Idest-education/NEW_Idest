@@ -15,6 +15,7 @@ import {
   createRedoRequest,
   createRevision,
   publishResult,
+  retryScoring,
   unpublishResult,
 } from "../lib/idest";
 import {
@@ -28,7 +29,7 @@ import {
   stripRef,
 } from "../lib/format";
 import { useAction } from "../lib/use-api";
-import { CriterionRow, Notice, board as s } from "./board";
+import { CriterionRow, Notice, Wizard, board as s } from "./board";
 
 export function Sheet({
   submission,
@@ -156,6 +157,15 @@ export function Sheet({
     if (done) await onChanged();
   }, [runRedo, submission.id, submission.openRedoRequest, onChanged]);
 
+  const { busy: retryBusy, error: retryError, run: runRetry } = useAction();
+  const retry = useCallback(async () => {
+    const done = await runRetry((token) => retryScoring(token, submission.id));
+    if (done) await onChanged();
+  }, [runRetry, submission.id, onChanged]);
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const hasFlag = submission.status === "failed" || Boolean(submission.openRedoRequest);
+
   return (
     <>
       <div className={s.slugLine}>
@@ -171,10 +181,19 @@ export function Sheet({
           </span>
           <span>{BAY_LABEL[submission.status]}</span>
         </span>
+        <button
+          type="button"
+          className={s.actionMenuTrigger}
+          aria-label="Thêm tùy chọn"
+          onClick={() => setMoreOpen(true)}
+        >
+          <span aria-hidden="true">☰</span>
+          {hasFlag ? <span className={s.actionMenuFlag} /> : null}
+        </button>
       </div>
 
       <div className={s.sheet}>
-        <div>
+        <div className={s.essayColumn}>
           <p className={s.prompt}>{submission.assignment.taskPrompt}</p>
 
           <article className={s.essaySheet}>
@@ -306,13 +325,10 @@ export function Sheet({
                   </>
                 ) : null}
                 <div className={s.fieldRow}>
-                  <label className={s.fieldLabel} htmlFor="summary">
-                    Nhận xét gửi học viên — bạn viết, không lấy sẵn của máy
-                  </label>
                   <textarea
                     id="summary"
                     className={s.field}
-                    rows={7}
+                    rows={4}
                     value={summary}
                     disabled={!canRevise}
                     placeholder={
@@ -326,13 +342,9 @@ export function Sheet({
                     }}
                   />
                 </div>
-              </section>
 
-              {canRevise ? (
-                <section className={s.commit}>
-                  <p className={s.commitHead}>
-                    {activePublished ? "Duyệt lại — học viên sẽ thấy bản mới" : "Trước khi duyệt"}
-                  </p>
+                {canRevise ? (
+                  <div className={s.commit} style={{ marginTop: "0.75rem" }}>
                   {aiImprovements.length ? (
                     <div className={s.commitAdopt}>
                       <span className={s.label}>AI gợi ý sửa — tick để gửi cho học viên</span>
@@ -423,8 +435,9 @@ export function Sheet({
                     </button>
                   </div>
                   {actionError ? <Notice tone="alert">{actionError}</Notice> : null}
-                </section>
-              ) : null}
+                  </div>
+                ) : null}
+              </section>
 
               {submission.status === "published" && activePublished ? (
                 <section className={s.railBlock}>
@@ -441,79 +454,90 @@ export function Sheet({
                 </section>
               ) : null}
 
-              {submission.status === "failed" ? (
-                <Notice tone="alert">
-                  Máy chấm lỗi ở lần này. Bài viết vẫn còn nguyên vẹn — bạn có thể chấm trực tiếp
-                  bên trên, không cần học viên nộp lại.
-                </Notice>
-              ) : null}
-
-              {submission.status !== "published" ? (
-                <section className={s.railBlock}>
-                  <header className={s.railHead}>
-                    <span className={s.label}>Yêu cầu làm lại</span>
-                  </header>
-                  {submission.openRedoRequest ? (
-                    <>
-                      <p className={s.machineNote}>
-                        Đã yêu cầu · {stamp(submission.openRedoRequest.createdAt)}
-                      </p>
-                      <p style={{ marginTop: "0.4rem" }}>{submission.openRedoRequest.reason}</p>
-                      <div className={s.actionRow}>
-                        <button
-                          type="button"
-                          className={s.pressQuiet}
-                          disabled={redoBusy}
-                          onClick={cancelRedo}
-                        >
-                          {redoBusy ? "Đang hủy…" : "Hủy yêu cầu"}
-                        </button>
-                      </div>
-                    </>
-                  ) : redoOpen ? (
-                    <>
-                      <div className={s.fieldRow}>
-                        <label className={s.fieldLabel} htmlFor="redo-reason">
-                          Lý do — học viên sẽ đọc dòng này
-                        </label>
-                        <textarea
-                          id="redo-reason"
-                          className={s.field}
-                          rows={2}
-                          value={redoReason}
-                          onChange={(e) => setRedoReason(e.target.value)}
-                          placeholder="Bài chưa đúng dạng Task 2, em viết lại theo đề nhé."
-                        />
-                      </div>
-                      <div className={s.actionRow}>
-                        <button
-                          type="button"
-                          className={s.press}
-                          disabled={redoBusy || !redoReason.trim()}
-                          onClick={sendRedo}
-                        >
-                          {redoBusy ? "Đang gửi…" : "Gửi yêu cầu"}
-                        </button>
-                        <button type="button" className={s.pressQuiet} onClick={() => setRedoOpen(false)}>
-                          Thôi
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className={s.actionRow}>
-                      <button type="button" className={s.pressQuiet} onClick={() => setRedoOpen(true)}>
-                        Yêu cầu học viên làm lại
-                      </button>
-                    </div>
-                  )}
-                  {redoError ? <Notice tone="alert">{redoError}</Notice> : null}
-                </section>
-              ) : null}
           </>
-
-          <History submission={submission} />
         </aside>
       </div>
+
+      <Wizard open={moreOpen} onClose={() => setMoreOpen(false)} title="Thêm" footer={null}>
+        {submission.status === "failed" ? (
+          <section className={s.railBlock}>
+            <Notice tone="plain">
+              Máy chấm gặp trục trặc nhỏ ở lần này — bài viết vẫn còn nguyên vẹn. Bạn có thể chấm
+              tay ngay bên trên, hoặc thử để máy chấm lại.
+            </Notice>
+            <div className={s.actionRow}>
+              <button type="button" className={s.pressQuiet} disabled={retryBusy} onClick={retry}>
+                {retryBusy ? "Đang gửi lại…" : "Thử chấm lại"}
+              </button>
+            </div>
+            {retryError ? <Notice tone="alert">{retryError}</Notice> : null}
+          </section>
+        ) : null}
+
+        {submission.status !== "published" ? (
+          <section className={s.railBlock}>
+            <header className={s.railHead}>
+              <span className={s.label}>Yêu cầu làm lại</span>
+            </header>
+            {submission.openRedoRequest ? (
+              <>
+                <p className={s.machineNote}>
+                  Đã yêu cầu · {stamp(submission.openRedoRequest.createdAt)}
+                </p>
+                <p style={{ marginTop: "0.4rem" }}>{submission.openRedoRequest.reason}</p>
+                <div className={s.actionRow}>
+                  <button
+                    type="button"
+                    className={s.pressQuiet}
+                    disabled={redoBusy}
+                    onClick={cancelRedo}
+                  >
+                    {redoBusy ? "Đang hủy…" : "Hủy yêu cầu"}
+                  </button>
+                </div>
+              </>
+            ) : redoOpen ? (
+              <>
+                <div className={s.fieldRow}>
+                  <label className={s.fieldLabel} htmlFor="redo-reason">
+                    Lý do — học viên sẽ đọc dòng này
+                  </label>
+                  <textarea
+                    id="redo-reason"
+                    className={s.field}
+                    rows={2}
+                    value={redoReason}
+                    onChange={(e) => setRedoReason(e.target.value)}
+                    placeholder="Bài chưa đúng dạng Task 2, em viết lại theo đề nhé."
+                  />
+                </div>
+                <div className={s.actionRow}>
+                  <button
+                    type="button"
+                    className={s.press}
+                    disabled={redoBusy || !redoReason.trim()}
+                    onClick={sendRedo}
+                  >
+                    {redoBusy ? "Đang gửi…" : "Gửi yêu cầu"}
+                  </button>
+                  <button type="button" className={s.pressQuiet} onClick={() => setRedoOpen(false)}>
+                    Thôi
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className={s.actionRow}>
+                <button type="button" className={s.pressQuiet} onClick={() => setRedoOpen(true)}>
+                  Yêu cầu học viên làm lại
+                </button>
+              </div>
+            )}
+            {redoError ? <Notice tone="alert">{redoError}</Notice> : null}
+          </section>
+        ) : null}
+
+        <History submission={submission} />
+      </Wizard>
     </>
   );
 }

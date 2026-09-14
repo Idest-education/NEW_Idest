@@ -94,6 +94,33 @@ describe('UserSyncService.getOrCreate', () => {
     expect(clerk.users.updateUserMetadata).not.toHaveBeenCalled();
   });
 
+  it('creates a student when unsafeMetadata carries the join-link role hint, and mirrors it', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(clerkUser({ unsafeMetadata: { role: 'student' } }));
+    prisma.user.create.mockResolvedValueOnce({ id: 'row_hint', role: 'student' });
+
+    await service.getOrCreate({ clerkUserId: 'user_new' });
+
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ role: 'student' }),
+    });
+    expect(clerk.users.updateUserMetadata).toHaveBeenCalledWith('user_new', {
+      publicMetadata: { role: 'student' },
+    });
+  });
+
+  it('ignores a non-student role hint in unsafeMetadata and still defaults to teacher', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(clerkUser({ unsafeMetadata: { role: 'admin' } }));
+    prisma.user.create.mockResolvedValueOnce({ id: 'row_hint2', role: 'teacher' });
+
+    await service.getOrCreate({ clerkUserId: 'user_new' });
+
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ role: 'teacher' }),
+    });
+  });
+
   it('throws 503 when Clerk is unreachable and writes nothing', async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
     clerk.users.getUser.mockRejectedValueOnce(new Error('ECONNREFUSED'));

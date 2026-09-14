@@ -49,7 +49,7 @@ export const BAY_LABEL: Record<SubmissionStatus, string> = {
   scored: "Chờ giáo viên",
   under_review: "Đang sửa",
   published: "Đã duyệt",
-  failed: "Chấm lỗi",
+  failed: "AI tạm thời bảo trì",
 };
 
 /** What the student is told. Internal pipeline states never reach them. */
@@ -115,6 +115,7 @@ export interface Profile {
 export interface ClassRef {
   id: string;
   name: string;
+  memberCount?: number | null;
 }
 
 export interface Assignment {
@@ -125,6 +126,7 @@ export interface Assignment {
   title: string;
   taskPrompt: string;
   taskType: TaskType;
+  taskImageUrl?: string | null;
   status: AssignmentStatus;
   highlighted: boolean;
   dueAt: string | null;
@@ -368,6 +370,32 @@ export const updateProfile = (token: string | null, displayName: string) =>
 export const listAssignments = (token: string | null) =>
   request<Assignment[]>("/assignments", token);
 
+export interface AssignmentPage {
+  data: Assignment[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListAssignmentsParams {
+  page?: number;
+  limit?: number;
+  status?: AssignmentStatus;
+  taskType?: TaskType;
+  classId?: string;
+}
+
+export const listAssignmentsPage = (token: string | null, params: ListAssignmentsParams) => {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.status) qs.set("status", params.status);
+  if (params.taskType) qs.set("taskType", params.taskType);
+  if (params.classId) qs.set("classId", params.classId);
+  return request<AssignmentPage>(`/assignments?${qs.toString()}`, token);
+};
+
 export const getAssignment = (id: string, token: string | null) =>
   request<Assignment>(`/assignments/${id}`, token);
 
@@ -396,6 +424,15 @@ export const updateAssignment = (
 
 export const deleteAssignment = (token: string | null, id: string) =>
   request<{ message: string; assignmentId: string }>(`/assignments/${id}`, token, { method: "DELETE" });
+
+export const uploadAssignmentImage = (token: string | null, id: string, file: File) => {
+  const form = new FormData();
+  form.append("image", file);
+  return request<Assignment>(`/assignments/${id}/image`, token, { method: "POST", body: form });
+};
+
+export const deleteAssignmentImage = (token: string | null, id: string) =>
+  request<Assignment>(`/assignments/${id}/image`, token, { method: "DELETE" });
 
 export const listSubmissions = (assignmentId: string, token: string | null) =>
   request<SubmissionRow[]>(`/assignments/${assignmentId}/submissions`, token);
@@ -440,6 +477,30 @@ export const inviteStudent = (token: string | null, email: string) =>
 export const listAllSubmissions = <T = SubmissionListRow[]>(token: string | null) =>
   request<T>("/submissions", token);
 
+export interface SubmissionPage {
+  data: SubmissionListRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListSubmissionsParams {
+  page?: number;
+  limit?: number;
+  status?: SubmissionStatus;
+  q?: string;
+}
+
+export const listSubmissionsPage = (token: string | null, params: ListSubmissionsParams) => {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.status) qs.set("status", params.status);
+  if (params.q) qs.set("q", params.q);
+  return request<SubmissionPage>(`/submissions?${qs.toString()}`, token);
+};
+
 export const createRedoRequest = (token: string | null, submissionId: string, reason: string) =>
   request<RedoRequest>(`/submissions/${submissionId}/redo-requests`, token, jsonInit("POST", { reason }));
 
@@ -448,9 +509,34 @@ export const cancelRedoRequest = (token: string | null, submissionId: string, re
     method: "DELETE",
   });
 
+export const retryScoring = (token: string | null, submissionId: string) =>
+  request<SubmissionRow>(`/submissions/${submissionId}/retry-scoring`, token, jsonInit("POST", {}));
+
 // ── Classes ──────────────────────────────────────────────────────────────
 
 export const listClasses = (token: string | null) => request<ClassSummary[]>("/classes", token);
+
+export interface ClassPage {
+  data: ClassSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ListClassesParams {
+  page?: number;
+  limit?: number;
+  status?: ClassStatus;
+}
+
+export const listClassesPage = (token: string | null, params: ListClassesParams) => {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.status) qs.set("status", params.status);
+  return request<ClassPage>(`/classes?${qs.toString()}`, token);
+};
 
 export const getClass = (token: string | null, id: string) =>
   request<ClassDetail>(`/classes/${id}`, token);

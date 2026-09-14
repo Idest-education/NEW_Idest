@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BAY_LABEL,
   CRITERIA,
@@ -229,6 +229,273 @@ export function WaitingRack({ rows = 4 }: { rows?: number }) {
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className={styles.skeletonStrip} />
       ))}
+    </div>
+  );
+}
+
+export type ImageDropzoneStatus = "empty" | "staged" | "uploading" | "uploaded" | "error";
+
+export function ImageDropzone({
+  id,
+  previewUrl,
+  status,
+  fileName,
+  fileSize,
+  errorMessage,
+  hint = "PNG hoặc JPG, tối đa 5MB",
+  disabled,
+  onSelect,
+  onClear,
+}: {
+  id: string;
+  previewUrl?: string | null;
+  status: ImageDropzoneStatus;
+  fileName?: string;
+  fileSize?: string;
+  errorMessage?: string;
+  hint?: string;
+  disabled?: boolean;
+  onSelect: (file: File) => void;
+  onClear?: () => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const hasImage = status !== "empty";
+
+  const pick = () => {
+    if (disabled) return;
+    document.getElementById(id)?.click();
+  };
+
+  const handleFiles = (files: FileList | null) => {
+    const file = files?.[0];
+    if (file) onSelect(file);
+  };
+
+  const badgeClass =
+    status === "staged"
+      ? styles.dropzoneBadgeStaged
+      : status === "uploaded"
+        ? styles.dropzoneBadgeUploaded
+        : status === "error"
+          ? styles.dropzoneBadgeError
+          : "";
+
+  const badgeText =
+    status === "staged"
+      ? "Sẽ tải lên khi lưu"
+      : status === "uploading"
+        ? "Đang tải lên…"
+        : status === "uploaded"
+          ? "✓ Đã lưu ảnh"
+          : status === "error"
+            ? "Tải lên lỗi"
+            : "";
+
+  return (
+    <div
+      className={`${styles.dropzone} ${hasImage ? styles.dropzoneFilled : ""} ${
+        dragging ? styles.dropzoneDragging : ""
+      }`}
+      role={hasImage ? undefined : "button"}
+      tabIndex={hasImage || disabled ? undefined : 0}
+      onClick={!hasImage ? pick : undefined}
+      onKeyDown={
+        !hasImage
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                pick();
+              }
+            }
+          : undefined
+      }
+      onDragOver={(e) => {
+        if (disabled) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        if (disabled) return;
+        e.preventDefault();
+        setDragging(false);
+        handleFiles(e.dataTransfer.files);
+      }}
+    >
+      <input
+        id={id}
+        type="file"
+        accept="image/*"
+        className={styles.dropzoneInput}
+        disabled={disabled}
+        onChange={(e) => handleFiles(e.target.files)}
+      />
+      {!hasImage ? (
+        <>
+          <span className={styles.dropzoneIcon} aria-hidden="true">
+            ⇪
+          </span>
+          <span className={styles.dropzoneLabel}>Kéo ảnh vào đây, hoặc bấm để chọn</span>
+          <span className={styles.dropzoneHint}>{hint}</span>
+        </>
+      ) : (
+        <div className={styles.dropzonePreviewWrap}>
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt="" className={styles.dropzoneThumb} />
+          ) : null}
+          <div className={styles.dropzoneMeta}>
+            {fileName ? <span className={styles.dropzoneFileName}>{fileName}</span> : null}
+            {fileSize ? <span className={styles.dropzoneFileSize}>{fileSize}</span> : null}
+            <span className={`${styles.dropzoneBadge} ${badgeClass}`}>{badgeText}</span>
+            {status === "error" && errorMessage ? (
+              <span className={styles.dropzoneFileSize}>{errorMessage}</span>
+            ) : null}
+            <div className={styles.dropzoneActions}>
+              <button
+                type="button"
+                className={styles.pressQuiet}
+                disabled={disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  pick();
+                }}
+              >
+                Đổi ảnh
+              </button>
+              {onClear ? (
+                <button
+                  type="button"
+                  className={styles.pressQuiet}
+                  disabled={disabled}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClear();
+                  }}
+                >
+                  Xóa
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Wizard({
+  open,
+  onClose,
+  title,
+  steps,
+  step = 0,
+  children,
+  footer,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  steps?: string[];
+  step?: number;
+  children: ReactNode;
+  footer: ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className={styles.wizardOverlay} onClick={onClose}>
+      <div
+        className={styles.wizardPanel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.wizardHead}>
+          <div>
+            <h2 className={styles.wizardTitle}>{title}</h2>
+            {steps && steps.length > 1 ? (
+              <div className={styles.wizardSteps}>
+                {steps.map((label, i) => (
+                  <span
+                    key={label}
+                    className={`${styles.wizardStep} ${i === step ? styles.wizardStepActive : ""} ${
+                      i < step ? styles.wizardStepDone : ""
+                    }`}
+                  >
+                    <span className={styles.wizardStepDot}>{i + 1}</span>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <button type="button" className={styles.wizardClose} onClick={onClose} aria-label="Đóng">
+            ×
+          </button>
+        </div>
+
+        <div className={styles.wizardBody}>{children}</div>
+
+        {footer ? <div className={styles.wizardFooter}>{footer}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+export function ActionMenu({
+  label = "Tùy chọn",
+  children,
+}: {
+  label?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className={styles.actionMenu} ref={ref}>
+      <button
+        type="button"
+        className={styles.actionMenuTrigger}
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+      {open ? (
+        <div className={styles.actionMenuPanel} role="menu" onClick={() => setOpen(false)}>
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }

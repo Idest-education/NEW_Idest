@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { User } from '@prisma/client';
 import { ClassesService } from './classes.service.js';
@@ -8,7 +8,9 @@ import {
   CreateInviteLinkDto,
   UpdateClassDto,
 } from './dto/class.dto.js';
+import { ListClassesQueryDto } from './dto/list-classes-query.dto.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { Public } from '../auth/decorators/public.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 
 @ApiTags('Classes')
@@ -26,9 +28,12 @@ export class ClassesController {
 
   @Get()
   @Roles('student', 'teacher', 'admin')
-  @ApiOperation({ summary: 'List classes: the ones you teach, or the ones you are in' })
-  listClasses(@CurrentUser() user: User) {
-    return this.classes.listClasses(user.id, user.role);
+  @ApiOperation({
+    summary:
+      'List classes: the ones you teach, or the ones you are in. Pass page & limit to paginate; omit both for the full unpaginated list.',
+  })
+  listClasses(@CurrentUser() user: User, @Query() query: ListClassesQueryDto) {
+    return this.classes.listClasses(user.id, user.role, query);
   }
 
   @Get(':id')
@@ -90,8 +95,10 @@ export class InviteLinksController {
   constructor(private readonly classes: ClassesService) {}
 
   @Get(':token')
-  @Roles('student', 'teacher', 'admin')
-  @ApiOperation({ summary: 'Preview where an invite link leads before joining' })
+  @Public()
+  @ApiOperation({
+    summary: 'Preview where an invite link leads before joining (no account required)',
+  })
   preview(@Param('token') token: string) {
     return this.classes.previewInviteLink(token);
   }

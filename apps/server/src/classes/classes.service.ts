@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { ClassStatus, Role } from '@prisma/client';
+import { ClassStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import {
@@ -14,6 +14,7 @@ import {
   CreateInviteLinkDto,
   UpdateClassDto,
 } from './dto/class.dto.js';
+import { ListClassesQueryDto } from './dto/list-classes-query.dto.js';
 
 const MEMBER_SELECT = {
   id: true,
@@ -54,7 +55,7 @@ export class ClassesService {
   }
 
   /** Teachers see the classes they own; students see the ones they are in. */
-  async listClasses(userId: string, role: string) {
+  async listClasses(userId: string, role: string, query: ListClassesQueryDto = {}) {
     if (role === Role.student) {
       const memberships = await this.prisma.classMember.findMany({
         where: { studentId: userId, removedAt: null },
@@ -73,24 +74,49 @@ export class ClassesService {
         .map((m) => ({ ...m.class, joinedAt: m.joinedAt, memberCount: undefined }));
     }
 
-    const where = role === Role.teacher ? { teacherId: userId, deletedAt: null } : { deletedAt: null };
-    const classes = await this.prisma.class.findMany({
-      where,
-      include: { _count: { select: { assignments: true, members: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
-    // Removed students must not inflate the roster count.
-    const activeCounts = await this.prisma.classMember.groupBy({
-      by: ['classId'],
-      where: { classId: { in: classes.map((c) => c.id) }, removedAt: null },
-      _count: true,
-    });
-    const active = new Map(activeCounts.map((row) => [row.classId, row._count]));
-    return classes.map((c) => ({
-      ...c,
-      memberCount: active.get(c.id) ?? 0,
-      assignmentCount: c._count.assignments,
-    }));
+    const where: Prisma.ClassWhereInput = {
+      ...(role === Role.teacher ? { teacherId: userId } : {}),
+      deletedAt: null,
+      ...(query.status ? { status: query.status } : {}),
+    };
+    const include = {
+      _count: { select: { assignments: true, members: true } },
+    } satisfies Prisma.ClassInclude;
+    const orderBy: Prisma.ClassOrderByWithRelationInput = { createdAt: 'desc' };
+
+    const withCounts = async <T extends { id: string; _count: { assignments: number } }>(classes: T[]) => {
+      // Removed students must not inflate the roster count.
+      const activeCounts = await this.prisma.classMember.groupBy({
+        by: ['classId'],
+        where: { classId: { in: classes.map((c) => c.id) }, removedAt: null },
+        _count: true,
+      });
+      const active = new Map(activeCounts.map((row) => [row.classId, row._count]));
+      return classes.map((c) => ({
+        ...c,
+        memberCount: active.get(c.id) ?? 0,
+        assignmentCount: c._count.assignments,
+      }));
+    };
+
+    if (query.page || query.limit) {
+      const limit = Math.min(query.limit ?? 20, 100);
+      const page = query.page ?? 1;
+      const [total, classes] = await Promise.all([
+        this.prisma.class.count({ where }),
+        this.prisma.class.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
+      ]);
+      return {
+        data: await withCounts(classes),
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      };
+    }
+
+    const classes = await this.prisma.class.findMany({ where, include, orderBy });
+    return withCounts(classes);
   }
 
   async getClass(classId: string, userId: string, role: string) {

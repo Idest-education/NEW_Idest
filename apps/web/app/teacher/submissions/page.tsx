@@ -1,46 +1,53 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BAY_LABEL,
-  type SubmissionListRow,
+  type SubmissionPage,
   type SubmissionStatus,
-  listAllSubmissions,
+  listSubmissionsPage,
 } from "../../../lib/idest";
 import { stamp } from "../../../lib/format";
 import { useResource } from "../../../lib/use-api";
 import { Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../../components/board";
 
-const FILTERS: Array<{ id: string; label: string; statuses: SubmissionStatus[] | null }> = [
-  { id: "all", label: "Tất cả", statuses: null },
-  { id: "waiting", label: "Chờ giáo viên", statuses: ["scored"] },
-  { id: "review", label: "Đang sửa", statuses: ["under_review"] },
-  { id: "signed", label: "Đã duyệt", statuses: ["published"] },
-  { id: "failed", label: "Chấm lỗi", statuses: ["failed"] },
+const PAGE_SIZE = 12;
+
+const FILTERS: Array<{ id: string; label: string; status: SubmissionStatus | null }> = [
+  { id: "all", label: "Tất cả", status: null },
+  { id: "waiting", label: "Chờ giáo viên", status: "scored" },
+  { id: "review", label: "Đang sửa", status: "under_review" },
+  { id: "signed", label: "Đã duyệt", status: "published" },
+  { id: "failed", label: "Chấm lỗi", status: "failed" },
 ];
 
 export default function AllSubmissionsPage() {
-  const { data, state, error } = useResource<SubmissionListRow[]>((token) => listAllSubmissions(token));
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(id);
+  }, [query]);
 
   const active = FILTERS.find((f) => f.id === filter) ?? FILTERS[0]!;
 
-  const rows = useMemo(() => {
-    let list = data ?? [];
-    if (active.statuses) list = list.filter((r) => active.statuses!.includes(r.status));
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (r) =>
-          r.student.displayName.toLowerCase().includes(q) ||
-          r.student.email.toLowerCase().includes(q) ||
-          r.assignment.title.toLowerCase().includes(q),
-      );
-    }
-    return list.slice().sort((a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt));
-  }, [data, active, query]);
+  const { data, state, error } = useResource<SubmissionPage>(
+    (token) =>
+      listSubmissionsPage(token, {
+        page,
+        limit: PAGE_SIZE,
+        status: active.status ?? undefined,
+        q: debouncedQuery || undefined,
+      }),
+    [page, active.status, debouncedQuery],
+  );
+
+  const rows = data?.data ?? [];
+  const hasFilters = filter !== "all" || debouncedQuery.length > 0;
 
   return (
     <Shell role="teacher" wide>
@@ -48,7 +55,7 @@ export default function AllSubmissionsPage() {
         <h1 className={s.title} style={{ marginRight: "auto" }}>
           Bài nộp
         </h1>
-        <Link href="/teacher" className={s.navLink}>
+        <Link href="/teacher" className={s.pressQuiet}>
           ← Tổng quan
         </Link>
       </div>
@@ -57,7 +64,7 @@ export default function AllSubmissionsPage() {
       {state === "error" ? <Notice tone="alert">{error}</Notice> : null}
       {state === "loading" ? <WaitingRack /> : null}
 
-      {state === "ready" ? (
+      {state === "ready" && data ? (
         <>
           <div className={s.actionRow}>
             {FILTERS.map((f) => (
@@ -65,7 +72,10 @@ export default function AllSubmissionsPage() {
                 key={f.id}
                 type="button"
                 className={f.id === filter ? s.press : s.pressQuiet}
-                onClick={() => setFilter(f.id)}
+                onClick={() => {
+                  setFilter(f.id);
+                  setPage(1);
+                }}
               >
                 {f.label}
               </button>
@@ -74,18 +84,23 @@ export default function AllSubmissionsPage() {
               className={s.field}
               style={{ maxWidth: "16rem" }}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
               placeholder="Tìm theo tên học viên hoặc bài tập"
             />
           </div>
 
           <div className={s.sectionHead}>
-            <h2 className={s.sectionTitle}>{rows.length} bài nộp</h2>
+            <h2 className={s.sectionTitle}>{data.total} bài nộp</h2>
           </div>
 
           {rows.length === 0 ? (
-            <Blank art="writing" title="Không có bài nộp nào khớp">
-              Đổi bộ lọc hoặc xóa từ khóa tìm kiếm.
+            <Blank art="writing" title={hasFilters ? "Không có bài nộp nào khớp" : "Chưa có bài nộp nào"}>
+              {hasFilters
+                ? "Đổi bộ lọc hoặc xóa từ khóa tìm kiếm."
+                : "Khi học viên nộp bài, bài nộp sẽ xuất hiện ở đây."}
             </Blank>
           ) : (
             <div className={s.rack}>
@@ -111,6 +126,30 @@ export default function AllSubmissionsPage() {
               ))}
             </div>
           )}
+
+          {data.totalPages > 1 ? (
+            <div className={s.pager}>
+              <button
+                type="button"
+                className={s.pressQuiet}
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
+                ← Trước
+              </button>
+              <span className={s.pagerInfo}>
+                Trang {page} / {data.totalPages}
+              </span>
+              <button
+                type="button"
+                className={s.pressQuiet}
+                disabled={page >= data.totalPages}
+                onClick={() => setPage(page + 1)}
+              >
+                Sau →
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </Shell>

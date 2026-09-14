@@ -29,9 +29,15 @@ export class ClerkAuthGuard implements CanActivate {
       auth?: RequestAuth;
     }>();
 
-    // Dev/Test helper: if not in production and x-test-user header is provided, use it
+    // Dev/Test helper: requires both a non-production NODE_ENV and an explicit opt-in
+    // flag, so a misconfigured/missing NODE_ENV in a real deployment can't alone open
+    // this bypass.
     const testUserHeader = request.headers['x-test-user'];
-    if (process.env.NODE_ENV !== 'production' && testUserHeader) {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.ALLOW_TEST_AUTH === 'true' &&
+      testUserHeader
+    ) {
       request.auth = {
         clerkUserId: testUserHeader,
         sessionId: 'sess_dev_test',
