@@ -1530,101 +1530,41 @@ git commit -m "feat(assessments): return reason-prompt state with a new revision
 
 ---
 
-### Task 9: Admin promotion script
+### Task 9: Confirm admin promotion already works
 
-Nothing in the codebase assigns `Role.admin`, so the admin-gated analytics API in a later plan would be unreachable.
+**Write no code for this task.** An earlier draft of this plan added a `prisma/promote-admin.ts` script. That was a mistake, kept here as a warning rather than deleted: the repository already promotes admins, and a second script would have been actively harmful.
 
-**Files:**
-- Create: `apps/server/prisma/promote-admin.ts`
-- Modify: `apps/server/package.json`
+`apps/server/prisma/promote-to-admin.ts` exports `promoteToAdmin(prisma, clerk, email)`. It updates the user's role in PostgreSQL **and** mirrors it into Clerk `publicMetadata`. `prisma/seed.ts:16` calls it, and `test/promote-to-admin.e2e-spec.ts` covers both the success path and the unknown-email path.
+
+The mirror is the part that matters. `RolesGuard` (`src/auth/roles.guard.ts`) resolves the role from the database through `UserSyncService.getOrCreate`, so a database-only promotion would satisfy the API. But `apps/web/lib/clerk-role.ts` and `lib/route-access.ts` read the role from the Clerk session claim. A script that skipped the Clerk update would produce an admin the API trusts and the web client does not — a silent, confusing split.
+
+**Files:** none.
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `pnpm promote:admin <email>`.
+- Produces: nothing new. The read-path plan's admin pages depend on this command already existing.
 
-- [ ] **Step 1: Write the script**
+- [ ] **Step 1: Read the existing implementation**
 
-`apps/server/prisma/promote-admin.ts`:
+Read `apps/server/prisma/promote-to-admin.ts` and `apps/server/prisma/seed.ts`. Confirm that `seed.ts` takes the email from `SEED_ADMIN_EMAIL` or `process.argv[2]`, and that `promoteToAdmin` both updates `user.role` and calls `clerk.users.updateUserMetadata`.
 
-```typescript
-import { PrismaClient, Role } from '@prisma/client';
+- [ ] **Step 2: Confirm the existing test passes**
 
-/**
- * Promotes one existing user to admin, by email.
- *
- * An operator tool, deliberately not an API endpoint: there is no safe way to
- * expose role escalation over HTTP in a system whose whole authority model
- * rests on who is a teacher.
- *
- *   pnpm promote:admin someone@example.com
- */
-async function main() {
-  const email = process.argv[2];
-  if (!email) {
-    console.error('Usage: pnpm promote:admin <email>');
-    process.exit(1);
-  }
+Run: `cd apps/server && pnpm test:e2e`
+Expected: `test/promote-to-admin.e2e-spec.ts` passes. This needs `DATABASE_URL` and `CLERK_SECRET_KEY`. If the environment has neither, skip and record that in your report rather than inventing a substitute.
 
-  const prisma = new PrismaClient();
-  try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      console.error(`No user with email ${email}`);
-      process.exit(1);
-    }
-    if (user.role === Role.admin) {
-      console.log(`${email} is already an admin`);
-      return;
-    }
+- [ ] **Step 3: Record the command**
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: user.id }, data: { role: Role.admin } });
-      await tx.auditEvent.create({
-        data: {
-          actorId: user.id,
-          eventType: 'user.role_promoted',
-          entityType: 'user',
-          entityId: user.id,
-          metadata: { from: user.role, to: Role.admin, via: 'promote-admin script' },
-        },
-      });
-    });
-
-    console.log(`Promoted ${email} from ${user.role} to admin`);
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-void main();
-```
-
-- [ ] **Step 2: Add the script entry**
-
-In `apps/server/package.json`, add beside `db:seed`:
-
-```json
-    "promote:admin": "tsx prisma/promote-admin.ts"
-```
-
-- [ ] **Step 3: Verify it refuses a missing user**
-
-This step connects to the database, so `DATABASE_URL` must be set and the database reachable. If it is not available in your environment, skip this step and say so in the commit — the script is exercised the first time an admin is actually promoted.
-
-Run: `cd apps/server && pnpm promote:admin nobody@example.invalid`
-Expected: exits 1 with `No user with email nobody@example.invalid`
-
-- [ ] **Step 4: Lint**
-
-Run: `cd apps/server && pnpm lint`
-Expected: no errors
-
-- [ ] **Step 5: Commit**
+The command an operator runs to create the first admin, needed before the read-path plan's admin pages are reachable:
 
 ```bash
-git add apps/server/prisma/promote-admin.ts apps/server/package.json
-git commit -m "feat(server): add admin promotion script"
+cd apps/server
+SEED_ADMIN_EMAIL=someone@example.com pnpm db:seed
+# or equivalently
+pnpm db:seed someone@example.com
 ```
+
+Nothing to commit for this task.
 
 ---
 
