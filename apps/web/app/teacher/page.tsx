@@ -11,7 +11,15 @@ import { stamp } from "../../lib/format";
 import { useResource } from "../../lib/use-api";
 import { Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../components/board";
 
-const WAITING_STATUSES: SubmissionStatus[] = ["submitted", "queued", "scoring", "scored", "under_review", "failed"];
+const WAITING_STATUSES: SubmissionStatus[] = [
+  "submitted",
+  "queued",
+  "scoring",
+  "scored",
+  "under_review",
+  "failed",
+  "abuse",
+];
 
 export default function TeacherDashboard() {
   const { data, state, error } = useResource<SubmissionListRow[]>((token) => listAllSubmissions(token));

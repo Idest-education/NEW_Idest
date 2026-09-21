@@ -20,6 +20,7 @@ const FILTERS: Array<{ id: string; label: string; status: SubmissionStatus | nul
   { id: "review", label: "Đang sửa", status: "under_review" },
   { id: "signed", label: "Đã duyệt", status: "published" },
   { id: "failed", label: "Chấm lỗi", status: "failed" },
+  { id: "abuse", label: "Nghi ngờ vi phạm", status: "abuse" },
 ];
 
 export default function AllSubmissionsPage() {

@@ -11,6 +11,7 @@ import {
   type ScoringResult,
   type SubmissionFull,
   TASK_TYPE_LABEL,
+  abuseReview,
   cancelRedoRequest,
   createRedoRequest,
   createRevision,
@@ -164,7 +165,8 @@ export function Sheet({
   }, [runRetry, submission.id, onChanged]);
 
   const [moreOpen, setMoreOpen] = useState(false);
-  const hasFlag = submission.status === "failed" || Boolean(submission.openRedoRequest);
+  const isAbuseFlagged = submission.status === "abuse";
+  const hasFlag = submission.status === "failed" || isAbuseFlagged || Boolean(submission.openRedoRequest);
 
   return (
     <>
@@ -232,6 +234,9 @@ export function Sheet({
         </div>
 
         <aside className={s.rail}>
+          {isAbuseFlagged ? (
+            <AbuseReviewPanel submission={submission} onChanged={onChanged} />
+          ) : (
           <>
               {!aiResult ? (
                 <Notice>
@@ -455,6 +460,7 @@ export function Sheet({
               ) : null}
 
           </>
+          )}
         </aside>
       </div>
 
@@ -539,6 +545,108 @@ export function Sheet({
         <History submission={submission} />
       </Wizard>
     </>
+  );
+}
+
+const ABUSE_REASON_LABEL: Record<string, string> = {
+  too_short: "Bài quá ngắn",
+  too_long: "Bài quá dài",
+  gibberish: "Nội dung vô nghĩa / spam",
+  prompt_injection: "Nghi ngờ chèn lệnh cho AI",
+};
+
+const ABUSE_DETAIL_LABEL: Record<string, string> = {
+  nonAlphaRatio: "Tỷ lệ ký tự không phải chữ cái",
+  uniqueWordRatio: "Tỷ lệ từ duy nhất",
+  avgWordLength: "Độ dài từ trung bình",
+  vowelWordRatio: "Tỷ lệ từ có nguyên âm",
+  gibberishSignals: "Số dấu hiệu vô nghĩa",
+  matchedPatterns: "Cụm từ khớp",
+};
+
+/**
+ * Replaces the grading rail when the heuristic detector flagged this
+ * submission. The essay itself still renders normally in the essay column —
+ * only grading is gated behind the teacher's confirm/reject call.
+ */
+function AbuseReviewPanel({
+  submission,
+  onChanged,
+}: {
+  submission: SubmissionFull;
+  onChanged: () => Promise<void>;
+}) {
+  const { busy, error, run } = useAction();
+  const reasons = (submission.abuseReason ?? "").split(",").filter(Boolean);
+  const details = submission.abuseDetails ?? {};
+
+  const decide = useCallback(
+    async (body: { decision: "confirm" | "reject"; action?: "requeue" | "manual" }) => {
+      const done = await run((token) => abuseReview(token, submission.id, body));
+      if (done) await onChanged();
+    },
+    [run, submission.id, onChanged],
+  );
+
+  return (
+    <section className={s.railBlock}>
+      <header className={s.railHead}>
+        <span className={s.label}>Nghi ngờ vi phạm</span>
+      </header>
+      <Notice tone="alert">
+        Hệ thống phát hiện bài này có thể vi phạm quy định nộp bài. Điểm sẽ không được chấm cho
+        đến khi bạn xác nhận đây có phải vi phạm hay không.
+      </Notice>
+
+      {reasons.length > 0 ? (
+        <div className={s.noteList} style={{ marginTop: "0.6rem" }}>
+          <span className={s.label}>Lý do phát hiện</span>
+          {reasons.map((reason) => (
+            <span key={reason} className={s.noteItem}>
+              <span className={s.noteBullet}>•</span>
+              <span>{ABUSE_REASON_LABEL[reason] ?? reason}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {Object.keys(details).length > 0 ? (
+        <div className={s.noteList} style={{ marginTop: "0.6rem" }}>
+          <span className={s.label}>Chi tiết</span>
+          {Object.entries(details).map(([key, value]) => (
+            <span key={key} className={s.noteItem}>
+              <span className={s.noteBullet}>•</span>
+              <span>
+                {ABUSE_DETAIL_LABEL[key] ?? key}: {String(value)}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className={s.actionRow} style={{ marginTop: "0.75rem", flexDirection: "column", alignItems: "stretch" }}>
+        <button type="button" className={s.press} disabled={busy} onClick={() => decide({ decision: "confirm" })}>
+          {busy ? "Đang xử lý…" : "Đúng, đây là vi phạm"}
+        </button>
+        <button
+          type="button"
+          className={s.pressQuiet}
+          disabled={busy}
+          onClick={() => decide({ decision: "reject", action: "requeue" })}
+        >
+          {busy ? "Đang xử lý…" : "Không phải — để AI chấm"}
+        </button>
+        <button
+          type="button"
+          className={s.pressQuiet}
+          disabled={busy}
+          onClick={() => decide({ decision: "reject", action: "manual" })}
+        >
+          {busy ? "Đang xử lý…" : "Không phải — tôi tự chấm"}
+        </button>
+      </div>
+      {error ? <Notice tone="alert">{error}</Notice> : null}
+    </section>
   );
 }
 

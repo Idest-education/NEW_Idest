@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM node:24-slim AS base
 RUN corepack enable
-RUN npm install -g turbo
+RUN npm install -g turbo@2.10.12
 
 FROM base AS pruner
 WORKDIR /app

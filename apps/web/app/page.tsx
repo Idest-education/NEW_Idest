@@ -3,6 +3,8 @@ import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import type { Role } from "@repo/auth-contract";
+import { fetchRoleFromClerk } from "../lib/clerk-role";
+import { homeForRole } from "../lib/route-access";
 import { Masthead } from "../components/masthead";
 import board from "../components/board.module.css";
 import styles from "./landing.module.css";
@@ -67,9 +69,12 @@ const TEACHER_ONLY = [
 export default async function Landing() {
   const { userId, sessionClaims } = await auth();
   if (userId) {
-    const role = (sessionClaims?.metadata as { role?: Role } | undefined)?.role;
-    if (role === "teacher") redirect("/teacher");
-    if (role === "student") redirect("/student");
+    // A just-created account's token carries no role claim yet, so fall back to
+    // the Clerk user record instead of showing it the marketing page.
+    const claimed = (sessionClaims?.metadata as { role?: Role } | undefined)?.role;
+    const role = claimed ?? (await fetchRoleFromClerk(userId));
+    const home = homeForRole(role);
+    if (home !== "/") redirect(home);
   }
 
   return (

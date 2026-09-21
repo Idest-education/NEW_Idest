@@ -169,15 +169,40 @@ describe('Core Flows 1, 2, 3 (e2e)', () => {
       expect(count).toBe(0);
     });
 
-    it('rejects an empty or too short essay', async () => {
-      await request(app.getHttpServer())
+    it('flags a too-short essay as abuse instead of rejecting it, consuming the attempt', async () => {
+      const res = await request(app.getHttpServer())
         .post(`/assignments/${activeAssignment.id}/submissions`)
         .set('x-test-user', 'task_student')
         .send({ essayText: 'Too short' })
-        .expect(400);
+        .expect(201);
+
+      expect(res.body.status).toBe('abuse');
+      expect(res.body.abuseReason).toContain('too_short');
+
+      const audit = await prisma.auditEvent.findFirst({
+        where: { entityId: res.body.id, eventType: 'submission.flagged_abuse' },
+      });
+      expect(audit).toBeDefined();
     });
 
-    it('creates sequential attempt numbers on resubmission without overwriting previous attempt', async () => {
+    it('blocks a new submission while the previous attempt is still pending', async () => {
+      const essay1 = 'First essay submission attempt for task 2 university workplace readiness prompt text.';
+      const essay2 = 'Second essay submission attempt with revised arguments and better academic vocabulary text.';
+
+      await request(app.getHttpServer())
+        .post(`/assignments/${activeAssignment.id}/submissions`)
+        .set('x-test-user', 'task_student')
+        .send({ essayText: essay1 })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post(`/assignments/${activeAssignment.id}/submissions`)
+        .set('x-test-user', 'task_student')
+        .send({ essayText: essay2 })
+        .expect(409);
+    });
+
+    it('creates sequential attempt numbers when resubmitting after a failed attempt, without overwriting it', async () => {
       const essay1 = 'First essay submission attempt for task 2 university workplace readiness prompt text.';
       const essay2 = 'Second essay submission attempt with revised arguments and better academic vocabulary text.';
 
@@ -186,6 +211,10 @@ describe('Core Flows 1, 2, 3 (e2e)', () => {
         .set('x-test-user', 'task_student')
         .send({ essayText: essay1 })
         .expect(201);
+
+      // Simulate the AI worker reporting a scoring failure — only a 'failed'
+      // attempt (or one with an open redo request) is eligible for resubmission.
+      await prisma.submission.update({ where: { id: res1.body.id }, data: { status: 'failed' } });
 
       const res2 = await request(app.getHttpServer())
         .post(`/assignments/${activeAssignment.id}/submissions`)

@@ -10,8 +10,10 @@ import { AuditService } from '../audit/audit.service.js';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
 import { CreateSubmissionDto } from './dto/create-submission.dto.js';
 import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
+import { AbuseReviewDto } from './dto/abuse-review.dto.js';
 import { ListSubmissionsQueryDto } from './dto/list-submissions-query.dto.js';
 import { AssignmentStatus, Prisma, RedoStatus, SubmissionStatus, Role } from '@prisma/client';
+import { detectAbuse } from './abuse-detection.js';
 
 const STUDENT_ROW_SELECT = {
   id: true,
@@ -33,9 +35,6 @@ const STUDENT_ROW_SELECT = {
     take: 1,
   },
 } satisfies Prisma.SubmissionSelect;
-
-const MAX_ESSAY_WORD_COUNT = 1500;
-const MIN_ESSAY_WORD_COUNT = 10;
 
 @Injectable()
 export class SubmissionsService {
@@ -72,16 +71,8 @@ export class SubmissionsService {
       throw new BadRequestException('Assignment submission deadline has passed');
     }
 
-    // 3. Validate essay content & word count
-    const wordCount = this.calculateWordCount(dto.essayText);
-    if (wordCount < MIN_ESSAY_WORD_COUNT) {
-      throw new BadRequestException(`Essay is too short (minimum ${MIN_ESSAY_WORD_COUNT} words required)`);
-    }
-    if (wordCount > MAX_ESSAY_WORD_COUNT) {
-      throw new BadRequestException(`Essay exceeds configured length limit (${MAX_ESSAY_WORD_COUNT} words maximum)`);
-    }
-
-    // 4. Check Idempotency Key
+    // 3. Check Idempotency Key (must run before the resubmission gate so a
+    // genuine network-retry with the same key isn't blocked by it)
     if (dto.idempotencyKey) {
       const existingKeySubmission = await this.prisma.submission.findFirst({
         where: {
@@ -95,13 +86,34 @@ export class SubmissionsService {
       }
     }
 
-    // 5. Calculate next attempt number
+    // 4. Resubmission gate: block a new attempt while the latest one is still
+    // pending in any form (including 'abuse', so a flagged submission looks
+    // and behaves like a normal pending one from the student's side) unless
+    // it failed outright or a teacher opened a redo request.
+    const latestSubmission = await this.prisma.submission.findFirst({
+      where: { assignmentId, studentId },
+      orderBy: { attemptNumber: 'desc' },
+      include: { redoRequests: { where: { status: RedoStatus.open }, take: 1 } },
+    });
+    if (
+      latestSubmission &&
+      latestSubmission.status !== SubmissionStatus.failed &&
+      latestSubmission.redoRequests.length === 0
+    ) {
+      throw new ConflictException('You have already submitted this assignment. Wait for your teacher to review it.');
+    }
+
+    // 5. Word count & heuristic abuse detection
+    const wordCount = this.calculateWordCount(dto.essayText);
+    const abuseResult = detectAbuse(dto.essayText, wordCount);
+
+    // 6. Calculate next attempt number
     const previousAttemptsCount = await this.prisma.submission.count({
       where: { assignmentId, studentId },
     });
     const nextAttemptNumber = previousAttemptsCount + 1;
 
-    // 6. DB Transaction: Create submission with status 'submitted' and log audit event
+    // 7. DB Transaction: Create submission and log audit event
     const submission = await this.prisma.$transaction(async (tx) => {
       const sub = await tx.submission.create({
         data: {
@@ -110,21 +122,24 @@ export class SubmissionsService {
           attemptNumber: nextAttemptNumber,
           essayText: dto.essayText,
           wordCount,
-          status: SubmissionStatus.submitted,
+          status: abuseResult ? SubmissionStatus.abuse : SubmissionStatus.submitted,
           idempotencyKey: dto.idempotencyKey ?? null,
+          abuseReason: abuseResult ? abuseResult.reasons.join(',') : null,
+          abuseDetails: abuseResult ? (abuseResult.details as Prisma.InputJsonValue) : undefined,
         },
       });
 
       await tx.auditEvent.create({
         data: {
           actorId: studentId,
-          eventType: 'submission.created',
+          eventType: abuseResult ? 'submission.flagged_abuse' : 'submission.created',
           entityType: 'submission',
           entityId: sub.id,
           metadata: {
             attemptNumber: nextAttemptNumber,
             wordCount,
             assignmentId,
+            ...(abuseResult ? { reasons: abuseResult.reasons, details: abuseResult.details } : {}),
           },
         },
       });
@@ -138,7 +153,14 @@ export class SubmissionsService {
       return sub;
     });
 
-    // 7. Queue AI scoring job via RabbitMQ
+    // Abuse-flagged submissions never reach the scoring queue — no cost is
+    // wasted, and the response shape matches a normal submit so the student
+    // sees nothing different.
+    if (abuseResult) {
+      return submission;
+    }
+
+    // 8. Queue AI scoring job via RabbitMQ
     const publishSuccess = await this.rabbitmqService.publishScoringJob({
       submissionId: submission.id,
       assignmentId,
@@ -458,5 +480,77 @@ export class SubmissionsService {
     });
 
     return queuedSubmission;
+  }
+
+  /**
+   * Teacher's verdict on a heuristic abuse flag. 'confirm' leaves the
+   * submission permanently in the 'abuse' status (blocked from resubmission
+   * by the same gate that covers a normal pending one). 'reject' clears the
+   * flag's effect on grading — either re-queuing for real AI scoring, or
+   * dropping straight into manual review with no AI baseline — while keeping
+   * the original abuseReason/abuseDetails as a historical record.
+   */
+  async abuseReview(teacherId: string, submissionId: string, role: string, dto: AbuseReviewDto) {
+    const submission = await this.ownedSubmission(submissionId, teacherId, role);
+    if (submission.status !== SubmissionStatus.abuse) {
+      throw new BadRequestException(`Only submissions flagged as abuse can be reviewed here (status: ${submission.status})`);
+    }
+
+    if (dto.decision === 'confirm') {
+      await this.auditService.logEvent({
+        actorId: teacherId,
+        eventType: 'submission.abuse_confirmed',
+        entityType: 'submission',
+        entityId: submissionId,
+      });
+      return submission;
+    }
+
+    if (dto.action === 'requeue') {
+      const publishSuccess = await this.rabbitmqService.publishScoringJob({
+        submissionId: submission.id,
+        assignmentId: submission.assignmentId,
+        studentId: submission.studentId,
+        attemptNumber: submission.attemptNumber,
+        taskPrompt: submission.assignment.taskPrompt,
+        taskType: submission.assignment.taskType,
+        essayText: submission.essayText,
+        wordCount: submission.wordCount,
+        submittedAt: submission.submittedAt.toISOString(),
+      });
+      if (!publishSuccess) {
+        throw new ConflictException('Scoring queue is unavailable right now — try again shortly');
+      }
+
+      const queuedSubmission = await this.prisma.submission.update({
+        where: { id: submissionId },
+        data: { status: SubmissionStatus.queued },
+      });
+
+      await this.auditService.logEvent({
+        actorId: teacherId,
+        eventType: 'submission.abuse_cleared',
+        entityType: 'submission',
+        entityId: submissionId,
+        metadata: { nextAction: 'requeue' },
+      });
+
+      return queuedSubmission;
+    }
+
+    const manualSubmission = await this.prisma.submission.update({
+      where: { id: submissionId },
+      data: { status: SubmissionStatus.under_review },
+    });
+
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'submission.abuse_cleared',
+      entityType: 'submission',
+      entityId: submissionId,
+      metadata: { nextAction: 'manual' },
+    });
+
+    return manualSubmission;
   }
 }

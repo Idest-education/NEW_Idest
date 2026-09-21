@@ -51,6 +51,7 @@ enum SubmissionStatus {
   under_review
   published
   failed
+  abuse
 }
 
 enum ScorerType {
@@ -139,6 +140,8 @@ model Submission {
   wordCount      Int              @map("word_count")
   status         SubmissionStatus @default(submitted)
   idempotencyKey String?          @map("idempotency_key")
+  abuseReason    String?          @map("abuse_reason")
+  abuseDetails   Json?            @map("abuse_details") @db.JsonB
   submittedAt    DateTime         @default(now()) @map("submitted_at") @db.Timestamptz(6)
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
 

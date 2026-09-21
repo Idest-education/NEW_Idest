@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPublicPath, roleRedirectTarget } from "./route-access";
+import { homeForRole, isPublicPath, roleGate } from "./route-access";
 
 describe("isPublicPath", () => {
   it("treats the landing page and Clerk routes as public", () => {
@@ -23,19 +23,37 @@ describe("isPublicPath", () => {
   });
 });
 
-describe("roleRedirectTarget", () => {
-  it("sends a non-teacher away from /teacher routes", () => {
-    expect(roleRedirectTarget("/teacher/queue", "student")).toBe("/");
-    expect(roleRedirectTarget("/teacher/queue", undefined)).toBe("/");
+describe("homeForRole", () => {
+  it("maps each role to its own dashboard", () => {
+    expect(homeForRole("teacher")).toBe("/teacher");
+    expect(homeForRole("student")).toBe("/student");
   });
 
-  it("sends a non-student away from /student routes", () => {
-    expect(roleRedirectTarget("/student/results", "teacher")).toBe("/");
+  it("leaves an admin and an unknown role on the landing page", () => {
+    expect(homeForRole("admin")).toBe("/");
+    expect(homeForRole(undefined)).toBe("/");
   });
+});
 
+describe("roleGate", () => {
   it("allows the matching role and unscoped routes", () => {
-    expect(roleRedirectTarget("/teacher/queue", "teacher")).toBeNull();
-    expect(roleRedirectTarget("/student/results", "student")).toBeNull();
-    expect(roleRedirectTarget("/dashboard", "teacher")).toBeNull();
+    expect(roleGate("/teacher/queue", "teacher")).toEqual({ kind: "allow" });
+    expect(roleGate("/student/results", "student")).toEqual({ kind: "allow" });
+    expect(roleGate("/welcome", undefined)).toEqual({ kind: "allow" });
+    expect(roleGate("/profile", "teacher")).toEqual({ kind: "allow" });
+  });
+
+  it("sends a signed-in user with the wrong role to their own home, not the landing page", () => {
+    expect(roleGate("/teacher/queue", "student")).toEqual({ kind: "redirect", to: "/student" });
+    expect(roleGate("/student/results", "teacher")).toEqual({ kind: "redirect", to: "/teacher" });
+    expect(roleGate("/teacher/queue", "admin")).toEqual({ kind: "redirect", to: "/" });
+  });
+
+  // The regression this whole change exists for: right after sign-up the session
+  // JWT has no role claim yet, and bouncing to "/" stranded the new account on
+  // the marketing page until the token happened to refresh.
+  it("asks for an authoritative lookup instead of redirecting when no role claim is present", () => {
+    expect(roleGate("/teacher", undefined)).toEqual({ kind: "resolve" });
+    expect(roleGate("/student/submissions/1", undefined)).toEqual({ kind: "resolve" });
   });
 });

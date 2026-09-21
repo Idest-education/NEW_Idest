@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { SubmissionsService } from './submissions.service.js';
 import { CreateSubmissionDto } from './dto/create-submission.dto.js';
 import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
+import { AbuseReviewDto } from './dto/abuse-review.dto.js';
 import { ListSubmissionsQueryDto } from './dto/list-submissions-query.dto.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
@@ -92,5 +93,17 @@ export class SubmissionsController {
   @ApiResponse({ status: 400, description: 'Submission is not in a failed state' })
   async retryScoring(@CurrentUser() user: User, @Param('id') id: string) {
     return this.submissionsService.retryScoring(user.id, id, user.role);
+  }
+
+  @Post('submissions/:id/abuse-review')
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Confirm or clear a heuristic abuse flag on a submission (Teacher only)' })
+  @ApiResponse({ status: 400, description: 'Submission is not currently flagged as abuse' })
+  async abuseReview(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: AbuseReviewDto,
+  ) {
+    return this.submissionsService.abuseReview(user.id, id, user.role, dto);
   }
 }

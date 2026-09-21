@@ -10,7 +10,8 @@ export type SubmissionStatus =
   | "scored"
   | "under_review"
   | "published"
-  | "failed";
+  | "failed"
+  | "abuse";
 export type ScorerType = "ai" | "teacher";
 export type ClassStatus = "active" | "archived";
 export type RedoRequestStatus = "open" | "resolved" | "cancelled";
@@ -50,9 +51,14 @@ export const BAY_LABEL: Record<SubmissionStatus, string> = {
   under_review: "Đang sửa",
   published: "Đã duyệt",
   failed: "AI tạm thời bảo trì",
+  abuse: "Nghi ngờ vi phạm",
 };
 
-/** What the student is told. Internal pipeline states never reach them. */
+/**
+ * What the student is told. Internal pipeline states never reach them —
+ * 'abuse' reads identically to a normal pending submission on purpose, so a
+ * flagged essay is indistinguishable from one waiting for review.
+ */
 export const STUDENT_STATE_LABEL: Record<SubmissionStatus, string> = {
   submitted: "Đã nộp",
   queued: "Đã nộp",
@@ -61,6 +67,7 @@ export const STUDENT_STATE_LABEL: Record<SubmissionStatus, string> = {
   under_review: "Giáo viên đang chấm",
   published: "Đã có kết quả",
   failed: "Đang chờ xử lý",
+  abuse: "Đã nộp",
 };
 
 export const ASSIGNMENT_STATUS_LABEL: Record<AssignmentStatus, string> = {
@@ -252,6 +259,8 @@ export interface SubmissionFull extends SubmissionRow {
   scoreRevisions: ScoreRevision[];
   publishedResults: PublishedResult[];
   openRedoRequest: RedoRequest | null;
+  abuseReason: string | null;
+  abuseDetails: Record<string, number | string> | null;
 }
 
 /** One row of the teacher's cross-assignment submissions list. */
@@ -525,6 +534,12 @@ export const cancelRedoRequest = (token: string | null, submissionId: string, re
 
 export const retryScoring = (token: string | null, submissionId: string) =>
   request<SubmissionRow>(`/submissions/${submissionId}/retry-scoring`, token, jsonInit("POST", {}));
+
+export const abuseReview = (
+  token: string | null,
+  submissionId: string,
+  body: { decision: "confirm" | "reject"; action?: "requeue" | "manual" },
+) => request<SubmissionRow>(`/submissions/${submissionId}/abuse-review`, token, jsonInit("POST", body));
 
 // ── Classes ──────────────────────────────────────────────────────────────
 

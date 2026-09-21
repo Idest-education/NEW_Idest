@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { acceptInviteLink, getProfile, updateProfile } from "../../lib/idest";
+import { waitForRoleClaim } from "../../lib/session-claims";
 import { useAction } from "../../lib/use-api";
 import styles from "./welcome.module.css";
 
@@ -64,8 +65,9 @@ export default function WelcomePage() {
       return;
     }
 
-    // Refresh the session so the next server request carries the just-set role.
-    await getToken({ skipCache: true }).catch(() => undefined);
+    // Mint tokens until one carries the just-set role. Navigating on a token
+    // that still lacks the claim bounces off the role gate on the way in.
+    await waitForRoleClaim(getToken);
     const elapsed = Date.now() - started;
     if (elapsed < MIN_LOADING_MS) await sleep(MIN_LOADING_MS - elapsed);
     window.location.href = landed;

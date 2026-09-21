@@ -44,6 +44,7 @@ const STRIP_STATE_CLASS: Record<SubmissionStatus, string | undefined> = {
   under_review: styles.stripReview,
   published: styles.stripSigned,
   failed: styles.stripFailed,
+  abuse: styles.stripFailed,
 };
 
 export function Strip({
