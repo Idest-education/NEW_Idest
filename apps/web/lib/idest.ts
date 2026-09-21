@@ -367,6 +367,20 @@ export const getProfile = (token: string | null) => request<Profile>("/users/me"
 export const updateProfile = (token: string | null, displayName: string) =>
   request<Profile>("/users/me", token, jsonInit("PATCH", { displayName }));
 
+export interface DeleteAccountSummary {
+  message: string;
+  classesDeleted: number;
+  assignmentsArchived: number;
+  studentsDeleted: number;
+}
+
+/**
+ * Closes a teacher's board for good. `confirmEmail` must match the signed-in
+ * account; the server refuses otherwise.
+ */
+export const deleteAccount = (token: string | null, confirmEmail: string) =>
+  request<DeleteAccountSummary>("/users/me", token, jsonInit("DELETE", { confirmEmail }));
+
 export const listAssignments = (token: string | null) =>
   request<Assignment[]>("/assignments", token);
 

@@ -1,11 +1,13 @@
 "use client";
 
 import { type FormEvent, useCallback, useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 import type { Role } from "@repo/auth-contract";
 import {
   type ClassSummary,
   type Profile,
   createInviteLink,
+  deleteAccount,
   getProfile,
   inviteStudent,
   listClasses,
@@ -55,6 +57,7 @@ export default function SettingsPage() {
             <>
               <InviteStudent />
               <CreateInviteLink />
+              <DangerZone profile={data} />
             </>
           ) : null}
         </>
@@ -262,6 +265,106 @@ function CreateInviteLink() {
           <p className={s.fieldHint}>
             Chưa có lớp nào. Tạo một lớp ở mục Lớp học trước, rồi quay lại đây để tạo liên kết mời.
           </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Closing the board. Two steps on purpose: the panel stays shut until asked
+ * for, and the final button only wakes up once the teacher has retyped their
+ * own email — the same check the server runs before it touches a row.
+ */
+function DangerZone({ profile }: { profile: Profile }) {
+  const { signOut } = useClerk();
+  const { busy, error, run } = useAction();
+  const [open, setOpen] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [leaving, setLeaving] = useState(false);
+
+  const matches = confirmEmail.trim().toLowerCase() === profile.email.toLowerCase();
+
+  const remove = useCallback(async () => {
+    const summary = await run((token) => deleteAccount(token, confirmEmail.trim()));
+    if (!summary) return;
+    setLeaving(true);
+    // The Clerk identity is gone by now, so signOut may reject on a session it
+    // can no longer reach. Either way the browser leaves for the landing page.
+    try {
+      await signOut({ redirectUrl: "/" });
+    } catch {
+      window.location.href = "/";
+    }
+  }, [confirmEmail, run, signOut]);
+
+  return (
+    <>
+      <div className={s.sectionHead}>
+        <h2 className={s.sectionTitle}>Vùng nguy hiểm</h2>
+      </div>
+      <div className={s.dangerBlock}>
+        {open ? (
+          <>
+            <p className={s.fieldHint}>
+              Xóa tài khoản sẽ gỡ khỏi bảng chấm: các đề bài bạn đã ra, các lớp và liên kết mời của
+              bạn, cùng tài khoản của những học viên chỉ học với riêng bạn. Học viên còn đang học
+              với giáo viên khác vẫn giữ tài khoản, chỉ rời lớp của bạn.
+            </p>
+            <p className={s.fieldHint}>
+              Bài viết đã nộp và kết quả đã duyệt được giữ nguyên. Sau khi xóa, bạn và các học viên
+              đó không đăng nhập lại được nữa.
+            </p>
+            <div className={s.fieldRow}>
+              <label className={s.fieldLabel} htmlFor="confirm-email">
+                Nhập lại email của bạn để xác nhận
+              </label>
+              <input
+                id="confirm-email"
+                className={s.field}
+                type="email"
+                autoComplete="off"
+                value={confirmEmail}
+                disabled={busy || leaving}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                placeholder={profile.email}
+              />
+            </div>
+            {error ? <Notice tone="alert">{error}</Notice> : null}
+            {leaving ? <Notice tone="ok">Đã xóa tài khoản. Đang đăng xuất…</Notice> : null}
+            <div className={s.actionRow}>
+              <button
+                type="button"
+                className={s.pressDanger}
+                disabled={!matches || busy || leaving}
+                onClick={() => void remove()}
+              >
+                {busy || leaving ? "Đang xóa…" : "Xóa vĩnh viễn"}
+              </button>
+              <button
+                type="button"
+                className={s.pressQuiet}
+                disabled={busy || leaving}
+                onClick={() => {
+                  setOpen(false);
+                  setConfirmEmail("");
+                }}
+              >
+                Hủy
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className={s.fieldHint}>
+              Đóng bảng chấm này vĩnh viễn. Không hoàn tác được.
+            </p>
+            <div className={s.actionRow}>
+              <button type="button" className={s.pressQuiet} onClick={() => setOpen(true)}>
+                Xóa tài khoản
+              </button>
+            </div>
+          </>
         )}
       </div>
     </>

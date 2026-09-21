@@ -910,6 +910,34 @@ button.strip:active {
   cursor: not-allowed;
 }
 
+.pressDanger {
+  composes: press;
+  background: var(--alert);
+  border-color: var(--alert);
+  box-shadow: 0 2px 0 var(--rule-strong);
+}
+
+.pressDanger:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.pressDanger:disabled {
+  background: var(--rack-edge);
+  border-color: var(--rule-strong);
+  color: var(--ink-quiet);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* The one block on the page that can destroy a board. Reads as a warning
+   even before the copy is read. */
+.dangerBlock {
+  composes: railBlock;
+  border-color: var(--alert);
+  background: var(--alert-wash);
+}
+
 .actionRow {
   display: flex;
   flex-wrap: wrap;

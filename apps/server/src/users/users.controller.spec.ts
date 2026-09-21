@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Reflector } from '@nestjs/core';
 import type { User } from '@prisma/client';
+import type { Role } from '@repo/auth-contract';
+import { ROLES_KEY } from '../auth/decorators/roles.decorator.js';
 import type { UsersService } from './users.service.js';
 import { UsersController } from './users.controller.js';
 
@@ -17,11 +20,14 @@ const user = {
 } as unknown as User;
 
 describe('UsersController', () => {
-  let users: { updateProfile: ReturnType<typeof vi.fn> };
+  let users: {
+    updateProfile: ReturnType<typeof vi.fn>;
+    deleteAccount: ReturnType<typeof vi.fn>;
+  };
   let controller: UsersController;
 
   beforeEach(() => {
-    users = { updateProfile: vi.fn() };
+    users = { updateProfile: vi.fn(), deleteAccount: vi.fn() };
     controller = new UsersController(users as unknown as UsersService);
   });
 
@@ -50,5 +56,26 @@ describe('UsersController', () => {
     expect(users.updateProfile).toHaveBeenCalledWith(user, { displayName: 'Ada Lovelace' });
     expect(profile.displayName).toBe('Ada Lovelace');
     expect(profile).not.toHaveProperty('clerkUserId');
+  });
+
+  it('restricts account deletion to teachers', () => {
+    const roles = new Reflector().get<Role[]>(ROLES_KEY, UsersController.prototype.deleteMe);
+
+    expect(roles).toEqual(['teacher']);
+  });
+
+  it('passes the typed confirmation through to UsersService', async () => {
+    const summary = {
+      message: 'Account deleted',
+      classesDeleted: 2,
+      assignmentsArchived: 5,
+      studentsDeleted: 7,
+    };
+    users.deleteAccount.mockResolvedValueOnce(summary);
+
+    await expect(
+      controller.deleteMe(user, { confirmEmail: 'ada@example.com' }),
+    ).resolves.toEqual(summary);
+    expect(users.deleteAccount).toHaveBeenCalledWith(user, { confirmEmail: 'ada@example.com' });
   });
 });
