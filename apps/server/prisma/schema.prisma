@@ -64,6 +64,24 @@ enum ScoringStatus {
   failed
 }
 
+/// Why a teacher changed the AI's score. Drives the LLM failure-mode analysis.
+enum RevisionReason {
+  ai_too_generous
+  ai_too_harsh
+  ai_missed_off_topic
+  ai_wrong_criterion
+  ai_feedback_inaccurate
+  ai_unavailable
+  minor_polish
+  other
+}
+
+/// Whether the reason was given while grading, or later in a batch.
+enum ReasonSource {
+  inline
+  batch
+}
+
 enum ModelStatus {
   experimental
   active
@@ -95,6 +113,7 @@ model User {
   scoreRevisions   ScoreRevision[]   @relation("TeacherScoreRevisions")
   publishedResults PublishedResult[] @relation("TeacherPublishedResults")
   auditEvents      AuditEvent[]      @relation("ActorAuditEvents")
+  reasonTags       RevisionReasonTag[] @relation("TeacherReasonTags")
 
   @@map("users")
 }
@@ -216,6 +235,7 @@ model ScoreRevision {
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
   publishedResults PublishedResult[]
+  reasonTags       RevisionReasonTag[]
 
   @@unique([submissionId, revisionNumber])
   @@index([submissionId], map: "score_revisions_submission_id_index")
@@ -315,6 +335,27 @@ model RedoRequest {
   @@index([submissionId], map: "redo_requests_submission_id_index")
   @@index([status], map: "redo_requests_status_index")
   @@map("redo_requests")
+}
+
+/// Why a revision changed the AI's score. Append-only and separate from
+/// score_revisions, because reasons usually arrive after the revision exists
+/// and a revision row is never rewritten.
+model RevisionReasonTag {
+  id           String           @id @default(uuid()) @db.Uuid
+  revisionId   String           @map("revision_id") @db.Uuid
+  revision     ScoreRevision    @relation(fields: [revisionId], references: [id])
+  reasonCodes  RevisionReason[] @map("reason_codes")
+  source       ReasonSource
+  /// Shared by every tag applied in one batch, so retrospective tagging is visible.
+  batchId      String?          @map("batch_id") @db.Uuid
+  note         String?          @db.Text
+  taggedBy     String           @map("tagged_by") @db.Uuid
+  taggedByUser User             @relation("TeacherReasonTags", fields: [taggedBy], references: [id])
+  taggedAt     DateTime         @default(now()) @map("tagged_at") @db.Timestamptz(6)
+
+  @@index([revisionId], map: "revision_reason_tags_revision_id_index")
+  @@index([batchId], map: "revision_reason_tags_batch_id_index")
+  @@map("revision_reason_tags")
 }
 
 model AuditEvent {
