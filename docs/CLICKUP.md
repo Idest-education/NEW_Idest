@@ -66,10 +66,20 @@ Docs use the v3 API and are keyed at the workspace level.
 ### Endpoints
 
 ```
-GET /api/v3/workspaces/1100360000004414/docs                              list all docs
-GET /api/v3/workspaces/1100360000004414/docs/{doc_id}/pageListing         page tree
-GET /api/v3/workspaces/1100360000004414/docs/{doc_id}/pages?content_format=text%2Fmd   page content as Markdown
+GET  /api/v3/workspaces/1100360000004414/docs                              list all docs
+GET  /api/v3/workspaces/1100360000004414/docs/{doc_id}/pageListing         page tree
+GET  /api/v3/workspaces/1100360000004414/docs/{doc_id}/pages?content_format=text%2Fmd   page content as Markdown
+POST /api/v3/workspaces/1100360000004414/docs                              create a doc
+POST /api/v3/workspaces/1100360000004414/docs/{doc_id}/pages               create a page
+PUT  /api/v3/workspaces/1100360000004414/docs/{doc_id}/pages/{page_id}     replace page content
 ```
+
+Create a doc with `{"name", "parent": {"id": "<folder_id>", "type": 5}, "visibility": "PUBLIC", "create_page": false}`.
+`parent.type` is `4` space, `5` folder, `6` list, `7` everything, `12` workspace.
+Create or replace a page with `{"name", "content", "content_format": "text/md"}`; the `PUT` also takes
+`"content_edit_mode": "replace"` and returns an empty body on success, so verify with a follow-up `GET`.
+ClickUp normalises the Markdown it stores — `- ` becomes `*   ` and `## 4.` becomes `## 4\.` — so compare
+round-tripped content loosely, not byte for byte.
 
 `content_format` accepts `text/md` (URL-encoded `text%2Fmd`) or `text/plain`.
 Page objects contain `id`, `name`, `content`.
@@ -88,6 +98,7 @@ Page objects contain `id`, `name`, `content`.
 | Domain & Data Design | `z8rp3etr9y-318` | System Design |
 | Database Schema | `z8rp3etr9y-338` | System Design |
 | Core User Flows | `z8rp3etr9y-358` | System Design |
+| Assessment Analytics & Decision Tracking | `z8rp3etr9y-718` | System Design |
 | AI Scoring & Evaluation (SƠ KHAI) | `z8rp3etr9y-378` | AI & ML |
 | 001: Document database and JsonB on Relational database | `z8rp3etr9y-538` | ADR |
 | 002: Essay Submission Method | `z8rp3etr9y-558` | ADR |

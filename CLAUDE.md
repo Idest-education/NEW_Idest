@@ -74,8 +74,13 @@ Keep this folder minimal. Current contents:
 | `docs/CLICKUP.md` | How to fetch ClickUp docs and tasks via the REST API (IDs, endpoints, auth, runnable examples) | yes |
 | `docs/thesis.txt` | Plain-text extract of the official thesis assignment (đề tài chi tiết): objectives, scope, users, method, tech, expected results, full schedule | yes |
 | `docs/KLTN-23520455-23521137.pdf` | Original signed thesis assignment PDF | yes |
+| `docs/superpowers/specs/` | Engineering design specs produced by the brainstorming workflow, each **mirrored to a ClickUp doc** | yes |
+| `docs/superpowers/plans/` | Task-by-task implementation plans for those specs; repo-only, not mirrored | yes |
 
-Do not add product/design/requirements docs here — they belong in ClickUp.
+Do not add product/design/requirements docs here — they belong in ClickUp. Engineering specs under
+`docs/superpowers/specs/` are the one exception: they are written in the repo so they travel with the
+code that implements them, and every one is mirrored to the matching ClickUp folder. When a spec
+changes, update both copies.
 
 ## ClickUp — access
 
@@ -123,6 +128,7 @@ Re-list all docs (IDs change if recreated):
 | Domain & Data Design | `z8rp3etr9y-318` | 8 core entities, relationships, data lifecycle, JSONB rules |
 | Database Schema | `z8rp3etr9y-338` | PostgreSQL DDL: tables, columns, constraints, indexes, transaction boundaries |
 | Core User Flows | `z8rp3etr9y-358` | 6 end-to-end flows, submission state machine, key design decisions |
+| Assessment Analytics & Decision Tracking | `z8rp3etr9y-718` | AI-vs-teacher agreement metrics, revision reason tags, review timing, analytics views, benchmark export; mirrors `docs/superpowers/specs/2026-09-21-assessment-analytics-design.md` |
 
 ### AI & ML — folder `1100360000026707`
 

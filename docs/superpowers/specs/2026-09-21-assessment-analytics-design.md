@@ -42,7 +42,11 @@ Nothing writes to `ai_model_versions`. `assessments.service.ts:98` reads the tab
 
 This violates CLAUDE.md rule 3 — "Every AI result records its `ai_model_versions` reference (model, version, config)" — today, and it makes per-model comparison impossible.
 
-**Fix.** On startup, the worker upserts its own model row through a new internal endpoint, keyed on the existing unique constraint `(model_name, model_version)`, sending model name, version, provider, task type, and the generation config. It keeps the returned id and includes it in every `result_payload`. `PersistScoringResultDto` then requires `modelVersionId` whenever `scorerType` is `ai` and `status` is `completed`.
+**Fix.** The worker includes a model descriptor — `modelName`, `modelVersion`, `provider`, `taskType`, and the generation `configuration` — in the `result_payload` it already publishes. The server upserts `ai_model_versions` on the existing unique constraint `(model_name, model_version)` inside the same transaction that writes the scoring result, and links the result to it. `PersistScoringResultDto` then requires either a `modelVersionId` or a descriptor whenever `scorerType` is `ai` and `status` is `completed`.
+
+An internal HTTP endpoint called by the worker at startup was considered and rejected. The worker holds no Clerk credentials, so that route would need a shared secret in the environment, a new public endpoint, and its own rate limiting — a new authentication surface for a single write. Carrying the descriptor on the message reuses the transport that already exists, is idempotent through the unique constraint, and introduces no startup ordering dependency between the worker and the server.
+
+A related defect sits in the same path: `assessments.service.ts:72-80` rebuilds the DTO from the queue message field by field and silently discards anything not in that list, so it would drop the descriptor even once the worker sends it. That forwarding must be widened at the same time.
 
 Rows written before this change keep `model_version_id = NULL` and are labelled `pre_provenance` in the view. They cannot be attributed retroactively; the thesis states this rather than guessing.
 
