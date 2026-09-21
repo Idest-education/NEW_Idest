@@ -68,6 +68,7 @@ class ScoringWorker:
             "feedback": result.get("feedback", {}),
             "rawOutput": result.get("raw_output", {}),
             "processingMetadata": result.get("processing_metadata", {}),
+            "modelDescriptor": self.scorer.descriptor(),
         }
 
         # Publish result to result queue

@@ -1,7 +1,8 @@
+import hashlib
 import json
 import logging
 import time
-from config import GEMINI_API_KEY, GEMINI_MODEL
+from config import GEMINI_API_KEY, GEMINI_MODEL, MAX_RETRIES, SCORER_REVISION
 from schemas import IELTSScoringResult
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,24 @@ class GeminiIELTSScorer:
         except Exception as e:
             logger.error(f"Gemini API scoring error: {e}")
             raise e
+
+    def descriptor(self) -> dict:
+        """Identifies the grader that produced a result, for ai_model_versions."""
+        live = self.client is not None
+        return {
+            "modelName": self.model_name if live else "stub-gemini-model",
+            "modelVersion": SCORER_REVISION,
+            "provider": "google" if live else "google-stub",
+            "taskType": "both",
+            "configuration": {
+                "system_prompt_sha256": hashlib.sha256(
+                    IELTS_SYSTEM_PROMPT.encode()
+                ).hexdigest(),
+                "response_mime_type": "application/json",
+                "response_schema": "IELTSScoringResult",
+                "max_retries": MAX_RETRIES,
+            },
+        }
 
     def _generate_stub_result(self, task_prompt: str, essay_text: str) -> dict:
         return {
