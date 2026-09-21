@@ -56,11 +56,17 @@ Rows written before this change keep `model_version_id = NULL` and are labelled 
 
 **Fix.** Measure wall-clock time around the `generate_content` call and record it as `elapsed_ms`. Read `prompt_token_count`, `candidates_token_count`, and `total_token_count` from `response.usage_metadata`. The stub result path in `_generate_stub_result` emits the same keys with placeholder values so downstream consumers see one uniform shape.
 
-### 4.3 No admin user can exist
+### 4.3 Admin promotion — not a defect
 
-`Role.admin` is defined in the schema and checked in three places in `assessments.service.ts`, but nothing assigns it. The role-assignment flow does not exist, so an admin-gated analytics API would be unreachable.
+An earlier draft of this spec claimed that nothing assigns `Role.admin` and that an admin-gated analytics API would therefore be unreachable. That was wrong, and it is corrected here rather than quietly deleted, because a plan was written against the false claim before anyone checked.
 
-**Fix.** A small script under `prisma/` promotes a user to `admin` by email. It is an operator tool, not an API endpoint, and it writes an `audit_events` row recording the promotion.
+`apps/server/prisma/promote-to-admin.ts` exports `promoteToAdmin(prisma, clerk, email)`. It updates the user's role in PostgreSQL and mirrors it into Clerk `publicMetadata`. `prisma/seed.ts` calls it, taking the address from `SEED_ADMIN_EMAIL` or the first CLI argument, and `test/promote-to-admin.e2e-spec.ts` covers the success and unknown-email paths. Creating the first admin is:
+
+```bash
+cd apps/server && SEED_ADMIN_EMAIL=someone@example.com pnpm db:seed
+```
+
+No new script is needed, and adding one would be harmful. `RolesGuard` resolves the role from the database through `UserSyncService`, but `apps/web/lib/clerk-role.ts` and `lib/route-access.ts` read it from the Clerk session claim. A promotion that skipped the Clerk mirror would yield an admin the API trusts and the web client does not.
 
 ## 5. New signals to capture
 
@@ -147,7 +153,13 @@ The write is fire-and-forget. It must never fail the page or block rendering. Lo
 
 One row per submission that has at least one revision.
 
-Columns: submission, assignment, class, student, and teacher ids; task type; word count; the AI scores for each of the four criteria plus overall; the teacher final scores; per-criterion delta and absolute delta; `has_ai_baseline`; `revision_count`; `reason_codes`, `reason_source`, and `tag_latency_seconds`; model name and version, or the `pre_provenance` marker; timestamps for queued, scoring completed, first review opened, revision created, and published; derived queue latency, scoring latency, and review duration; `elapsed_ms` and token counts; `is_published`; `publish_count`.
+Columns: submission, assignment, class, student, and teacher ids; task type; word count; the AI scores for each of the four criteria plus overall; the teacher final scores; per-criterion delta and absolute delta; `has_ai_baseline`; `revision_count`; `reason_codes`, `reason_source`, and `tag_latency_seconds`; model name and version; timestamps for queued, scoring completed, first review opened, revision created, and published; derived queue latency, scoring latency, and review duration; `elapsed_ms` and token counts; `is_published`; `publish_count`.
+
+The four criterion keys are `task_response`, `coherence_cohesion`, `lexical_resource`, and `grammatical_range_accuracy`, exactly as `apps/ai-service/schemas.py` defines them. `submissions` has no class of its own; the class id comes from `assignments.class_id`.
+
+Model attribution has three distinct states, and they must not be collapsed into one. When a row has no AI baseline at all, model name and version are NULL because there is nothing to attribute. When a baseline exists but predates the fix in 4.1, it carries no `model_version_id` and is marked `pre_provenance`. Otherwise the real model name and version are present. Only the third state may be grouped by model.
+
+Two latencies are exported and they measure different things: `queue_latency_seconds` is wall clock from enqueue to result, including the model call and any waiting, while `scoring_latency_seconds` is `elapsed_ms / 1000` from the scorer itself.
 
 Three rules are encoded once, in SQL, so that no caller can get them wrong. The fragments below give the intended shape and the reasoning behind each one; exact syntax is settled during implementation, where the `UNION ALL` arms need their own parenthesized ordering.
 
@@ -238,9 +250,11 @@ Two new endpoints belong to the capture side rather than the analytics module:
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /assignments/:id/revisions/untagged` | Populates the batch modal: untagged revisions by the caller on that assignment, each with student, per-criterion delta, and revision note |
-| `POST /revision-reasons/batch` | `{ revisionIds[], reasonCodes[], note?, idempotencyKey? }` |
+| `POST /revision-reasons/batch` | `{ revisionIds[], reasonCodes[], note? }` |
 
 The batch write is a single transaction: N tag rows sharing one generated `batchId`, plus one `audit_events` row with `event_type = 'revision_reasons.tagged'` and metadata `{ batchId, count }`. It rejects the whole request if any `revisionId` belongs to an assignment the caller does not own.
+
+There is no idempotency key. An earlier draft listed one, which would have been dead weight: the server runs `ValidationPipe({ whitelist: true })` in `main.ts`, so an unrecognised field is stripped in silence and a client sending the key would get no protection and no error. Making it real needs a unique column and constraint, and the payoff does not justify them — tagging is append-only and the view takes the most recent tag per revision, so a double submit writes a visibly duplicated row (same reason codes, different `batchId`, seconds apart) and changes no metric.
 
 **Web client.** `apps/web/app/admin/page.tsx` for the overview and `apps/web/app/admin/scoring/page.tsx` for scoring health, both gated server-side on the role returned by `/users/me`. Charts use `recharts`, the first charting dependency in the web app, chosen for proper time-series rendering of queue latency and failure rate.
 
@@ -264,7 +278,8 @@ These are recorded in the data so the thesis can state them rather than hide the
 
 - **Retrospective reasons.** Batch-tagged reasons are given after the fact and are weaker evidence than reasons given at the moment of the decision. The view exports `reason_source` and `tag_latency_seconds` so the analysis can filter or weight them.
 - **Anchoring is uncontrolled.** When `base_result_id` is not null, the teacher saw the AI score before entering their own. Agreement measured on those rows is agreement under anchoring, not independent agreement. The design does not attempt to correct for it; the thesis reports it as a limitation.
-- **Pre-provenance rows.** AI results written before the fix in 4.1 carry no model version and are excluded from per-model comparison.
+- **Pre-provenance rows.** AI results written before the fix in 4.1 carry no model version and are excluded from per-model comparison. They are distinct from rows with no AI baseline at all, which are excluded from every AI-versus-teacher metric for a different reason.
+- **Feedback text is not in the export.** The `v_assessment_outcomes` column list carries scores and timings, not feedback prose. Feedback divergence therefore reads `scoring_results.feedback` and `score_revisions.final_feedback` directly rather than going through the export.
 - **Untagged revisions.** An empty tag set means the reason was not captured, not that there was no reason. The two are never conflated.
 
 ## 10. Error handling
@@ -288,18 +303,21 @@ The view logic is where bugs will hide, so it gets a seeded fixture set asserted
 
 Pytest, in `apps/ai-service`: `agreement.py` against a small fixture with hand-computed kappa, including the case where every `has_ai_baseline` row is filtered out.
 
+That fixture must also pin `labels=` explicitly. scikit-learn builds quadratic weights from label *indices*, not from band values, so an absent intermediate band silently shrinks the distance between the bands either side of it and inflates kappa. On the reference fixture the difference is 0.7 with explicit labels against roughly 0.7857 without them.
+
 `pnpm test` and `pnpm lint` must pass in `apps/server` before the work is considered done.
 
 ## 12. Implementation order
 
 Capture first. Data not collected is data lost, and the read path can be built at any time against whatever exists.
 
-1. Model provenance: worker upserts `ai_model_versions`, sends `modelVersionId`, DTO requires it (4.1).
+1. Model provenance: worker sends a model descriptor, server upserts `ai_model_versions` (4.1).
 2. `scorer.py` records `elapsed_ms` and token counts (4.2).
 3. `review-session` endpoint, deduplication, and the client call on the review page (5.2).
 4. `RevisionReasonTag` table, batch endpoints, and the batch modal (5.1).
-5. Admin promotion script (4.3).
-6. The three views (6).
-7. The `analytics` module and its endpoints (7).
-8. Admin pages with `recharts` (7).
-9. `apps/ai-service/analysis/` (8).
+5. The three views (6).
+6. The `analytics` module and its endpoints (7).
+7. Admin pages with `recharts` (7).
+8. `apps/ai-service/analysis/` (8), with its dependencies and source kept out of the deployed image.
+
+Admin promotion is not a step; it already exists (4.3). Run it once before the admin pages in step 7 are reachable.
