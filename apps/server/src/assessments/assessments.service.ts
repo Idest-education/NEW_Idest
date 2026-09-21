@@ -93,8 +93,16 @@ export class AssessmentPersistenceService implements OnModuleInit {
       throw new BadRequestException(`Orphaned scoring result rejected: submissionId ${dto.submissionId} does not exist`);
     }
 
-    // 2. If ScorerType = ai, verify AI model version reference
-    if (dto.scorerType === ScorerType.ai && dto.modelVersionId) {
+    // 2. A completed AI result must be attributable to a model version. Either the
+    // caller names an existing one, or the scorer describes itself and we upsert it.
+    if (dto.scorerType === ScorerType.ai && dto.status === 'completed') {
+      if (!dto.modelVersionId && !dto.modelDescriptor) {
+        throw new BadRequestException(
+          'A completed AI scoring result must carry either modelVersionId or modelDescriptor',
+        );
+      }
+    }
+    if (dto.modelVersionId) {
       const modelVer = await this.prisma.aiModelVersion.findUnique({
         where: { id: dto.modelVersionId },
       });
