@@ -21,6 +21,16 @@
 - No secrets in source. New configuration is read from environment variables with a default.
 - Authorization is enforced server-side, never in the client.
 - Prisma client is regenerated with `pnpm prisma:generate` after any `schema.prisma` change.
+- **Any Prisma CLI command needs `DATABASE_URL` supplied explicitly.** The variable lives in the repo-root `.env`, which NestJS reads at runtime through `ConfigModule.forRoot({ envFilePath: ['../../.env.local', '../../.env'] })` in `app.module.ts:23`. The Prisma CLI has no such wiring — it looks only next to the schema or in the working directory — so a bare `pnpm prisma:migrate` fails with `P1012: Environment variable not found: DATABASE_URL`. Prefix every Prisma CLI call:
+
+  ```bash
+  cd apps/server
+  export DATABASE_URL="$(node -e "const fs=require('fs');const m=fs.readFileSync('../../.env','utf8').match(/^\s*(?:export\s+)?DATABASE_URL\s*=\s*[\"']?([^\"'\n]+)/m);process.stdout.write(m?m[1]:'')")"
+  pnpm exec prisma migrate status
+  ```
+
+- Baseline before this plan: `pnpm test` in `apps/server` is 11 files / 81 tests passing, and `prisma migrate status` reports 5 migrations applied against `idest_clerk` at `localhost:5433`. Some passing tests log Nest error stack traces on purpose while exercising failure paths; that output is not a failure.
+- Python steps use the service's own interpreter, `apps/ai-service/venv/bin/python` (3.14.7, pytest 9.1.1, pytest-asyncio present).
 
 ---
 
