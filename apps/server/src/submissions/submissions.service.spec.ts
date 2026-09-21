@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { AssignmentStatus, Role, SubmissionStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { AuditService } from '../audit/audit.service.js';
@@ -19,11 +19,13 @@ function makePrisma() {
       count: vi.fn(),
       update: vi.fn(),
     },
+    auditEvent: { findFirst: vi.fn() },
     $transaction: vi.fn(),
   } as unknown as PrismaService & {
     user: { findUnique: ReturnType<typeof vi.fn> };
     assignment: { findUnique: ReturnType<typeof vi.fn> };
     submission: Record<'findFirst' | 'findUnique' | 'count' | 'update', ReturnType<typeof vi.fn>>;
+    auditEvent: { findFirst: ReturnType<typeof vi.fn> };
     $transaction: ReturnType<typeof vi.fn>;
   };
 }
@@ -240,5 +242,65 @@ describe('SubmissionsService.abuseReview', () => {
       expect.objectContaining({ eventType: 'submission.abuse_cleared', metadata: { nextAction: 'manual' } }),
     );
     expect(result.status).toBe(SubmissionStatus.under_review);
+  });
+});
+
+describe('SubmissionsService.openReviewSession', () => {
+  const TEACHER_ID = 'teacher-1';
+  const SUBMISSION_ID = 'submission-1';
+
+  let prisma: ReturnType<typeof makePrisma>;
+  let audit: ReturnType<typeof makeAudit>;
+  let service: SubmissionsService;
+
+  beforeEach(() => {
+    prisma = makePrisma();
+    audit = makeAudit();
+    service = new SubmissionsService(prisma, audit, makeRabbitmq());
+
+    prisma.user.findUnique.mockResolvedValue({ id: TEACHER_ID, role: Role.teacher });
+    prisma.submission.findUnique.mockResolvedValue({
+      id: SUBMISSION_ID,
+      assignment: { teacherId: TEACHER_ID },
+    });
+    prisma.auditEvent.findFirst.mockResolvedValue(null);
+  });
+
+  it('records a review_opened event the first time', async () => {
+    const result = await service.openReviewSession(TEACHER_ID, SUBMISSION_ID);
+
+    expect(result.recorded).toBe(true);
+    expect(result.sessionId).toBeTruthy();
+    expect(audit.logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: TEACHER_ID,
+        eventType: 'submission.review_opened',
+        entityType: 'submission',
+        entityId: SUBMISSION_ID,
+      }),
+    );
+  });
+
+  it('does not record a second event inside the dedupe window', async () => {
+    prisma.auditEvent.findFirst.mockResolvedValue({
+      id: 'event-1',
+      metadata: { sessionId: 'session-1' },
+    });
+
+    const result = await service.openReviewSession(TEACHER_ID, SUBMISSION_ID);
+
+    expect(result).toEqual({ recorded: false, sessionId: 'session-1' });
+    expect(audit.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('refuses a teacher who does not own the assignment', async () => {
+    prisma.submission.findUnique.mockResolvedValue({
+      id: SUBMISSION_ID,
+      assignment: { teacherId: 'other-teacher' },
+    });
+
+    await expect(service.openReviewSession(TEACHER_ID, SUBMISSION_ID)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 });

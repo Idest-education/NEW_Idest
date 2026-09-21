@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SubmissionsService } from './submissions.service.js';
@@ -105,5 +105,14 @@ export class SubmissionsController {
     @Body() dto: AbuseReviewDto,
   ) {
     return this.submissionsService.abuseReview(user.id, id, user.role, dto);
+  }
+
+  @Post('submissions/:id/review-session')
+  @HttpCode(HttpStatus.OK)
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Mark that a teacher opened this submission for review' })
+  @ApiResponse({ status: 200, description: 'Review session recorded, or deduplicated against a recent one' })
+  async openReviewSession(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.submissionsService.openReviewSession(user.id, id);
   }
 }

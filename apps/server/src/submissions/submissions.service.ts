@@ -13,7 +13,14 @@ import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
 import { AbuseReviewDto } from './dto/abuse-review.dto.js';
 import { ListSubmissionsQueryDto } from './dto/list-submissions-query.dto.js';
 import { AssignmentStatus, Prisma, RedoStatus, SubmissionStatus, Role } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { detectAbuse } from './abuse-detection.js';
+
+/**
+ * A teacher refreshing the review page should not look like a second sitting.
+ * Anything inside this window is treated as the same review session.
+ */
+const REVIEW_SESSION_DEDUPE_MS = 30 * 60 * 1000;
 
 const STUDENT_ROW_SELECT = {
   id: true,
@@ -552,5 +559,52 @@ export class SubmissionsService {
     });
 
     return manualSubmission;
+  }
+
+  /**
+   * Marks the moment a teacher opened a submission for review, so review
+   * duration can be derived later. Telemetry only — never blocks the page.
+   */
+  async openReviewSession(teacherId: string, submissionId: string) {
+    const teacher = await this.prisma.user.findUnique({ where: { id: teacherId } });
+    if (!teacher || (teacher.role !== Role.teacher && teacher.role !== Role.admin)) {
+      throw new ForbiddenException('Only teachers or admins can open a review session');
+    }
+
+    const submission = await this.prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: { assignment: true },
+    });
+    if (!submission) {
+      throw new NotFoundException(`Submission ${submissionId} not found`);
+    }
+    if (teacher.role === Role.teacher && submission.assignment.teacherId !== teacherId) {
+      throw new ForbiddenException('You are not authorized to review this submission');
+    }
+
+    const recent = await this.prisma.auditEvent.findFirst({
+      where: {
+        actorId: teacherId,
+        entityId: submissionId,
+        eventType: 'submission.review_opened',
+        createdAt: { gte: new Date(Date.now() - REVIEW_SESSION_DEDUPE_MS) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recent) {
+      const metadata = recent.metadata as { sessionId?: string } | null;
+      return { recorded: false, sessionId: metadata?.sessionId ?? null };
+    }
+
+    const sessionId = randomUUID();
+    await this.auditService.logEvent({
+      actorId: teacherId,
+      eventType: 'submission.review_opened',
+      entityType: 'submission',
+      entityId: submissionId,
+      metadata: { sessionId },
+    });
+
+    return { recorded: true, sessionId };
   }
 }
