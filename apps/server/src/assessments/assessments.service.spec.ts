@@ -91,4 +91,37 @@ describe('AssessmentPersistenceService.persistScoringResult', () => {
       service.persistScoringResult({ ...completedAiResult, modelDescriptor: DESCRIPTOR }),
     ).resolves.toBeDefined();
   });
+
+  it('upserts the model version from the descriptor and links the result to it', async () => {
+    await service.persistScoringResult({ ...completedAiResult, modelDescriptor: DESCRIPTOR });
+
+    expect(tx.aiModelVersion.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          modelName_modelVersion: {
+            modelName: 'gemini-3.6-flash',
+            modelVersion: '2026-09-21-v1',
+          },
+        },
+      }),
+    );
+    expect(tx.scoringResult.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ modelVersionId: 'model-version-1' }),
+      }),
+    );
+  });
+
+  it('does not upsert when the caller already named a model version', async () => {
+    prisma.aiModelVersion.findUnique.mockResolvedValue({ id: 'existing-1' });
+
+    await service.persistScoringResult({ ...completedAiResult, modelVersionId: 'existing-1' });
+
+    expect(tx.aiModelVersion.upsert).not.toHaveBeenCalled();
+    expect(tx.scoringResult.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ modelVersionId: 'existing-1' }),
+      }),
+    );
+  });
 });

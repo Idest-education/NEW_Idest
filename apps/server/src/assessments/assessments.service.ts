@@ -77,6 +77,8 @@ export class AssessmentPersistenceService implements OnModuleInit {
           feedback: message.feedback ?? {},
           rawOutput: message.rawOutput,
           processingMetadata: message.processingMetadata,
+          modelVersionId: message.modelVersionId,
+          modelDescriptor: message.modelDescriptor,
         });
       } catch (err) {
         this.logger.error(`Failed to auto-persist RabbitMQ scoring result: ${(err as Error).message}`);
@@ -128,11 +130,34 @@ export class AssessmentPersistenceService implements OnModuleInit {
 
     // 4. Transactionally persist append-only scoring result & update submission status
     const scoringResult = await this.prisma.$transaction(async (tx) => {
+      // The upsert shares the transaction with the result row, so a scoring
+      // result can never be committed without the model row it points at.
+      let modelVersionId = dto.modelVersionId ?? null;
+      if (!modelVersionId && dto.modelDescriptor) {
+        const d = dto.modelDescriptor;
+        const modelVersion = await tx.aiModelVersion.upsert({
+          where: {
+            modelName_modelVersion: { modelName: d.modelName, modelVersion: d.modelVersion },
+          },
+          create: {
+            modelName: d.modelName,
+            modelVersion: d.modelVersion,
+            provider: d.provider,
+            taskType: d.taskType,
+            configuration: d.configuration,
+          },
+          // Configuration for a given (modelName, modelVersion) is immutable: a
+          // changed prompt means a new SCORER_REVISION, not a rewritten row.
+          update: {},
+        });
+        modelVersionId = modelVersion.id;
+      }
+
       const res = await tx.scoringResult.create({
         data: {
           submissionId: dto.submissionId,
           scorerId: dto.scorerId ?? null,
-          modelVersionId: dto.modelVersionId ?? null,
+          modelVersionId,
           scorerType: dto.scorerType,
           status: dto.status,
           scores: dto.scores,
