@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
-import { ScorerType } from '@prisma/client';
+import { Role, ScorerType, SubmissionStatus } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { AuditService } from '../audit/audit.service.js';
 import type { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
@@ -50,7 +50,12 @@ describe('AssessmentPersistenceService.persistScoringResult', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new AssessmentPersistenceService(prisma, makeAudit(), makeRabbitmq());
+    service = new AssessmentPersistenceService(
+      prisma,
+      makeAudit(),
+      makeRabbitmq(),
+      { promptState: vi.fn() } as never,
+    );
 
     prisma.submission.findUnique.mockResolvedValue({ id: SUBMISSION_ID });
     prisma.scoringResult.findFirst.mockResolvedValue(null);
@@ -123,5 +128,52 @@ describe('AssessmentPersistenceService.persistScoringResult', () => {
         data: expect.objectContaining({ modelVersionId: 'existing-1' }),
       }),
     );
+  });
+});
+
+describe('AssessmentPersistenceService.createTeacherRevision', () => {
+  it('returns the reason prompt state alongside the revision', async () => {
+    const prisma = makePrisma() as unknown as PrismaService & Record<string, any>;
+    const reasons = {
+      promptState: vi.fn().mockResolvedValue({
+        untaggedCount: 8,
+        threshold: 8,
+        shouldPrompt: true,
+      }),
+    };
+
+    prisma.user = { findUnique: vi.fn().mockResolvedValue({ id: 'teacher-1', role: Role.teacher }) };
+    prisma.submission = {
+      findUnique: vi.fn().mockResolvedValue({
+        id: SUBMISSION_ID,
+        assignmentId: 'assignment-1',
+        status: SubmissionStatus.scored,
+        assignment: { id: 'assignment-1', teacherId: 'teacher-1' },
+      }),
+      update: vi.fn(),
+    };
+    prisma.scoreRevision = { findMany: vi.fn().mockResolvedValue([]) };
+    prisma.$transaction = vi.fn().mockImplementation(async (fn: (t: unknown) => unknown) =>
+      fn({
+        scoreRevision: { create: vi.fn().mockResolvedValue({ id: 'rev-1', revisionNumber: 1 }) },
+        submission: { update: vi.fn() },
+        auditEvent: { create: vi.fn() },
+      }),
+    );
+
+    const service = new AssessmentPersistenceService(
+      prisma,
+      makeAudit(),
+      makeRabbitmq(),
+      reasons as never,
+    );
+
+    const result = await service.createTeacherRevision('teacher-1', SUBMISSION_ID, {
+      finalScores: { overall: 7 },
+      finalFeedback: { summary: 'better' },
+    });
+
+    expect(result.reasonPrompt).toEqual({ untaggedCount: 8, threshold: 8, shouldPrompt: true });
+    expect(reasons.promptState).toHaveBeenCalledWith('teacher-1', 'assignment-1');
   });
 });

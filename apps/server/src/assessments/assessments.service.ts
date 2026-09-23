@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
+import { RevisionReasonsService } from '../revision-reasons/revision-reasons.service.js';
 import { PersistScoringResultDto } from './dto/persist-scoring-result.dto.js';
 import { CreateScoreRevisionDto } from './dto/create-score-revision.dto.js';
 import { PublishResultDto } from './dto/publish-result.dto.js';
@@ -62,6 +63,7 @@ export class AssessmentPersistenceService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly rabbitmqService: RabbitMQService,
+    private readonly revisionReasons: RevisionReasonsService,
   ) {}
 
   async onModuleInit() {
@@ -273,7 +275,14 @@ export class AssessmentPersistenceService implements OnModuleInit {
       return rev;
     });
 
-    return revision;
+    // Read after the transaction commits. The prompt state is advisory, and a
+    // failure computing it must never roll back a teacher's revision.
+    const reasonPrompt = await this.revisionReasons.promptState(
+      teacherId,
+      submission.assignmentId,
+    );
+
+    return { ...revision, reasonPrompt };
   }
 
   async publishResult(teacherId: string, submissionId: string, dto: PublishResultDto) {
