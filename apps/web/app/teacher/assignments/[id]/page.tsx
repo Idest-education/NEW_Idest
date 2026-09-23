@@ -1,20 +1,23 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ASSIGNMENT_STATUS_LABEL,
   TASK_TYPE_LABEL,
   type Assignment,
   type SubmissionRow,
+  type UntaggedRevision,
   getAssignment,
   listSubmissions,
+  listUntaggedRevisions,
   updateAssignment,
   updateAssignmentStatus,
 } from "../../../../lib/idest";
 import { day, stamp } from "../../../../lib/format";
 import { useAction, useResource } from "../../../../lib/use-api";
 import { ActionMenu, Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../../../components/board";
+import { ReasonBatchModal, UntaggedBadge } from "../../../../components/reason-batch-modal";
 
 export default function AssignmentDesk({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -26,6 +29,16 @@ export default function AssignmentDesk({ params }: { params: Promise<{ id: strin
     [id],
   );
   const { busy, error: actionError, run } = useAction();
+
+  const { data: untagged, reload: reloadUntagged } = useResource<UntaggedRevision[]>(
+    (token) => listUntaggedRevisions(id, token),
+    [id],
+  );
+  const untaggedRows = untagged ?? [];
+  const [reasonOpen, setReasonOpen] = useState(false);
+
+  const openReasons = useCallback(() => setReasonOpen(true), []);
+  const closeReasons = useCallback(() => setReasonOpen(false), []);
 
   const rows = useMemo(
     () => (data?.rows ?? []).slice().sort((a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt)),
@@ -59,6 +72,7 @@ export default function AssignmentDesk({ params }: { params: Promise<{ id: strin
               {data.assignment.title}
               {data.assignment.highlighted ? " ★" : ""}
             </h1>
+            <UntaggedBadge count={untaggedRows.length} onOpen={openReasons} />
             <ActionMenu label="Tùy chọn bài tập">
               <button type="button" className={s.actionMenuItem} disabled={busy} onClick={toggleHighlight}>
                 {data.assignment.highlighted ? "Bỏ ghim nổi bật" : "Ghim nổi bật"}
@@ -143,6 +157,12 @@ export default function AssignmentDesk({ params }: { params: Promise<{ id: strin
           )}
         </>
       ) : null}
+      <ReasonBatchModal
+        open={reasonOpen}
+        onClose={closeReasons}
+        revisions={untaggedRows}
+        onTagged={reloadUntagged}
+      />
     </Shell>
   );
 }
