@@ -12,7 +12,9 @@
 
 ## Global Constraints
 
-- **Runs after `docs/superpowers/plans/2026-09-21-provenance-and-capture-backend.md`.** That plan's Task 6 creates the `revision_reason_tags` table; every view in Task 1 and Task 2 reads it and the migration will fail with `relation "revision_reason_tags" does not exist` if it has not shipped. That plan's Task 9 adds `pnpm promote:admin`, which is the only way to get an `admin` account to exercise Tasks 3 to 6 by hand.
+- **Runs after `docs/superpowers/plans/2026-09-21-provenance-and-capture-backend.md`.** That plan's Task 6 creates the `revision_reason_tags` table; every view in Task 1 and Task 2 reads it and the migration will fail with `relation "revision_reason_tags" does not exist` if it has not shipped. It shipped as `20260921151339_add_revision_reason_tags`.
+- **The view migrations must sort after that one.** Prisma applies migrations in lexicographic directory order, so a view migration timestamped earlier than `20260921151339` is applied before the table it reads and fails on any fresh database — the e2e test database and any deploy. This plan uses `20260923120000` and `20260923121000`. An earlier draft used `20260921120000` and `20260921121000`, which would have broken exactly this way.
+- **Admin accounts already exist.** An earlier draft pointed at a `pnpm promote:admin` script from the backend plan's Task 9; that task was dropped, because `apps/server/prisma/promote-to-admin.ts` already does the job and also mirrors the role into Clerk `publicMetadata`, which the web role gate reads. Create the first admin with `cd apps/server && SEED_ADMIN_EMAIL=someone@example.com pnpm db:seed`.
 - Server code is ESM. Every relative import ends in `.js`, including imports of `.ts` files: `import { PrismaService } from '../prisma/prisma.service.js';`
 - Server unit tests are colocated next to the code as `*.spec.ts` and run with `pnpm test` (Vitest, `include: ['**/*.spec.ts']`).
 - Server database tests are in `apps/server/test/` as `*.e2e-spec.ts` and run with `pnpm test:e2e` against `postgresql://idest:idest@localhost:5433/idest_clerk_test`. The global setup in `apps/server/test/setup-e2e.ts` runs `pnpm prisma migrate deploy` against that URL before the suite.
@@ -55,8 +57,8 @@ What they establish, and what the web tasks below must therefore obey:
 
 | File | Responsibility |
 | --- | --- |
-| `apps/server/prisma/migrations/20260921120000_add_assessment_outcomes_view/migration.sql` | Creates `v_assessment_outcomes`. Encodes the live-publication, ground-truth and baseline rules once. |
-| `apps/server/prisma/migrations/20260921121000_add_scoring_health_and_teacher_activity_views/migration.sql` | Creates `v_scoring_health` and `v_teacher_activity`. |
+| `apps/server/prisma/migrations/20260923120000_add_assessment_outcomes_view/migration.sql` | Creates `v_assessment_outcomes`. Encodes the live-publication, ground-truth and baseline rules once. |
+| `apps/server/prisma/migrations/20260923121000_add_scoring_health_and_teacher_activity_views/migration.sql` | Creates `v_scoring_health` and `v_teacher_activity`. |
 | `apps/server/test/analytics-fixtures.ts` | Builds the five seeded scenarios and resets the test database. Shared by both view specs. |
 | `apps/server/test/analytics-outcomes-view.e2e-spec.ts` | Row-by-row assertions on `v_assessment_outcomes`. |
 | `apps/server/test/analytics-health-views.e2e-spec.ts` | Row-by-row assertions on `v_scoring_health` and `v_teacher_activity`. |
@@ -87,7 +89,7 @@ This is where the bugs hide, so the fixtures come first and every assertion is m
 **Files:**
 - Create: `apps/server/test/analytics-fixtures.ts`
 - Create: `apps/server/test/analytics-outcomes-view.e2e-spec.ts`
-- Create: `apps/server/prisma/migrations/20260921120000_add_assessment_outcomes_view/migration.sql`
+- Create: `apps/server/prisma/migrations/20260923120000_add_assessment_outcomes_view/migration.sql`
 
 **Interfaces:**
 - Consumes: the `revision_reason_tags` table from plan 1 Task 6, and the audit event types the server already emits: `submission.queued`, `submission.retry_queued`, `submission.review_opened`, `result.published`, `result.unpublished`.
@@ -813,7 +815,7 @@ Expected: FAIL, every test erroring with `relation "v_assessment_outcomes" does 
 
 - [ ] **Step 4: Write the migration**
 
-Create the directory `apps/server/prisma/migrations/20260921120000_add_assessment_outcomes_view/` and the file `migration.sql` inside it:
+Create the directory `apps/server/prisma/migrations/20260923120000_add_assessment_outcomes_view/` and the file `migration.sql` inside it:
 
 ```sql
 -- Analytics read path, view 1 of 3. Read-only: nothing on this path writes to
@@ -1066,7 +1068,7 @@ git commit -m "feat(analytics): add v_assessment_outcomes view with seeded fixtu
 
 **Files:**
 - Create: `apps/server/test/analytics-health-views.e2e-spec.ts`
-- Create: `apps/server/prisma/migrations/20260921121000_add_scoring_health_and_teacher_activity_views/migration.sql`
+- Create: `apps/server/prisma/migrations/20260923121000_add_scoring_health_and_teacher_activity_views/migration.sql`
 
 **Interfaces:**
 - Consumes: `seedAnalyticsFixtures` and `resetAnalyticsDatabase` from `apps/server/test/analytics-fixtures.ts` (Task 1).
@@ -1241,7 +1243,7 @@ Expected: FAIL with `relation "v_scoring_health" does not exist`.
 
 - [ ] **Step 3: Write the migration**
 
-Create the directory `apps/server/prisma/migrations/20260921121000_add_scoring_health_and_teacher_activity_views/` and the file `migration.sql` inside it:
+Create the directory `apps/server/prisma/migrations/20260923121000_add_scoring_health_and_teacher_activity_views/` and the file `migration.sql` inside it:
 
 ```sql
 -- Analytics read path, views 2 and 3. Both read-only.
@@ -3118,7 +3120,7 @@ Expected: no errors.
 
 - [ ] **Step 11: Verify the gate by hand**
 
-With the server and web app running, and after promoting an account with `pnpm promote:admin <email>` (plan 1, Task 9):
+With the server and web app running, and after promoting an account with `cd apps/server && SEED_ADMIN_EMAIL=<email> pnpm db:seed`:
 
 1. Open `/admin` as a teacher → redirected to `/`.
 2. Open `/admin` as the admin → the cards and the criterion bar chart render.
