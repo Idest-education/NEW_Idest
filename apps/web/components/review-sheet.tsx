@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BAY_LABEL,
   CRITERIA,
   CRITERION_LABEL,
   type Criterion,
   type Feedback,
+  type ReasonPrompt,
   type Scores,
   type ScoringResult,
   type SubmissionFull,
@@ -35,9 +36,16 @@ import { CriterionRow, Notice, Wizard, board as s } from "./board";
 export function Sheet({
   submission,
   onChanged,
+  onReasonPrompt,
 }: {
   submission: SubmissionFull;
   onChanged: () => Promise<void>;
+  /**
+   * Told how close this teacher now is to the batch reason prompt, once a save
+   * has fully settled. Never called mid-publish: a teacher's decision must not
+   * be interrupted by telemetry.
+   */
+  onReasonPrompt?: (prompt: ReasonPrompt) => void;
 }) {
   const aiResult: ScoringResult | undefined = useMemo(
     () =>
@@ -101,6 +109,10 @@ export function Sheet({
     .sort((a, b) => a - b)
     .flatMap((index) => (aiImprovements[index] ? [aiImprovements[index]] : []));
 
+  // Parked until the teacher's action has fully settled. Opening the modal the
+  // instant a revision is written would land it on top of an in-flight publish.
+  const pendingPrompt = useRef<ReasonPrompt | null>(null);
+
   const saveRevision = useCallback(async () => {
     const payloadScores: Scores = { ...scores, overall };
     const saved = await run((token) =>
@@ -117,17 +129,28 @@ export function Sheet({
     if (saved) {
       setDirty(false);
       setNote("");
+      pendingPrompt.current = saved.reasonPrompt ?? null;
       await onChanged();
     }
     return saved;
   }, [aiResult, scores, overall, summary, note, run, submission.id, adoptedImprovements, onChanged]);
+
+  /** Hands the parked prompt to the page, at most once per save. */
+  const announcePrompt = useCallback(() => {
+    const prompt = pendingPrompt.current;
+    pendingPrompt.current = null;
+    if (prompt && onReasonPrompt) onReasonPrompt(prompt);
+  }, [onReasonPrompt]);
 
   const sign = useCallback(async () => {
     const revision = dirty || !latestRevision ? await saveRevision() : latestRevision;
     if (!revision) return;
     const published = await run((token) => publishResult(token, submission.id, revision.id));
     if (published) await onChanged();
-  }, [dirty, latestRevision, saveRevision, run, submission.id, onChanged]);
+    // Only now — the result is signed and the student can see it. Publishing is
+    // never delayed or blocked by the reason prompt.
+    announcePrompt();
+  }, [dirty, latestRevision, saveRevision, run, submission.id, onChanged, announcePrompt]);
 
   const withdraw = useCallback(async () => {
     const done = await run((token) =>
@@ -426,7 +449,10 @@ export function Sheet({
                       type="button"
                       className={s.pressQuiet}
                       disabled={busy || !dirty || !complete}
-                      onClick={saveRevision}
+                      onClick={async () => {
+                        await saveRevision();
+                        announcePrompt();
+                      }}
                     >
                       {busy ? "Đang lưu…" : "Lưu bản sửa"}
                     </button>
