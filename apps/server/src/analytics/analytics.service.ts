@@ -2,10 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { randomUUID } from 'node:crypto';
+import { columnsFor, csvHeader, csvRow, jsonlRow } from './serialize.js';
 
 export interface DateWindow {
   from?: string;
   to?: string;
+}
+
+export interface ExportOptions extends DateWindow {
+  format: 'csv' | 'jsonl';
+  includeEssays: boolean;
+}
+
+/** Keyset page size. Small enough that no page holds the whole result set. */
+const EXPORT_PAGE_SIZE = 500;
+
+interface ExportCursor {
+  revisionCreatedAt: Date;
+  submissionId: string;
 }
 
 export interface AnalyticsOverview {
@@ -221,5 +236,88 @@ export class AnalyticsService {
       meanScoringLatencySeconds: r.mean_scoring_latency_seconds,
       p95ScoringLatencySeconds: r.p95_scoring_latency_seconds,
     }));
+  }
+
+  /**
+   * Records the export and returns its id, so a dataset used in the thesis can
+   * be traced back to the exact query that produced it. Called before the first
+   * byte is written: an export that fails halfway still leaves the record.
+   */
+  async beginExport(actorId: string, options: ExportOptions): Promise<string> {
+    const exportId = randomUUID();
+    await this.audit.logEvent({
+      actorId,
+      eventType: 'analytics.exported',
+      entityType: 'analytics_export',
+      entityId: exportId,
+      metadata: {
+        from: options.from ?? null,
+        to: options.to ?? null,
+        format: options.format,
+        includeEssays: options.includeEssays,
+      },
+    });
+    return exportId;
+  }
+
+  /**
+   * Yields the export one page at a time, keyed on
+   * (revision_created_at, submission_id), so the whole result set is never held
+   * in memory. The caller writes each chunk to the response and handles
+   * backpressure.
+   */
+  async *streamExport(options: ExportOptions): AsyncGenerator<string> {
+    const columns = columnsFor(options.includeEssays);
+    if (options.format === 'csv') {
+      yield csvHeader(columns);
+    }
+
+    let cursor: ExportCursor | undefined;
+    for (;;) {
+      const rows = await this.fetchExportPage(options, cursor);
+      for (const row of rows) {
+        yield options.format === 'csv' ? csvRow(columns, row) : jsonlRow(columns, row);
+      }
+      if (rows.length < EXPORT_PAGE_SIZE) return;
+      const last = rows[rows.length - 1]!;
+      cursor = {
+        revisionCreatedAt: last.revision_created_at as Date,
+        submissionId: last.submission_id as string,
+      };
+    }
+  }
+
+  private async fetchExportPage(
+    options: ExportOptions,
+    cursor: ExportCursor | undefined,
+  ): Promise<Record<string, unknown>[]> {
+    // Prisma.raw is safe here: columnsFor returns a module constant, never
+    // anything from the request.
+    const columns = Prisma.raw(columnsFor(options.includeEssays).join(', '));
+
+    const conditions: Prisma.Sql[] = [];
+    if (options.from) {
+      conditions.push(Prisma.sql`revision_created_at >= ${new Date(options.from)}`);
+    }
+    if (options.to) {
+      conditions.push(Prisma.sql`revision_created_at <= ${new Date(options.to)}`);
+    }
+    if (cursor) {
+      conditions.push(
+        Prisma.sql`(revision_created_at, submission_id) > (${cursor.revisionCreatedAt}, ${cursor.submissionId}::uuid)`,
+      );
+    }
+    const where =
+      conditions.length > 0
+        ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+        : Prisma.empty;
+
+    return this.prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
+      SELECT ${columns}
+      FROM v_assessment_outcomes
+      ${where}
+      ORDER BY revision_created_at ASC, submission_id ASC
+      LIMIT ${EXPORT_PAGE_SIZE}
+    `);
   }
 }

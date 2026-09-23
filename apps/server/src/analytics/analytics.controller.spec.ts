@@ -41,3 +41,84 @@ describe('AnalyticsController', () => {
     });
   });
 });
+
+describe('AnalyticsController.export', () => {
+  function makeResponse() {
+    return {
+      setHeader: vi.fn(),
+      write: vi.fn().mockReturnValue(true),
+      end: vi.fn(),
+    };
+  }
+
+  it('audits the export, sets the CSV headers, and writes every chunk', async () => {
+    const service = makeService();
+    service.beginExport = vi.fn().mockResolvedValue('export-1');
+    service.streamExport = vi.fn().mockImplementation(async function* () {
+      yield 'header\n';
+      yield 'row\n';
+    });
+    const res = makeResponse();
+    const controller = new AnalyticsController(service);
+
+    await controller.export(
+      { id: 'admin-1' } as never,
+      { format: 'csv' },
+      res as never,
+    );
+
+    expect(service.beginExport).toHaveBeenCalledWith('admin-1', {
+      format: 'csv',
+      from: undefined,
+      to: undefined,
+      includeEssays: false,
+    });
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
+    expect(res.setHeader).toHaveBeenCalledWith('X-Export-Id', 'export-1');
+    expect(res.write).toHaveBeenNthCalledWith(1, 'header\n');
+    expect(res.write).toHaveBeenNthCalledWith(2, 'row\n');
+    expect(res.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('defaults to csv and to leaving essays out', async () => {
+    const service = makeService();
+    service.beginExport = vi.fn().mockResolvedValue('export-2');
+    service.streamExport = vi.fn().mockImplementation(async function* () {
+      yield '';
+    });
+    const controller = new AnalyticsController(service);
+
+    await controller.export({ id: 'admin-1' } as never, {}, makeResponse() as never);
+
+    expect(service.streamExport).toHaveBeenCalledWith({
+      format: 'csv',
+      from: undefined,
+      to: undefined,
+      includeEssays: false,
+    });
+  });
+
+  it('passes include_essays through and switches the content type for jsonl', async () => {
+    const service = makeService();
+    service.beginExport = vi.fn().mockResolvedValue('export-3');
+    service.streamExport = vi.fn().mockImplementation(async function* () {
+      yield '';
+    });
+    const res = makeResponse();
+    const controller = new AnalyticsController(service);
+
+    await controller.export(
+      { id: 'admin-1' } as never,
+      { format: 'jsonl', include_essays: true },
+      res as never,
+    );
+
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/x-ndjson');
+    expect(service.streamExport).toHaveBeenCalledWith({
+      format: 'jsonl',
+      from: undefined,
+      to: undefined,
+      includeEssays: true,
+    });
+  });
+});

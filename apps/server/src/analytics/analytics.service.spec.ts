@@ -114,3 +114,110 @@ describe('AnalyticsService.getScoringHealth', () => {
     });
   });
 });
+
+describe('AnalyticsService.beginExport', () => {
+  it('records an analytics.exported audit event before a byte is written', async () => {
+    const prisma = makePrisma();
+    const audit = makeAudit();
+    const service = new AnalyticsService(prisma, audit);
+
+    const exportId = await service.beginExport('admin-1', {
+      format: 'csv',
+      from: '2026-09-01',
+      to: '2026-09-30',
+      includeEssays: true,
+    });
+
+    expect(exportId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(audit.logEvent).toHaveBeenCalledWith({
+      actorId: 'admin-1',
+      eventType: 'analytics.exported',
+      entityType: 'analytics_export',
+      entityId: exportId,
+      metadata: {
+        from: '2026-09-01',
+        to: '2026-09-30',
+        format: 'csv',
+        includeEssays: true,
+      },
+    });
+  });
+
+  it('records a null window and includeEssays false when nothing was asked for', async () => {
+    const audit = makeAudit();
+    const service = new AnalyticsService(makePrisma(), audit);
+
+    await service.beginExport('admin-1', { format: 'jsonl', includeEssays: false });
+
+    expect(audit.logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { from: null, to: null, format: 'jsonl', includeEssays: false },
+      }),
+    );
+  });
+});
+
+describe('AnalyticsService.streamExport', () => {
+  it('emits a CSV header then one line per row', async () => {
+    const prisma = makePrisma();
+    const service = new AnalyticsService(prisma, makeAudit());
+    prisma.$queryRaw.mockResolvedValueOnce([
+      {
+        submission_id: 'sub-1',
+        revision_created_at: new Date('2026-09-15T08:20:00.000Z'),
+        ai_overall: 6,
+        teacher_overall: 6.5,
+      },
+    ]);
+
+    const chunks: string[] = [];
+    for await (const chunk of service.streamExport({ format: 'csv', includeEssays: false })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks[0]).toContain('submission_id,assignment_id');
+    expect(chunks[0]).not.toContain('essay_text');
+    expect(chunks[1]).toContain('sub-1');
+    expect(chunks).toHaveLength(2);
+  });
+
+  it('emits no header for JSONL', async () => {
+    const prisma = makePrisma();
+    const service = new AnalyticsService(prisma, makeAudit());
+    prisma.$queryRaw.mockResolvedValueOnce([
+      { submission_id: 'sub-1', revision_created_at: new Date('2026-09-15T08:20:00.000Z') },
+    ]);
+
+    const chunks: string[] = [];
+    for await (const chunk of service.streamExport({ format: 'jsonl', includeEssays: false })) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toHaveLength(1);
+    expect(JSON.parse(chunks[0]!) as { submission_id: string }).toMatchObject({
+      submission_id: 'sub-1',
+    });
+  });
+
+  it('keeps paging while a page comes back full, then stops', async () => {
+    const prisma = makePrisma();
+    const service = new AnalyticsService(prisma, makeAudit());
+    const fullPage = Array.from({ length: 500 }, (_unused, i) => ({
+      submission_id: `sub-${i}`,
+      revision_created_at: new Date('2026-09-15T08:20:00.000Z'),
+    }));
+    prisma.$queryRaw
+      .mockResolvedValueOnce(fullPage)
+      .mockResolvedValueOnce([
+        { submission_id: 'sub-last', revision_created_at: new Date('2026-09-15T08:21:00.000Z') },
+      ]);
+
+    let lines = 0;
+    for await (const _chunk of service.streamExport({ format: 'jsonl', includeEssays: false })) {
+      lines += 1;
+    }
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(lines).toBe(501);
+  });
+});
