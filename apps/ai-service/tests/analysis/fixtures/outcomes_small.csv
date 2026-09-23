@@ -1,0 +1,6 @@
+submission_id,assignment_id,student_id,teacher_id,task_type,word_count,ai_task_response,ai_coherence_cohesion,ai_lexical_resource,ai_grammatical_range_accuracy,ai_overall,teacher_task_response,teacher_coherence_cohesion,teacher_lexical_resource,teacher_grammatical_range_accuracy,teacher_overall,has_ai_baseline,revision_count,reason_codes,reason_source,tag_latency_seconds,model_name,model_version,is_published
+s-0001,a-0001,stu-0001,tea-0001,task_2,268,6.5,6.5,6.5,6.5,6.5,6.0,6.0,6.5,6.0,6.0,true,1,{ai_too_generous},batch,5400,gemini-3.6-flash,2026-08-01,true
+s-0002,a-0001,stu-0002,tea-0001,task_2,301,7.0,7.0,7.0,7.0,7.0,7.0,7.0,7.0,7.0,7.0,true,1,,,,gemini-3.6-flash,2026-08-01,true
+s-0003,a-0002,stu-0003,tea-0001,task_1,182,6.0,6.0,6.0,6.0,6.0,6.5,6.5,6.0,6.5,6.5,true,2,{ai_too_harsh},inline,12,gemini-3.6-flash,2026-08-01,true
+s-0004,a-0002,stu-0004,tea-0002,task_2,412,7.5,7.5,7.5,7.5,7.5,8.5,8.5,7.5,8.5,8.5,true,1,"{ai_too_harsh,ai_wrong_criterion}",batch,7200,pre_provenance,,true
+s-0005,a-0003,stu-0005,tea-0002,task_2,255,,,,,,9.0,9.0,9.0,9.0,9.0,false,1,,,,,,false
