@@ -1,0 +1,8 @@
+# Offline research dependencies for apps/ai-service/analysis/.
+# NOT installed in the deployed image — the Dockerfile installs requirements.txt only.
+# Install alongside the service requirements to run the analysis tests:
+#   pip install -r requirements.txt -r requirements-analysis.txt
+pandas>=2.2.0
+scikit-learn>=1.4.0
+catboost>=1.2.5
+rapidfuzz>=3.6.0

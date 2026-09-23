@@ -3,3 +3,7 @@ __pycache__
 *.pyc
 .pytest_cache
 scripts
+analysis
+tests
+requirements-analysis.txt
+pytest.ini
