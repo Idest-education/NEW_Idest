@@ -49,8 +49,19 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     try {
       const conn = await amqp.connect(url);
       this.connection = conn;
+      // amqplib emits 'error' on the connection when the socket drops — a
+      // broker restart, an idle timeout, a network blip. An EventEmitter with
+      // no 'error' listener throws, which kills the whole API process, so a
+      // scoring broker hiccup would take grading down with it. Scoring is
+      // asynchronous by design and must never block or break user requests.
+      conn.on('error', (err: Error) => this.handleBrokerLoss('connection error', err));
+      conn.on('close', () => this.handleBrokerLoss('connection closed'));
+
       const ch = await conn.createChannel();
       this.channel = ch;
+      ch.on('error', (err: Error) => this.handleBrokerLoss('channel error', err));
+      ch.on('close', () => this.handleBrokerLoss('channel closed'));
+
       await ch.assertQueue(this.queueName, { durable: true });
       await ch.assertQueue(this.resultQueueName, { durable: true });
       this.isConnected = true;
@@ -59,6 +70,22 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(`RabbitMQ connection unavailable (${(err as Error).message}). Operating with local queue mode.`);
       this.isConnected = false;
     }
+  }
+
+  /**
+   * Records that the broker is gone without letting the event reach Node's
+   * default 'error' handling. Submissions then stay in `submitted` and are
+   * retryable, which is the documented degraded mode, rather than being lost
+   * to a process crash.
+   */
+  private handleBrokerLoss(reason: string, err?: Error): void {
+    if (this.isConnected) {
+      this.logger.warn(
+        `RabbitMQ ${reason}${err ? `: ${err.message}` : ''}. Operating with local queue mode.`,
+      );
+    }
+    this.isConnected = false;
+    this.channel = null;
   }
 
   async onModuleDestroy() {
