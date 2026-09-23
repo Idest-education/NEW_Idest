@@ -105,3 +105,36 @@ def test_missing_columns_fail_loudly(tmp_path):
         load_outcomes_csv(truncated)
     assert "teacher_overall" in str(excinfo.value)
     assert "has_ai_baseline" in str(excinfo.value)
+
+
+def test_essay_text_survives_csv_formula_neutralisation(tmp_path):
+    """The server prefixes spreadsheet-formula triggers in CSV free text.
+
+    That guard protects an admin opening the export in Excel, but the research
+    path must see the essay the student actually wrote, or CatBoost trains on a
+    stray apostrophe.
+    """
+    import csv
+
+    source = FIXTURE.read_text().splitlines()
+    header = source[0] + ",essay_text"
+    rows = [source[1] + ",'=SUM(A1)"] + [line + ",plain essay" for line in source[2:]]
+    path = tmp_path / "with_essays.csv"
+    path.write_text("\n".join([header, *rows]) + "\n")
+
+    frame = load_outcomes_csv(path)
+
+    assert frame.loc[0, "essay_text"] == "=SUM(A1)"
+    assert frame.loc[1, "essay_text"] == "plain essay"
+
+
+def test_apostrophe_is_only_stripped_when_it_guards_a_trigger(tmp_path):
+    source = FIXTURE.read_text().splitlines()
+    header = source[0] + ",essay_text"
+    rows = [source[1] + ",'tis a fine essay"] + [line + ",plain" for line in source[2:]]
+    path = tmp_path / "apostrophe.csv"
+    path.write_text("\n".join([header, *rows]) + "\n")
+
+    frame = load_outcomes_csv(path)
+
+    assert frame.loc[0, "essay_text"] == "'tis a fine essay"

@@ -123,6 +123,25 @@ def _to_reason_codes(value: object) -> tuple[str, ...] | None:
     return codes or None
 
 
+#: Characters a spreadsheet reads as the start of a formula. The export prefixes
+#: free text beginning with one of these with a single apostrophe (CWE-1236), so
+#: an admin opening the CSV in Excel does not execute a student's essay.
+_FORMULA_TRIGGERS = "=+-@\t\r"
+
+
+def _unguard_formula(value: object) -> object:
+    """Undo the export's apostrophe guard, and nothing else.
+
+    Only an apostrophe that actually shields a trigger character is removed, so
+    an essay that genuinely opens with "'tis" keeps its quote.
+    """
+    if not isinstance(value, str):
+        return value
+    if len(value) >= 2 and value[0] == "'" and value[1] in _FORMULA_TRIGGERS:
+        return value[1:]
+    return value
+
+
 def _coerce(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.copy()
     for column in _NUMERIC_COLUMNS:
@@ -140,6 +159,9 @@ def _coerce(frame: pd.DataFrame) -> pd.DataFrame:
     missing_model = frame["model_name"].isna() | (frame["model_name"] == "")
     frame.loc[missing_model & frame["has_ai_baseline"], "model_name"] = PRE_PROVENANCE
     frame.loc[missing_model & ~frame["has_ai_baseline"], "model_name"] = None
+    for column in ("essay_text",) + OPTIONAL_COLUMNS[1:]:
+        if column in frame.columns:
+            frame[column] = frame[column].map(_unguard_formula)
     return frame.reset_index(drop=True)
 
 

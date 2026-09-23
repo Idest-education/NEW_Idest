@@ -65,3 +65,35 @@ describe('jsonlRow', () => {
     expect(line).toBe('{"submission_id":"sub-1","ai_overall":6.5}\n');
   });
 });
+
+describe('csv formula injection', () => {
+  it('neutralises a student essay that begins like a spreadsheet formula', () => {
+    const row = { essay_text: '=cmd|\'/c calc\'!A1', submission_id: 's-1' };
+    const line = csvRow(['submission_id', 'essay_text'], row);
+
+    // The cell must not reach a spreadsheet with a leading formula trigger.
+    const cell = line.trim().split(',').slice(1).join(',');
+    expect(cell.replace(/^"/, '').startsWith('=')).toBe(false);
+  });
+
+  it.each(['=1+1', '+1', '-1+1', '@SUM(A1)', '\tx', '\rx'])(
+    'neutralises the leading trigger %j in free text',
+    (text) => {
+      const cell = csvRow(['essay_text'], { essay_text: text }).trim();
+      expect(/^"?[=+\-@\t\r]/.test(cell)).toBe(false);
+    },
+  );
+
+  it('leaves negative numbers alone, so deltas stay numeric', () => {
+    const line = csvRow(['delta_overall', 'abs_delta_overall'], {
+      delta_overall: -0.5,
+      abs_delta_overall: 0.5,
+    });
+    expect(line).toBe('-0.5,0.5\n');
+  });
+
+  it('leaves a Prisma Decimal negative value numeric', () => {
+    const decimal = { toNumber: () => -1.5 };
+    expect(csvRow(['delta_overall'], { delta_overall: decimal })).toBe('-1.5\n');
+  });
+});

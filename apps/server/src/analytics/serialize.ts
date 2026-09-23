@@ -88,10 +88,22 @@ export function toPlain(value: unknown): string | number | boolean | null {
   return value as string | number | boolean;
 }
 
+/**
+ * Leading characters a spreadsheet reads as the start of a formula.
+ * See CWE-1236: essay_text is student-authored, so an essay beginning `=...`
+ * would execute in Excel, LibreOffice or Sheets when an admin opens the export.
+ */
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
 function csvCell(value: unknown): string {
   const plain = toPlain(value);
   if (plain === null) return '';
-  const text = String(plain);
+  let text = String(plain);
+  // Only free text is neutralised. Numbers stay untouched, or every negative
+  // delta would arrive in pandas as a string instead of a float.
+  if (typeof plain === 'string' && FORMULA_TRIGGER.test(text)) {
+    text = `'${text}`;
+  }
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
