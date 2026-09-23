@@ -14,8 +14,12 @@ beforeEach(async () => {
   await prisma.revisionReasonTag.deleteMany({});
   await prisma.scoreRevision.deleteMany({});
   await prisma.scoringResult.deleteMany({});
+  await prisma.redoRequest.deleteMany({});
   await prisma.submission.deleteMany({});
   await prisma.assignment.deleteMany({});
+  await prisma.classMember.deleteMany({});
+  await prisma.inviteLink.deleteMany({});
+  await prisma.class.deleteMany({});
   await prisma.aiModelVersion.deleteMany({});
   await prisma.user.deleteMany({});
 });
