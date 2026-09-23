@@ -13,6 +13,7 @@ import { AssessmentsModule } from './assessments/assessments.module.js';
 import { ClassesModule } from './classes/classes.module.js';
 import { UsersModule } from './users/users.module.js';
 import { RevisionReasonsModule } from './revision-reasons/revision-reasons.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { ClerkAuthGuard } from './auth/clerk-auth.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
 import { AllExceptionsFilter } from './auth/auth.exception-filter.js';
@@ -37,6 +38,7 @@ import { AppService } from './app.service.js';
     ClassesModule,
     UsersModule,
     RevisionReasonsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
