@@ -1,4 +1,5 @@
 import type { Role, UserStatus } from "@repo/auth-contract";
+import type { RevisionReason, ScoreChange } from "./reason-codes";
 import { apiFetch } from "./api";
 
 export type TaskType = "task_1" | "task_2";
@@ -237,6 +238,42 @@ export interface ScoreRevision {
   finalFeedback: Feedback;
   revisionNote: string | null;
   createdAt: string;
+}
+
+/** How close this teacher is to being asked for reasons on this assignment. */
+export interface ReasonPrompt {
+  untaggedCount: number;
+  threshold: number;
+  shouldPrompt: boolean;
+}
+
+/**
+ * `POST /submissions/:id/revisions` answers with the revision plus the prompt
+ * state, so the client can open the batch modal without a second request.
+ * Optional, because a server that has not shipped Task 8 yet simply omits it.
+ */
+export interface RevisionWithPrompt extends ScoreRevision {
+  reasonPrompt?: ReasonPrompt;
+}
+
+/** Answer of `POST /submissions/:id/review-session`. */
+export interface ReviewSession {
+  recorded: boolean;
+  sessionId: string | null;
+}
+
+/** One row of `GET /assignments/:id/revisions/untagged`. */
+export interface UntaggedRevision {
+  id: string;
+  revisionNumber: number;
+  changes: { score_changes?: ScoreChange[] } | null;
+  revisionNote: string | null;
+  createdAt: string;
+  submission: {
+    id: string;
+    attemptNumber: number;
+    student: { id: string; displayName: string };
+  };
 }
 
 export interface SubmissionRow {
@@ -482,7 +519,12 @@ export const createRevision = (
     finalFeedback: Feedback;
     revisionNote?: string;
   },
-) => request<ScoreRevision>(`/submissions/${submissionId}/revisions`, token, jsonInit("POST", body));
+) =>
+  request<RevisionWithPrompt>(
+    `/submissions/${submissionId}/revisions`,
+    token,
+    jsonInit("POST", body),
+  );
 
 export const publishResult = (token: string | null, submissionId: string, revisionId: string) =>
   request<PublishedResult>(`/submissions/${submissionId}/publish`, token, jsonInit("POST", { revisionId }));
@@ -540,6 +582,56 @@ export const abuseReview = (
   submissionId: string,
   body: { decision: "confirm" | "reject"; action?: "requeue" | "manual" },
 ) => request<SubmissionRow>(`/submissions/${submissionId}/abuse-review`, token, jsonInit("POST", body));
+
+// ── Capture: review timing and revision reasons ──────────────────────────
+
+/**
+ * Marks that this teacher opened the submission for review. The server
+ * deduplicates repeat calls by the same actor inside a thirty-minute window,
+ * so a page refresh does not inflate the review-duration sample.
+ */
+export const openReviewSession = (token: string | null, submissionId: string) =>
+  request<ReviewSession>(
+    `/submissions/${submissionId}/review-session`,
+    token,
+    jsonInit("POST", {}),
+  );
+
+/**
+ * The same call with every failure swallowed.
+ *
+ * This is telemetry for a thesis metric, not part of grading. Losing a timing
+ * sample is acceptable; showing the teacher an error about one is not.
+ */
+export async function recordReviewSessionQuietly(
+  token: string | null,
+  submissionId: string,
+): Promise<ReviewSession | null> {
+  try {
+    return await openReviewSession(token, submissionId);
+  } catch {
+    return null;
+  }
+}
+
+/** This teacher's revisions on one assignment that carry no reason yet. */
+export const listUntaggedRevisions = (assignmentId: string, token: string | null) =>
+  request<UntaggedRevision[]>(`/assignments/${assignmentId}/revisions/untagged`, token);
+
+/**
+ * Appends one reason set to several revisions under a single batch id. The
+ * server writes them in one transaction and refuses the whole batch if any
+ * revision is not the caller's.
+ */
+export const tagRevisionsBatch = (
+  token: string | null,
+  body: { revisionIds: string[]; reasonCodes: RevisionReason[]; note?: string },
+) =>
+  request<{ batchId: string; tagged: number }>(
+    "/revision-reasons/batch",
+    token,
+    jsonInit("POST", body),
+  );
 
 // ── Classes ──────────────────────────────────────────────────────────────
 
