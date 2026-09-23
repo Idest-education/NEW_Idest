@@ -87,6 +87,7 @@ describe('auth (e2e)', () => {
   beforeEach(async () => {
     await prisma.auditEvent.deleteMany({});
     await prisma.publishedResult.deleteMany({});
+    await prisma.revisionReasonTag.deleteMany({});
     await prisma.scoreRevision.deleteMany({});
     await prisma.scoringResult.deleteMany({});
     await prisma.submission.deleteMany({});

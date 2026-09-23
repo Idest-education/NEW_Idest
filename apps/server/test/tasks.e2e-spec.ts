@@ -74,6 +74,7 @@ describe('Core Flows 1, 2, 3 (e2e)', () => {
     // Clean up database tables in order
     await prisma.auditEvent.deleteMany({});
     await prisma.publishedResult.deleteMany({});
+    await prisma.revisionReasonTag.deleteMany({});
     await prisma.scoreRevision.deleteMany({});
     await prisma.scoringResult.deleteMany({});
     await prisma.submission.deleteMany({});
