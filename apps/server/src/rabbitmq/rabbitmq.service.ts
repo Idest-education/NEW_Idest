@@ -14,6 +14,24 @@ export interface ScoringJobPayload {
   submittedAt: string;
 }
 
+/**
+ * Strips the password from a broker URL before it reaches a log.
+ *
+ * RABBITMQ_URL carries credentials in userinfo. Logging it verbatim writes a
+ * live secret into stdout, which on a hosted runtime is retained and readable
+ * by anyone with log access.
+ */
+export function redactAmqpUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.password) return url;
+    parsed.password = '***';
+    return decodeURIComponent(parsed.toString()).replace(/\/$/, '');
+  } catch {
+    return '<redacted>';
+  }
+}
+
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
@@ -36,7 +54,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       await ch.assertQueue(this.queueName, { durable: true });
       await ch.assertQueue(this.resultQueueName, { durable: true });
       this.isConnected = true;
-      this.logger.log(`Connected to RabbitMQ at ${url}`);
+      this.logger.log(`Connected to RabbitMQ at ${redactAmqpUrl(url)}`);
     } catch (err) {
       this.logger.warn(`RabbitMQ connection unavailable (${(err as Error).message}). Operating with local queue mode.`);
       this.isConnected = false;
