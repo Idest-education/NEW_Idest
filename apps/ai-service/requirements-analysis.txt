@@ -6,3 +6,8 @@ pandas>=2.2.0
 scikit-learn>=1.4.0
 catboost>=1.2.5
 rapidfuzz>=3.6.0
+# load_outcomes_db and load_feedback_pairs_db read the view and the feedback
+# JSON directly. They import sqlalchemy lazily, so the CSV path works without
+# these, but the database path is unusable unless they are installed.
+sqlalchemy>=2.0.0
+psycopg[binary]>=3.2.0
