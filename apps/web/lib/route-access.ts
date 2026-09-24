@@ -13,10 +13,11 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((re) => re.test(pathname));
 }
 
-/** Where a signed-in account belongs. Admins have no dashboard of their own yet. */
+/** Where a signed-in account belongs. */
 export function homeForRole(role: Role | undefined): string {
   if (role === "teacher") return "/teacher";
   if (role === "student") return "/student";
+  if (role === "admin") return "/admin";
   return "/";
 }
 
@@ -44,6 +45,11 @@ export function roleGate(pathname: string, role: Role | undefined): RoleGate {
       : null;
   if (!scope) return { kind: "allow" };
   if (role === scope) return { kind: "allow" };
+  // Every teacher endpoint on the server carries @Roles('teacher', 'admin'), so
+  // refusing an admin here would lock a promoted teacher out of the grading UI
+  // while the API kept accepting them. The student workspace stays exclusive:
+  // it shows one learner their own work and has no administrative purpose.
+  if (role === "admin" && scope === "teacher") return { kind: "allow" };
   if (!role) return { kind: "resolve" };
   return { kind: "redirect", to: homeForRole(role) };
 }

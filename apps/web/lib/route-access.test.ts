@@ -29,8 +29,7 @@ describe("homeForRole", () => {
     expect(homeForRole("student")).toBe("/student");
   });
 
-  it("leaves an admin and an unknown role on the landing page", () => {
-    expect(homeForRole("admin")).toBe("/");
+  it("leaves an unknown role on the landing page", () => {
     expect(homeForRole(undefined)).toBe("/");
   });
 });
@@ -46,7 +45,9 @@ describe("roleGate", () => {
   it("sends a signed-in user with the wrong role to their own home, not the landing page", () => {
     expect(roleGate("/teacher/queue", "student")).toEqual({ kind: "redirect", to: "/student" });
     expect(roleGate("/student/results", "teacher")).toEqual({ kind: "redirect", to: "/teacher" });
-    expect(roleGate("/teacher/queue", "admin")).toEqual({ kind: "redirect", to: "/" });
+    // An admin is sent home from the student workspace, not from the teacher
+    // one — see the "admin routing" block below.
+    expect(roleGate("/student/results", "admin")).toEqual({ kind: "redirect", to: "/admin" });
   });
 
   // The regression this whole change exists for: right after sign-up the session
@@ -55,5 +56,27 @@ describe("roleGate", () => {
   it("asks for an authoritative lookup instead of redirecting when no role claim is present", () => {
     expect(roleGate("/teacher", undefined)).toEqual({ kind: "resolve" });
     expect(roleGate("/student/submissions/1", undefined)).toEqual({ kind: "resolve" });
+  });
+});
+
+describe("admin routing", () => {
+  it("sends an admin to the admin dashboard, which now exists", () => {
+    expect(homeForRole("admin")).toBe("/admin");
+  });
+
+  it("lets an admin reach the teacher workspace, as the API already does", () => {
+    // Every teacher endpoint on the server carries @Roles('teacher', 'admin').
+    // Refusing the admin here locked a promoted teacher out of their own
+    // grading UI while the API kept accepting them.
+    expect(roleGate("/teacher", "admin")).toEqual({ kind: "allow" });
+    expect(roleGate("/teacher/submissions/abc", "admin")).toEqual({ kind: "allow" });
+  });
+
+  it("still keeps a student out of the teacher workspace", () => {
+    expect(roleGate("/teacher", "student")).toEqual({ kind: "redirect", to: "/student" });
+  });
+
+  it("still keeps a teacher out of the student workspace", () => {
+    expect(roleGate("/student", "teacher")).toEqual({ kind: "redirect", to: "/teacher" });
   });
 });

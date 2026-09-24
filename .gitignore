@@ -11,6 +11,7 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+.env.disable
 
 # Testing
 coverage
@@ -42,3 +43,4 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+.playwright-mcp/
