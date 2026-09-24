@@ -28,7 +28,7 @@ export class AssessmentsController {
   }
 
   @Post('revisions')
-  @Roles('teacher')
+  @Roles('teacher', 'admin')
   @ApiOperation({ summary: 'Create a teacher score revision (Append-only, Teacher only)' })
   @ApiResponse({ status: 201, description: 'Score revision saved, status updated to under_review' })
   async createTeacherRevision(
@@ -40,7 +40,7 @@ export class AssessmentsController {
   }
 
   @Post('publish')
-  @Roles('teacher')
+  @Roles('teacher', 'admin')
   @ApiOperation({ summary: 'Publish final reviewed result for student view (Teacher only)' })
   @ApiResponse({ status: 201, description: 'Published result snapshot created, status updated to published' })
   async publishResult(
@@ -53,7 +53,7 @@ export class AssessmentsController {
 
   @Post('unpublish')
   @HttpCode(HttpStatus.OK)
-  @Roles('teacher')
+  @Roles('teacher', 'admin')
   @ApiOperation({ summary: 'Unpublish result snapshot, reverting student visibility (Teacher only)' })
   @ApiResponse({ status: 200, description: 'Published result marked unpublished, status reverted to under_review' })
   async unpublishResult(
