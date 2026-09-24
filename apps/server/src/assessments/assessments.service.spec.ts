@@ -177,3 +177,71 @@ describe('AssessmentPersistenceService.createTeacherRevision', () => {
     expect(reasons.promptState).toHaveBeenCalledWith('teacher-1', 'assignment-1');
   });
 });
+
+describe('AssessmentPersistenceService late AI results', () => {
+  let prisma: ReturnType<typeof makePrisma>;
+  let service: AssessmentPersistenceService;
+  let tx: {
+    scoringResult: { create: ReturnType<typeof vi.fn> };
+    submission: { update: ReturnType<typeof vi.fn> };
+    auditEvent: { create: ReturnType<typeof vi.fn> };
+    aiModelVersion: { upsert: ReturnType<typeof vi.fn> };
+  };
+
+  beforeEach(() => {
+    prisma = makePrisma();
+    service = new AssessmentPersistenceService(
+      prisma,
+      makeAudit(),
+      makeRabbitmq(),
+      { promptState: vi.fn() } as never,
+    );
+    prisma.scoringResult.findFirst.mockResolvedValue(null);
+    tx = {
+      scoringResult: {
+        create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'result-1', ...data })),
+      },
+      submission: { update: vi.fn() },
+      auditEvent: { create: vi.fn() },
+      aiModelVersion: { upsert: vi.fn().mockResolvedValue({ id: 'model-version-1' }) },
+    };
+    prisma.$transaction.mockImplementation(async (fn: (t: unknown) => unknown) => fn(tx));
+  });
+
+  const failedAi = {
+    submissionId: SUBMISSION_ID,
+    scorerType: ScorerType.ai,
+    status: 'failed' as const,
+    scores: {},
+    feedback: { error: 'quota exceeded' },
+  };
+
+  // A scoring job can sit in the queue while the teacher grades by hand. When it
+  // finally lands it must not drag the submission back out of the teacher's
+  // control: the teacher is the final authority and their decision is not lost.
+  it.each(['published', 'under_review', 'abuse'] as const)(
+    'does not move a %s submission when a stale AI result arrives',
+    async (status) => {
+      prisma.submission.findUnique.mockResolvedValue({ id: SUBMISSION_ID, status });
+
+      await service.persistScoringResult({ ...failedAi });
+
+      expect(tx.submission.update).not.toHaveBeenCalled();
+      // The result itself is still recorded — it is real evidence about the model.
+      expect(tx.scoringResult.create).toHaveBeenCalled();
+    },
+  );
+
+  it.each(['submitted', 'queued', 'scoring'] as const)(
+    'still advances a %s submission, which no teacher has touched',
+    async (status) => {
+      prisma.submission.findUnique.mockResolvedValue({ id: SUBMISSION_ID, status });
+
+      await service.persistScoringResult({ ...failedAi });
+
+      expect(tx.submission.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { status: 'failed' } }),
+      );
+    },
+  );
+});

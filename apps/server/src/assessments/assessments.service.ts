@@ -55,6 +55,17 @@ function calculateScoreChanges(
   return { score_changes: scoreChanges };
 }
 
+/**
+ * Once a teacher has taken a submission over, a later AI result may not move it.
+ * `abuse` is included because clearing or confirming an abuse flag is also a
+ * human decision about that submission.
+ */
+const TEACHER_OWNED_STATUSES: ReadonlySet<SubmissionStatus> = new Set([
+  SubmissionStatus.under_review,
+  SubmissionStatus.published,
+  SubmissionStatus.abuse,
+]);
+
 @Injectable()
 export class AssessmentPersistenceService implements OnModuleInit {
   private readonly logger = new Logger(AssessmentPersistenceService.name);
@@ -169,11 +180,25 @@ export class AssessmentPersistenceService implements OnModuleInit {
         },
       });
 
-      const nextStatus = dto.status === 'completed' ? SubmissionStatus.scored : SubmissionStatus.failed;
-      await tx.submission.update({
-        where: { id: dto.submissionId },
-        data: { status: nextStatus },
-      });
+      // A scoring job can still be in the queue while the teacher grades by
+      // hand, and land afterwards. Moving the submission then would drag it
+      // back out of the teacher's control — observed live, where a stale failed
+      // result flipped an already-published submission to `failed`. The teacher
+      // is the final authority and their decision must not be lost, so the
+      // result is recorded but the status is left alone.
+      if (!TEACHER_OWNED_STATUSES.has(submission.status)) {
+        const nextStatus =
+          dto.status === 'completed' ? SubmissionStatus.scored : SubmissionStatus.failed;
+        await tx.submission.update({
+          where: { id: dto.submissionId },
+          data: { status: nextStatus },
+        });
+      } else {
+        this.logger.warn(
+          `Scoring result for submission ${dto.submissionId} arrived after a teacher took it over ` +
+            `(status ${submission.status}); recording the result without changing the status.`,
+        );
+      }
 
       await tx.auditEvent.create({
         data: {
