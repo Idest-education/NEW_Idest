@@ -413,6 +413,9 @@ export const getProfile = (token: string | null) => request<Profile>("/users/me"
 export const updateProfile = (token: string | null, displayName: string) =>
   request<Profile>("/users/me", token, jsonInit("PATCH", { displayName }));
 
+export const submitTicket = (token: string | null, subject: string, message: string) =>
+  request<void>("/support/tickets", token, jsonInit("POST", { subject, message }));
+
 export interface DeleteAccountSummary {
   message: string;
   classesDeleted: number;

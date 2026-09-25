@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   listUntaggedRevisions,
   recordReviewSessionQuietly,
+  submitTicket,
   tagRevisionsBatch,
 } from "./idest";
 
@@ -81,5 +82,32 @@ describe("tagRevisionsBatch", () => {
       reasonCodes: ["ai_too_generous", "minor_polish"],
       note: "AI rộng tay ở Task Response",
     });
+  });
+});
+
+describe("submitTicket", () => {
+  it("posts the subject and message to the tickets endpoint", async () => {
+    const spy = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await submitTicket("tok_123", "Không nộp được bài", "Bấm Nộp bài nhưng không có phản hồi.");
+
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/support\/tickets$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      subject: "Không nộp được bài",
+      message: "Bấm Nộp bài nhưng không có phản hồi.",
+    });
+  });
+
+  it("throws an ApiError carrying the server's message on failure", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ message: "Không gửi được yêu cầu. Thử lại sau." }), { status: 502 }),
+      ) as unknown as typeof fetch;
+
+    await expect(submitTicket("tok_123", "x", "y")).rejects.toThrow("Không gửi được yêu cầu. Thử lại sau.");
   });
 });
