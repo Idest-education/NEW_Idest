@@ -67,4 +67,16 @@ describe('SupportService.createTicket', () => {
     const service = new SupportService(makeConfig());
     await expect(service.createTicket(USER, DTO)).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
+
+  it('turns a missing ClickUp env var into a ServiceUnavailableException, not a raw 500', async () => {
+    const config = {
+      getOrThrow: vi.fn(() => {
+        throw new Error('missing config CLICKUP_TOKEN');
+      }),
+    } as unknown as ConfigService;
+
+    const service = new SupportService(config);
+    await expect(service.createTicket(USER, DTO)).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

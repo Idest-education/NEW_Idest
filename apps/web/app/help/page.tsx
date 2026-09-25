@@ -90,6 +90,7 @@ function TicketForm() {
           setSent(false);
         }}
         placeholder="Ví dụ: Không nộp được bài"
+        maxLength={200}
       />
 
       <div className={s.fieldRow}>
@@ -106,6 +107,7 @@ function TicketForm() {
             setSent(false);
           }}
           placeholder="Mô tả chi tiết vấn đề bạn gặp phải..."
+          maxLength={5000}
         />
       </div>
 

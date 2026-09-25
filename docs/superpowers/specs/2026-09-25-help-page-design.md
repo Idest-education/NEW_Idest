@@ -51,7 +51,7 @@ one external API, no persistence).
   }
   ```
   On a non-2xx or network failure: catch, log, throw
-  `ServiceUnavailableException` (502) — never throw unhandled, never lose
+  `ServiceUnavailableException` (503) — never throw unhandled, never lose
   the caller's text (nothing is mutated locally, so a retry is always safe;
   same CP-over-AP spirit as the rest of the app, just no local write to
   guard here).
@@ -124,7 +124,7 @@ non-goal above).
 
 ## Error handling
 
-- ClickUp unreachable/errors → 502 to client → form shows "Không gửi được,
+- ClickUp unreachable/errors → 503 to client → form shows "Không gửi được,
   thử lại." and keeps the typed text.
 - No retry queue, no offline persistence — out of scope; the user just
   presses submit again.

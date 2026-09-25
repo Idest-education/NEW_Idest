@@ -13,8 +13,15 @@ export class SupportService {
   constructor(private readonly configService: ConfigService) {}
 
   async createTicket(user: User, dto: CreateTicketDto): Promise<void> {
-    const token = this.configService.getOrThrow<string>('CLICKUP_TOKEN');
-    const listId = this.configService.getOrThrow<string>('CLICKUP_SUPPORT_LIST_ID');
+    let token: string;
+    let listId: string;
+    try {
+      token = this.configService.getOrThrow<string>('CLICKUP_TOKEN');
+      listId = this.configService.getOrThrow<string>('CLICKUP_SUPPORT_LIST_ID');
+    } catch (err) {
+      this.logger.error('ClickUp is not configured', err instanceof Error ? err.stack : String(err));
+      throw new ServiceUnavailableException(FAILURE_MESSAGE);
+    }
 
     const description = [
       dto.message,
