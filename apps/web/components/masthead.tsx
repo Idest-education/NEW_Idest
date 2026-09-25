@@ -43,6 +43,12 @@ export function Masthead({ role, home }: { role?: Role; home?: string }) {
                 Trang chủ
               </Link>
               <Link
+                href="/help"
+                className={`${styles.navLink} ${pathname === "/help" ? styles.navLinkActive : ""}`}
+              >
+                Trợ giúp
+              </Link>
+              <Link
                 href="/profile"
                 className={`${styles.navLink} ${pathname === "/profile" ? styles.navLinkActive : ""}`}
               >
