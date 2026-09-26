@@ -5,7 +5,26 @@ import ast
 from pathlib import Path
 
 SERVICE_ROOT = Path(__file__).resolve().parent.parent
-SERVICE_MODULES = ("main.py", "worker.py", "scorer.py", "schemas.py", "config.py")
+SERVICE_MODULES = (
+    "main.py",
+    "worker.py",
+    "scorer.py",
+    "schemas.py",
+    "config.py",
+    "prompt.py",
+    "cache.py",
+    "retry.py",
+    "rate_limit.py",
+    "providers/__init__.py",
+    "providers/base.py",
+    "providers/gemini.py",
+    "providers/ollama.py",
+    "providers/stub.py",
+    "providers/throttled.py",
+    "providers/openai_compatible.py",
+    "providers/rotating.py",
+    "providers/hosts.py",
+)
 
 
 def _imported_roots(path: Path) -> set[str]:
@@ -43,6 +62,19 @@ def test_dockerfile_installs_only_the_service_requirements():
     dockerfile = (SERVICE_ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "pip install --no-cache-dir -r requirements.txt" in dockerfile
     assert "requirements-analysis" not in dockerfile
+
+
+def test_every_service_module_is_covered_by_the_import_check():
+    """A new module beside the service must not escape the analysis check."""
+    on_disk = {
+        path.name
+        for path in SERVICE_ROOT.glob("*.py")
+        if not path.name.startswith("test_")
+    }
+    assert on_disk == {name for name in SERVICE_MODULES if "/" not in name}
+
+    providers = {f"providers/{path.name}" for path in (SERVICE_ROOT / "providers").glob("*.py")}
+    assert providers == {name for name in SERVICE_MODULES if name.startswith("providers/")}
 
 
 def test_dockerignore_excludes_the_research_layer():

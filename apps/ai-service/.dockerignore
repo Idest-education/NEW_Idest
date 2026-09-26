@@ -7,3 +7,4 @@ analysis
 tests
 requirements-analysis.txt
 pytest.ini
+.cache

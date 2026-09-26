@@ -43,4 +43,7 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Cached AI scoring results (content-addressed, safe to delete)
+apps/ai-service/.cache/
 .playwright-mcp/
