@@ -7,6 +7,7 @@ can be held to a JSON shape. Each instance is its own grader: `provider` and
 ai_model_versions.
 """
 
+import base64
 import json
 import logging
 import time
@@ -14,8 +15,9 @@ import time
 import httpx
 
 from config import SCORER_REVISION
+from image_fetch import fetch_task_image
 from prompt import IELTS_SYSTEM_PROMPT, build_schema_instruction, build_user_prompt
-from providers.base import base_configuration, completed_result
+from providers.base import base_configuration, completed_result, ensure_vision_capable
 from schemas import IELTSScoringResult
 
 logger = logging.getLogger(__name__)
@@ -66,6 +68,7 @@ class OpenAICompatibleScorer:
         structured_mode: str = JSON_SCHEMA,
         timeout: float = 120.0,
         temperature: float = 0.0,
+        supports_vision: bool = True,
     ):
         if structured_mode not in STRUCTURED_MODES:
             raise ValueError(
@@ -78,6 +81,7 @@ class OpenAICompatibleScorer:
         self.structured_mode = structured_mode
         self.timeout = timeout
         self.temperature = temperature
+        self.supports_vision = supports_vision
 
     @property
     def available(self) -> bool:
@@ -107,12 +111,31 @@ class OpenAICompatibleScorer:
             content += build_schema_instruction(IELTSScoringResult.model_json_schema())
         return content
 
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict:
+    async def _user_message(self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None):
+        text = self._user_content(task_prompt, task_type, essay_text)
+        if not task_image_url:
+            return text
+
+        image_bytes, mime_type = await fetch_task_image(task_image_url)
+        encoded = base64.b64encode(image_bytes).decode("ascii")
+        return [
+            {"type": "text", "text": text},
+            {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{encoded}"}},
+        ]
+
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict:
+        ensure_vision_capable(self.provider_name, self.supports_vision, task_image_url)
+
         request = {
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": IELTS_SYSTEM_PROMPT},
-                {"role": "user", "content": self._user_content(task_prompt, task_type, essay_text)},
+                {
+                    "role": "user",
+                    "content": await self._user_message(task_prompt, task_type, essay_text, task_image_url),
+                },
             ],
             "response_format": self._response_format(),
             "temperature": self.temperature,

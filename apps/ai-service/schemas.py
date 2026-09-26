@@ -32,6 +32,7 @@ class ScoringJobPayload(BaseModel):
     attemptNumber: int
     taskPrompt: str
     taskType: str
+    taskImageUrl: Optional[str] = None
     essayText: str
     wordCount: int
     submittedAt: str

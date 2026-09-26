@@ -1,5 +1,6 @@
 """Exercises the Ollama request and response shape without a live daemon."""
 
+import base64
 import json
 
 import httpx
@@ -144,3 +145,39 @@ def test_an_untagged_model_name_matches_the_latest_tag(monkeypatch):
     monkeypatch.setattr(httpx, "get", lambda *a, **kw: tags_response(["llama3.1:latest"]))
 
     assert OllamaScorer(model_name="llama3.1").available is True
+
+
+# --- Task 1 chart/graph/diagram image --------------------------------------
+
+
+def test_vision_is_off_by_default():
+    """The default model (qwen2.5:7b-instruct) is text-only."""
+    assert OllamaScorer().supports_vision is False
+
+
+async def test_an_image_is_refused_without_vision_support(captured):
+    with pytest.raises(ValueError, match="vision"):
+        await OllamaScorer().score_essay(
+            "t", "task_1", "e", "https://res.cloudinary.com/demo/chart.png"
+        )
+
+
+async def test_a_vision_capable_model_attaches_the_image(monkeypatch, captured):
+    async def fake_fetch(url):
+        return b"chart-bytes", "image/png"
+
+    monkeypatch.setattr("providers.ollama.fetch_task_image", fake_fetch)
+
+    await OllamaScorer(supports_vision=True).score_essay(
+        "t", "task_1", "e", "https://res.cloudinary.com/demo/chart.png"
+    )
+
+    _system, user = captured["body"]["messages"]
+    assert user["images"] == [base64.b64encode(b"chart-bytes").decode("ascii")]
+
+
+async def test_no_image_url_sends_no_images_field(captured):
+    await OllamaScorer(supports_vision=True).score_essay("t", "task_2", "e")
+
+    _system, user = captured["body"]["messages"]
+    assert "images" not in user

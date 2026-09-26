@@ -216,3 +216,42 @@ def test_the_descriptor_is_the_same_on_every_machine():
     b = gpt(base_url="https://eu.api.openai.com/v1").descriptor()
 
     assert a == b
+
+
+# --- Task 1 chart/graph/diagram image --------------------------------------
+
+
+def test_vision_is_supported_by_default():
+    assert gpt().supports_vision is True
+
+
+async def test_an_image_is_refused_without_vision_support():
+    with pytest.raises(ValueError, match="vision"):
+        await gpt(supports_vision=False).score_essay(
+            "t", "task_1", "e", "https://res.cloudinary.com/demo/chart.png"
+        )
+
+
+async def test_an_attached_image_becomes_a_data_uri_content_part(monkeypatch, captured):
+    async def fake_fetch(url):
+        assert url == "https://res.cloudinary.com/demo/chart.png"
+        return b"chart-bytes", "image/png"
+
+    monkeypatch.setattr("providers.openai_compatible.fetch_task_image", fake_fetch)
+
+    await gpt().score_essay("t", "task_1", "e", "https://res.cloudinary.com/demo/chart.png")
+
+    _system, user = captured["body"]["messages"]
+    assert isinstance(user["content"], list)
+    text_part, image_part = user["content"]
+    assert text_part["type"] == "text"
+    assert "<<<STUDENT_ESSAY>>>\ne\n<<<END_STUDENT_ESSAY>>>" in text_part["text"]
+    assert image_part["type"] == "image_url"
+    assert image_part["image_url"]["url"].startswith("data:image/png;base64,")
+
+
+async def test_no_image_url_keeps_the_content_a_plain_string(captured):
+    await gpt().score_essay("t", "task_2", "e")
+
+    _system, user = captured["body"]["messages"]
+    assert isinstance(user["content"], str)

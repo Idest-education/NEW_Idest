@@ -35,12 +35,13 @@ class BadRequest(Exception):
 class FakeGrader:
     """Counts calls and can be told to fail. Names itself like a real grader."""
 
-    def __init__(self, provider, outcomes=None):
+    def __init__(self, provider, outcomes=None, supports_vision=True):
         self.provider = provider
         self.outcomes = list(outcomes or [])
         self.calls = 0
+        self.supports_vision = supports_vision
 
-    async def score_essay(self, task_prompt, task_type, essay_text):
+    async def score_essay(self, task_prompt, task_type, essay_text, task_image_url=None):
         self.calls += 1
         outcome = self.outcomes.pop(0) if self.outcomes else None
         if isinstance(outcome, Exception):
@@ -227,6 +228,67 @@ async def test_a_single_grader_still_works():
 def test_an_empty_rotation_is_rejected_at_construction():
     with pytest.raises(ValueError, match="at least one candidate"):
         RotatingScorer([], cooldown_seconds=COOLDOWN)
+
+
+# --- Task 1 chart/graph/diagram image ---------------------------------------
+
+
+async def test_a_task_2_essay_is_unaffected_by_vision_capability():
+    graders = trio([], [], [])
+    graders[0].supports_vision = False
+    rotator = rotating(graders)
+
+    result = await rotator.score_essay("prompt", "task_2", "essay")
+
+    assert result["processing_metadata"]["provider"] == "openai"
+
+
+async def test_an_image_skips_a_grader_with_no_vision_support():
+    graders = trio([], [], [])
+    graders[0].supports_vision = False  # openai is first in rotation order
+
+    result = await rotating(graders).score_essay("prompt", "task_1", "essay", "https://cdn/chart.png")
+
+    assert result["processing_metadata"]["provider"] == "google"
+    assert graders[0].calls == 0
+
+
+async def test_a_skipped_grader_is_not_cooled_down_just_bypassed():
+    """Wrong shape for an image is not the same as rate-limited: openai must
+    still take its normal turn once the rotation cycles back to it."""
+    graders = trio([], [], [])
+    graders[0].supports_vision = False
+    rotator = rotating(graders)
+
+    await rotator.score_essay("prompt", "task_1", "essay one", "https://cdn/chart.png")  # google
+    await rotator.score_essay("p", "task_2", "essay two")  # qwen
+    served = (await rotator.score_essay("p", "task_2", "essay three"))["processing_metadata"]["provider"]
+
+    assert served == "openai"
+    assert graders[0].calls == 1
+
+
+async def test_no_vision_capable_grader_raises_without_calling_anything():
+    graders = trio([], [], [])
+    for g in graders:
+        g.supports_vision = False
+
+    with pytest.raises(ValueError, match="vision"):
+        await rotating(graders).score_essay("prompt", "task_1", "essay", "https://cdn/chart.png")
+
+    assert [g.calls for g in graders] == [0, 0, 0]
+
+
+async def test_a_cached_image_result_is_still_found_before_rotating(tmp_path):
+    graders = trio([], [], [])
+    cached = [CachedScorer(g, ScoringCache(tmp_path / g.provider)) for g in graders]
+    rotator = rotating(cached)
+
+    first = await rotator.score_essay("p", "task_1", "essay", "https://cdn/chart.png")
+    second = await rotator.score_essay("p", "task_1", "essay", "https://cdn/chart.png")
+
+    assert second["processing_metadata"]["cache_hit"] is True
+    assert second["scores"] == first["scores"]
 
 
 async def test_work_any_grader_already_did_is_not_paid_for_again(tmp_path):

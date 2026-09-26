@@ -9,6 +9,7 @@ export interface ScoringJobPayload {
   attemptNumber: number;
   taskPrompt: string;
   taskType: string;
+  taskImageUrl?: string | null;
   essayText: string;
   wordCount: number;
   submittedAt: string;

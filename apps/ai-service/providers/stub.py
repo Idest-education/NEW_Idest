@@ -13,7 +13,13 @@ MODEL_NAME = "stub-gemini-model"
 
 
 class StubScorer:
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict:
+    # Fabricates fixed scores regardless of input, so an image is never a
+    # reason to fail locally — it just goes unused, like the essay text does.
+    supports_vision = True
+
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict:
         return completed_result(
             scores={
                 "task_response": 6.5,

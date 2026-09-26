@@ -5,6 +5,7 @@ in ai_model_versions. Keep them out of the benchmark: a 7B local model is a
 development convenience, not the grader the thesis evaluates.
 """
 
+import base64
 import json
 import logging
 import time
@@ -14,11 +15,13 @@ import httpx
 from config import (
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
+    OLLAMA_SUPPORTS_VISION,
     OLLAMA_TIMEOUT_SECONDS,
     SCORER_REVISION,
 )
+from image_fetch import fetch_task_image
 from prompt import IELTS_SYSTEM_PROMPT, build_user_prompt
-from providers.base import base_configuration, completed_result
+from providers.base import base_configuration, completed_result, ensure_vision_capable
 from schemas import IELTSScoringResult
 
 logger = logging.getLogger(__name__)
@@ -46,10 +49,12 @@ class OllamaScorer:
         base_url: str = OLLAMA_BASE_URL,
         model_name: str = OLLAMA_MODEL,
         timeout: float = OLLAMA_TIMEOUT_SECONDS,
+        supports_vision: bool = OLLAMA_SUPPORTS_VISION,
     ):
         self.base_url = base_url.rstrip("/")
         self.model_name = model_name
         self.timeout = timeout
+        self.supports_vision = supports_vision
 
     @property
     def available(self) -> bool:
@@ -77,12 +82,21 @@ class OllamaScorer:
             return False
         return True
 
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict:
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict:
+        ensure_vision_capable("ollama", self.supports_vision, task_image_url)
+
+        user_message = {"role": "user", "content": build_user_prompt(task_prompt, task_type, essay_text)}
+        if task_image_url:
+            image_bytes, _mime_type = await fetch_task_image(task_image_url)
+            user_message["images"] = [base64.b64encode(image_bytes).decode("ascii")]
+
         request = {
             "model": self.model_name,
             "messages": [
                 {"role": "system", "content": IELTS_SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(task_prompt, task_type, essay_text)},
+                user_message,
             ],
             # Ollama constrains generation to this JSON Schema, the same way the
             # Gemini provider passes response_schema.

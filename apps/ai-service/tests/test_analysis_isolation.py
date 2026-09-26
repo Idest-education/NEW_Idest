@@ -15,6 +15,7 @@ SERVICE_MODULES = (
     "cache.py",
     "retry.py",
     "rate_limit.py",
+    "image_fetch.py",
     "providers/__init__.py",
     "providers/base.py",
     "providers/gemini.py",

@@ -34,7 +34,7 @@ class CountingProvider:
     def __init__(self):
         self.calls = 0
 
-    async def score_essay(self, task_prompt, task_type, essay_text):
+    async def score_essay(self, task_prompt, task_type, essay_text, task_image_url=None):
         self.calls += 1
         return {
             "status": "completed",
@@ -126,12 +126,13 @@ async def test_the_worker_publishes_a_cached_score_with_its_provenance(stack):
 
 
 class NamedProvider:
-    def __init__(self, provider, fail_with=None):
+    def __init__(self, provider, fail_with=None, supports_vision=True):
         self.provider = provider
         self.fail_with = fail_with
         self.calls = 0
+        self.supports_vision = supports_vision
 
-    async def score_essay(self, task_prompt, task_type, essay_text):
+    async def score_essay(self, task_prompt, task_type, essay_text, task_image_url=None):
         self.calls += 1
         if self.fail_with is not None:
             raise self.fail_with

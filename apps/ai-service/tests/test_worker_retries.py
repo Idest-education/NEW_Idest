@@ -25,7 +25,7 @@ class FakeScorer:
         self.outcomes = list(outcomes)
         self.calls = 0
 
-    async def score_essay(self, task_prompt, task_type, essay_text):
+    async def score_essay(self, task_prompt, task_type, essay_text, task_image_url=None):
         self.calls += 1
         outcome = self.outcomes.pop(0) if self.outcomes else OK_RESULT
         if isinstance(outcome, Exception):

@@ -29,11 +29,13 @@ from config import (
     OPENAI_BASE_URL,
     OPENAI_COMPATIBLE_TIMEOUT_SECONDS,
     OPENAI_MODEL,
+    OPENAI_SUPPORTS_VISION,
     CN_API_KEY,
     CN_BASE_URL,
     CN_HOST,
     CN_MODEL,
     CN_STRUCTURED_MODE,
+    CN_SUPPORTS_VISION,
     ROTATION_COOLDOWN_SECONDS,
     SCORING_CACHE_DIR,
     SCORING_CACHE_ENABLED,
@@ -81,6 +83,7 @@ def _build_one(name: str) -> Scorer | None:
             model_name=OPENAI_MODEL,
             provider_name="openai",
             timeout=OPENAI_COMPATIBLE_TIMEOUT_SECONDS,
+            supports_vision=OPENAI_SUPPORTS_VISION,
         )
     elif name == CN:
         resolved = resolve_host(
@@ -108,6 +111,7 @@ def _build_one(name: str) -> Scorer | None:
             provider_name=host.label,
             structured_mode=structured_mode,
             timeout=OPENAI_COMPATIBLE_TIMEOUT_SECONDS,
+            supports_vision=CN_SUPPORTS_VISION,
         )
     elif name == GEMINI:
         # The key is passed in rather than read from config inside the provider,

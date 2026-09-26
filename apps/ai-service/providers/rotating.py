@@ -70,7 +70,9 @@ class RotatingScorer:
         count = len(self.candidates)
         return [(self._cursor + offset) % count for offset in range(count)]
 
-    def _cached_elsewhere(self, task_prompt: str, task_type: str, essay_text: str):
+    def _cached_elsewhere(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None
+    ):
         """A result any grader already produced for this exact essay.
 
         Checked before rotating: the rotation exists to spend quota evenly, and
@@ -82,13 +84,20 @@ class RotatingScorer:
             peek = getattr(candidate, "peek", None)
             if peek is None:
                 continue
-            hit = peek(task_prompt, task_type, essay_text)
+            hit = peek(task_prompt, task_type, essay_text, task_image_url)
             if hit is not None:
                 return hit
         return None
 
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict:
-        hit = self._cached_elsewhere(task_prompt, task_type, essay_text)
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict:
+        if task_image_url and not any(getattr(c, "supports_vision", False) for c in self.candidates):
+            raise ValueError(
+                "No vision-capable grader is configured in the rotation; cannot grade a Task 1 image"
+            )
+
+        hit = self._cached_elsewhere(task_prompt, task_type, essay_text, task_image_url)
         if hit is not None:
             return hit
 
@@ -96,6 +105,10 @@ class RotatingScorer:
         attempted = 0
 
         for index in self._rotation_order():
+            if task_image_url and not getattr(self.candidates[index], "supports_vision", False):
+                # Skipped, not cooled down: this grader is simply the wrong
+                # shape for an image, not temporarily unavailable.
+                continue
             if self._is_cooling(index):
                 continue
 
@@ -105,7 +118,7 @@ class RotatingScorer:
             attempted += 1
 
             try:
-                return await candidate.score_essay(task_prompt, task_type, essay_text)
+                return await candidate.score_essay(task_prompt, task_type, essay_text, task_image_url)
             except Exception as exc:
                 if _is_our_bug(exc):
                     # Every other grader fails on this too. Do not spend them.

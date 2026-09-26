@@ -4,9 +4,10 @@ import json
 import logging
 import time
 
-from config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_THINKING_LEVEL, SCORER_REVISION
+from config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_SUPPORTS_VISION, GEMINI_THINKING_LEVEL, SCORER_REVISION
+from image_fetch import fetch_task_image
 from prompt import IELTS_SYSTEM_PROMPT, build_user_prompt
-from providers.base import NO_TOKEN_COUNTS, base_configuration, completed_result
+from providers.base import NO_TOKEN_COUNTS, base_configuration, completed_result, ensure_vision_capable
 from schemas import IELTSScoringResult
 
 logger = logging.getLogger(__name__)
@@ -32,10 +33,12 @@ class GeminiScorer:
         api_key: str = GEMINI_API_KEY,
         model_name: str = GEMINI_MODEL,
         thinking_level: str = GEMINI_THINKING_LEVEL,
+        supports_vision: bool = GEMINI_SUPPORTS_VISION,
     ):
         self.api_key = api_key
         self.model_name = model_name
         self.thinking_level = thinking_level
+        self.supports_vision = supports_vision
         self.client = self._build_client()
 
     def _thinking_config(self):
@@ -65,10 +68,19 @@ class GeminiScorer:
     def available(self) -> bool:
         return self.client is not None
 
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict:
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict:
         from google.genai import types
 
+        ensure_vision_capable("gemini", self.supports_vision, task_image_url)
+
         prompt = build_user_prompt(task_prompt, task_type, essay_text)
+        contents = prompt
+        if task_image_url:
+            image_bytes, mime_type = await fetch_task_image(task_image_url)
+            contents = [prompt, types.Part.from_bytes(data=image_bytes, mime_type=mime_type)]
+
         started = time.perf_counter()
         try:
             # The SDK's async surface. The sync one blocks the event loop for the
@@ -76,7 +88,7 @@ class GeminiScorer:
             # connection's heartbeat for as long as Gemini takes to answer.
             response = await self.client.aio.models.generate_content(
                 model=self.model_name,
-                contents=prompt,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=IELTS_SYSTEM_PROMPT,
                     response_mime_type="application/json",

@@ -32,9 +32,26 @@ class Scorer(Protocol):
     analysis compare the LLM against the teacher and against CatBoost.
     """
 
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict: ...
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict: ...
 
     def descriptor(self) -> dict: ...
+
+
+def ensure_vision_capable(provider_label: str, supports_vision: bool, task_image_url: str | None) -> None:
+    """Refuses a Task 1 image a grader cannot see, rather than scoring blind.
+
+    Rule 6 (CP over AP): a provider that silently ignored the chart would grade
+    task_response against nothing and call it a result, not fail to produce
+    one. Raised as a ValueError, which retry.py treats as non-retryable — this
+    is a configuration problem, not a transient one, so the submission fails
+    fast and stays retryable once a vision-capable grader is configured.
+    """
+    if task_image_url and not supports_vision:
+        raise ValueError(
+            f"{provider_label} has no vision support configured; cannot grade a Task 1 image"
+        )
 
 
 def base_configuration() -> dict:

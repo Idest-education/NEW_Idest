@@ -33,7 +33,7 @@ class CountingScorer:
         self._result = result
         self.calls = 0
 
-    async def score_essay(self, task_prompt, task_type, essay_text):
+    async def score_essay(self, task_prompt, task_type, essay_text, task_image_url=None):
         self.calls += 1
         return {**self._result}
 
@@ -59,6 +59,17 @@ def test_a_changed_task_prompt_produces_a_different_key():
 
 def test_a_changed_task_type_produces_a_different_key():
     assert key_for(task_type="task_1") != key_for(task_type="task_2")
+
+
+def test_a_changed_task_image_url_produces_a_different_key():
+    """A teacher replacing a Task 1 chart must not serve the old chart's result."""
+    assert cache_key(DESCRIPTOR, "p", "task_1", "e", "https://cdn/a.png") != cache_key(
+        DESCRIPTOR, "p", "task_1", "e", "https://cdn/b.png"
+    )
+
+
+def test_no_image_url_is_distinct_from_an_image_url():
+    assert cache_key(DESCRIPTOR, "p", "task_1", "e") != cache_key(DESCRIPTOR, "p", "task_1", "e", "https://cdn/a.png")
 
 
 def test_a_bumped_scorer_revision_invalidates_the_key():
@@ -207,7 +218,7 @@ async def test_a_failure_is_raised_and_not_remembered(tmp_path):
         def __init__(self):
             self.calls = 0
 
-        async def score_essay(self, task_prompt, task_type, essay_text):
+        async def score_essay(self, task_prompt, task_type, essay_text, task_image_url=None):
             self.calls += 1
             raise RuntimeError("429 error")
 

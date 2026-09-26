@@ -21,12 +21,19 @@ logger = logging.getLogger(__name__)
 CACHE_FORMAT = "v1"
 
 
-def cache_key(descriptor: dict, task_prompt: str, task_type: str, essay_text: str) -> str:
+def cache_key(
+    descriptor: dict,
+    task_prompt: str,
+    task_type: str,
+    essay_text: str,
+    task_image_url: str | None = None,
+) -> str:
     """A digest over the input and the grader that would score it.
 
     The whole descriptor goes in, so a prompt edit, a model swap, or a
     SCORER_REVISION bump all produce a different key. A stale result can never
-    be served as a newer grader's work.
+    be served as a newer grader's work. task_image_url is in too: a teacher
+    replacing a Task 1 chart must not serve the old chart's cached result.
     """
     material = json.dumps(
         {
@@ -35,6 +42,7 @@ def cache_key(descriptor: dict, task_prompt: str, task_type: str, essay_text: st
             "task_type": task_type,
             "task_prompt": task_prompt,
             "essay_text": essay_text,
+            "task_image_url": task_image_url,
         },
         sort_keys=True,
         ensure_ascii=False,
@@ -102,26 +110,30 @@ class CachedScorer:
         self.inner = inner
         self.cache = cache
 
-    def peek(self, task_prompt: str, task_type: str, essay_text: str) -> dict | None:
+    def peek(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict | None:
         """The stored result for this essay, without calling the provider.
 
         Lets a caller above this layer — the rotation — find work already done
         before it spends a grader's quota on it.
         """
-        key = cache_key(self.inner.descriptor(), task_prompt, task_type, essay_text)
+        key = cache_key(self.inner.descriptor(), task_prompt, task_type, essay_text, task_image_url)
         hit = self.cache.get(key)
         if hit is None:
             return None
         logger.info(f"Serving a cached scoring result ({key[:12]})")
         return {**hit, "processing_metadata": {**hit.get("processing_metadata", {}), "cache_hit": True}}
 
-    async def score_essay(self, task_prompt: str, task_type: str, essay_text: str) -> dict:
-        hit = self.peek(task_prompt, task_type, essay_text)
+    async def score_essay(
+        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+    ) -> dict:
+        hit = self.peek(task_prompt, task_type, essay_text, task_image_url)
         if hit is not None:
             return hit
 
-        key = cache_key(self.inner.descriptor(), task_prompt, task_type, essay_text)
-        result = await self.inner.score_essay(task_prompt, task_type, essay_text)
+        key = cache_key(self.inner.descriptor(), task_prompt, task_type, essay_text, task_image_url)
+        result = await self.inner.score_essay(task_prompt, task_type, essay_text, task_image_url)
         stored = {**result, "processing_metadata": {**result.get("processing_metadata", {})}}
         stored["processing_metadata"]["cache_hit"] = False
         self.cache.put(key, stored)
@@ -129,3 +141,7 @@ class CachedScorer:
 
     def descriptor(self) -> dict:
         return self.inner.descriptor()
+
+    @property
+    def supports_vision(self) -> bool:
+        return getattr(self.inner, "supports_vision", False)

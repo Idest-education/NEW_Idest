@@ -218,3 +218,53 @@ def test_an_unset_level_is_recorded_as_none_not_as_an_empty_string():
     d = GeminiScorer(api_key="", thinking_level="").descriptor()
 
     assert d["configuration"]["thinking_level"] is None
+
+
+# --- Task 1 chart/graph/diagram image --------------------------------------
+
+
+def test_vision_is_supported_by_default():
+    assert GeminiScorer(api_key="").supports_vision is True
+
+
+async def test_a_task_2_essay_never_fetches_an_image(monkeypatch):
+    called = False
+
+    async def fail_if_called(url):
+        nonlocal called
+        called = True
+        raise AssertionError("should not fetch an image for a task without one")
+
+    monkeypatch.setattr("providers.gemini.fetch_task_image", fail_if_called)
+    scorer = scorer_with(FakeClient())
+
+    await scorer.score_essay("t", "task_2", "e")
+
+    assert called is False
+
+
+async def test_an_image_is_refused_without_vision_support():
+    scorer = GeminiScorer(api_key="", supports_vision=False)
+    scorer.client = FakeClient()
+
+    with pytest.raises(ValueError, match="vision"):
+        await scorer.score_essay("t", "task_1", "e", "https://res.cloudinary.com/demo/chart.png")
+
+
+async def test_an_attached_image_is_sent_alongside_the_prompt(monkeypatch):
+    async def fake_fetch(url):
+        assert url == "https://res.cloudinary.com/demo/chart.png"
+        return b"chart-bytes", "image/png"
+
+    monkeypatch.setattr("providers.gemini.fetch_task_image", fake_fetch)
+    client = FakeClient()
+    scorer = scorer_with(client)
+
+    await scorer.score_essay("t", "task_1", "e", "https://res.cloudinary.com/demo/chart.png")
+
+    contents = client.aio.models.calls[0]["contents"]
+    assert isinstance(contents, list)
+    assert "<<<STUDENT_ESSAY>>>\ne\n<<<END_STUDENT_ESSAY>>>" in contents[0]
+    image_part = contents[1]
+    assert image_part.inline_data.data == b"chart-bytes"
+    assert image_part.inline_data.mime_type == "image/png"

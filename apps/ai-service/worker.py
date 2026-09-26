@@ -46,7 +46,14 @@ class ScoringWorker:
             logger.warning(f"RabbitMQ consumer connection error: {e}. Retrying in 5 seconds...")
             await asyncio.sleep(5)
 
-    async def score_with_retries(self, submission_id, task_prompt: str, task_type: str, essay_text: str) -> dict:
+    async def score_with_retries(
+        self,
+        submission_id,
+        task_prompt: str,
+        task_type: str,
+        essay_text: str,
+        task_image_url: str | None = None,
+    ) -> dict:
         """Scores one essay, retrying only the failures another call can fix.
 
         A retry that would not help, or that the provider wants delayed longer
@@ -58,7 +65,7 @@ class ScoringWorker:
         while True:
             attempt += 1
             try:
-                return await self.scorer.score_essay(task_prompt, task_type, essay_text)
+                return await self.scorer.score_essay(task_prompt, task_type, essay_text, task_image_url)
             except Exception as exc:
                 logger.error(f"Scoring attempt {attempt} failed for {submission_id}: {exc}")
 
@@ -96,11 +103,12 @@ class ScoringWorker:
         task_prompt = data.get("taskPrompt", "")
         task_type = data.get("taskType", "task_2")
         essay_text = data.get("essayText", "")
+        task_image_url = data.get("taskImageUrl")
 
         logger.info(f"Processing AI scoring for submission {submission_id}")
 
         result = await self.score_with_retries(
-            submission_id, task_prompt, task_type, essay_text
+            submission_id, task_prompt, task_type, essay_text, task_image_url
         )
 
         result_payload = {
