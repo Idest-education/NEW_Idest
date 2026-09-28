@@ -57,9 +57,7 @@ export function OnboardingCard() {
                   <Link
                     key={action.tour}
                     href={action.href}
-                    className={
-                      action.primary ? s.press : action.tour === "invite-email" ? o.textLink : s.pressQuiet
-                    }
+                    className={action.primary ? s.press : s.pressQuiet}
                   >
                     {action.label}
                   </Link>

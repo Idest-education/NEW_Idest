@@ -4,7 +4,6 @@ import type { OnboardingStatus, OnboardingSteps } from "./idest";
 export type TourStepId =
   | "create-class"
   | "invite-student"
-  | "invite-email"
   | "invite-link"
   | "create-assignment"
   | "open-assignment";
@@ -27,12 +26,7 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
   "invite-student": {
     step: 2,
     title: "Mời học viên",
-    body: 'Nhập email của học viên đã có tài khoản rồi bấm "Thêm". Học viên chưa có tài khoản? Dùng liên kết mời (bước 3) hoặc gửi email mời ở trang Tài khoản.',
-  },
-  "invite-email": {
-    step: 2,
-    title: "Mời học viên qua email",
-    body: 'Nhập email rồi bấm "Gửi lời mời". Học viên nhận email, tạo tài khoản và vào bảng chấm của bạn.',
+    body: 'Nhập email học viên rồi bấm "Thêm". Đã có tài khoản thì vào lớp ngay; chưa có thì Idest gửi email mời và tự thêm vào lớp khi họ đăng ký.',
   },
   "invite-link": {
     step: 3,
@@ -64,8 +58,6 @@ export function tourHref(id: TourStepId, status: OnboardingStatus): string | nul
       return "/teacher/classes?tour=create-class";
     case "invite-student":
       return klass ? `/teacher/classes/${klass}?tab=students&tour=invite-student` : null;
-    case "invite-email":
-      return "/profile?tour=invite-email";
     case "invite-link":
       return klass ? `/teacher/classes/${klass}?tab=invites&tour=invite-link` : null;
     case "create-assignment":
@@ -106,8 +98,8 @@ const ROWS: { key: keyof OnboardingSteps; title: string; hint: string; tours: To
   {
     key: "inviteStudent",
     title: "Mời học viên",
-    hint: "Thêm học viên đã có tài khoản, hoặc gửi email mời.",
-    tours: ["invite-student", "invite-email"],
+    hint: "Có tài khoản: vào lớp ngay. Chưa có: Idest gửi email mời.",
+    tours: ["invite-student"],
   },
   {
     key: "inviteLink",
@@ -130,9 +122,8 @@ const ROWS: { key: keyof OnboardingSteps; title: string; hint: string; tours: To
 ];
 
 function actionLabel(tour: TourStepId, done: boolean): string {
-  if (tour === "invite-email") return "hoặc gửi email mời";
   if (done) return "Xem lại";
-  return tour === "invite-student" ? "Thêm bằng email →" : "Làm →";
+  return tour === "invite-student" ? "Thêm học viên →" : "Làm →";
 }
 
 /**

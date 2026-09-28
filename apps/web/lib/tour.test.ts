@@ -17,7 +17,6 @@ import {
 const ALL_IDS: TourStepId[] = [
   "create-class",
   "invite-student",
-  "invite-email",
   "invite-link",
   "create-assignment",
   "open-assignment",
@@ -52,9 +51,9 @@ describe("TOUR_STEPS", () => {
     }
   });
 
-  it("puts both invite paths on step 2", () => {
+  it("has a single invite step, number 2", () => {
     expect(TOUR_STEPS["invite-student"].step).toBe(2);
-    expect(TOUR_STEPS["invite-email"].step).toBe(2);
+    expect(isTourStepId("invite-email")).toBe(false);
   });
 });
 
@@ -78,7 +77,6 @@ describe("tourHref", () => {
     expect(tourHref("invite-student", withClass)).toBe(
       "/teacher/classes/c1?tab=students&tour=invite-student",
     );
-    expect(tourHref("invite-email", withClass)).toBe("/profile?tour=invite-email");
     expect(tourHref("invite-link", withClass)).toBe("/teacher/classes/c1?tab=invites&tour=invite-link");
     expect(tourHref("create-assignment", withClass)).toBe("/teacher/assignments?tour=create-assignment");
     expect(tourHref("open-assignment", withClass)).toBe("/teacher/assignments?tour=open-assignment");
@@ -88,7 +86,6 @@ describe("tourHref", () => {
     const noClass = status();
     expect(tourHref("invite-student", noClass)).toBeNull();
     expect(tourHref("invite-link", noClass)).toBeNull();
-    expect(tourHref("invite-email", noClass)).toBe("/profile?tour=invite-email");
   });
 
   it("blocks opening until an assignment exists", () => {
@@ -121,7 +118,6 @@ describe("checklistRows", () => {
     });
     expect(rows[1]!.actions).toMatchObject([
       { tour: "invite-student", href: null, blockedReason: NEEDS_CLASS, primary: false },
-      { tour: "invite-email", label: "hoặc gửi email mời", href: "/profile?tour=invite-email", primary: false },
     ]);
     expect(rows[2]!.actions[0]).toMatchObject({ href: null, blockedReason: NEEDS_CLASS });
     expect(rows[3]!.actions[0]).toMatchObject({ href: "/teacher/assignments?tour=create-assignment", primary: false });
@@ -135,17 +131,17 @@ describe("checklistRows", () => {
     expect(rows[0]!.actions[0]).toMatchObject({ label: "Xem lại", primary: false });
     expect(rows[1]!.actions[0]).toMatchObject({
       tour: "invite-student",
-      label: "Thêm bằng email →",
+      label: "Thêm học viên →",
       href: "/teacher/classes/c1?tab=students&tour=invite-student",
       primary: true,
     });
   });
 
-  it("keeps the email path open when every class is archived or deleted", () => {
+  it("blocks every class step when every class is archived or deleted", () => {
     const rows = checklistRows(status({ createClass: true }, { targetClassId: null }));
 
+    expect(rows[1]!.actions).toHaveLength(1);
     expect(rows[1]!.actions[0]).toMatchObject({ href: null, blockedReason: NEEDS_CLASS, primary: false });
-    expect(rows[1]!.actions[1]).toMatchObject({ href: "/profile?tour=invite-email" });
     expect(rows[2]!.actions[0]).toMatchObject({ href: null, blockedReason: NEEDS_CLASS });
     expect(rows[3]!.actions[0]).toMatchObject({ tour: "create-assignment", primary: true });
   });
@@ -169,7 +165,6 @@ describe("checklistRows", () => {
       expect(row.actions[0]!.label).toBe("Xem lại");
       expect(row.actions.some((a) => a.primary)).toBe(false);
     }
-    expect(rows[1]!.actions[1]!.label).toBe("hoặc gửi email mời");
   });
 
   it("never marks more than one action primary", () => {
@@ -291,6 +286,6 @@ describe("tourExitUrl", () => {
   });
 
   it("drops every repeated tour param", () => {
-    expect(tourExitUrl("/profile", "?tour=invite-email&x=1&tour=create-class")).toBe("/profile?x=1");
+    expect(tourExitUrl("/profile", "?tour=invite-link&x=1&tour=create-class")).toBe("/profile?x=1");
   });
 });
