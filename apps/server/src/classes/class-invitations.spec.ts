@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Prisma } from '@prisma/client';
-import { acceptPendingInvitations } from './class-invitations.js';
+import { INVITE_TTL_DAYS, acceptPendingInvitations, isInviteExpired } from './class-invitations.js';
 
 function makeTx(pending: { id: string; classId: string }[]) {
   return {
@@ -77,5 +77,21 @@ describe('acceptPendingInvitations', () => {
       acceptPendingInvitations(tx as unknown as Prisma.TransactionClient, { id: 'stu_2', email: '' }),
     ).resolves.toBe(0);
     expect(tx.classInvitation.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('isInviteExpired', () => {
+  const now = new Date('2026-10-31T00:00:00.000Z');
+
+  it('matches the 30-day lifetime set on every Clerk invite', () => {
+    expect(INVITE_TTL_DAYS).toBe(30);
+  });
+
+  it('is fresh up to 30 days old', () => {
+    expect(isInviteExpired(new Date('2026-10-01T00:00:00.000Z'), now)).toBe(false);
+  });
+
+  it('is expired past 30 days', () => {
+    expect(isInviteExpired(new Date('2026-09-30T23:59:59.000Z'), now)).toBe(true);
   });
 });

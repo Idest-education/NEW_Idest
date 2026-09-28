@@ -3,6 +3,7 @@ import { AssignmentStatus, UserStatus, type User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { CLERK_CLIENT, type ClerkClient } from '../auth/clerk-client.provider.js';
+import { ClassInvitationsService } from '../classes/class-invitations.service.js';
 import type { UpdateProfileDto } from './dto/update-profile.dto.js';
 import type { DeleteAccountDto } from './dto/delete-account.dto.js';
 
@@ -21,6 +22,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     @Inject(CLERK_CLIENT) private readonly clerk: ClerkClient,
+    private readonly invitations: ClassInvitationsService,
   ) {}
 
   async updateProfile(user: User, dto: UpdateProfileDto): Promise<User> {
@@ -65,6 +67,7 @@ export class UsersService {
     });
     const classIds = classes.map((c) => c.id);
     const studentIds = await this.exclusiveStudentIds(user.id, classIds);
+    const pendingInvites = await this.invitations.prepareBulkCancel({ teacherId: user.id }, now);
 
     const [assignments] = await this.prisma.$transaction([
       this.prisma.assignment.updateMany({
@@ -91,6 +94,7 @@ export class UsersService {
         where: { id: user.id },
         data: { status: UserStatus.deleted, deletedAt: now },
       }),
+      pendingInvites.op,
     ]);
 
     const summary: DeleteAccountSummary = {
@@ -113,6 +117,8 @@ export class UsersService {
     });
 
     await this.revokeClerkIdentities(user, studentIds);
+    // A closed board must not seat anyone later: its email invites go too.
+    await this.invitations.revokeUnused(pendingInvites.emails);
     return summary;
   }
 

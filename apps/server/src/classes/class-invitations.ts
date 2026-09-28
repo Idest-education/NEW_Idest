@@ -3,6 +3,14 @@ import type { Prisma } from '@prisma/client';
 /** Where-clause fragment for an invite that is neither accepted nor cancelled. */
 export const PENDING = { acceptedAt: null, cancelledAt: null } as const;
 
+/** Lifetime set on every Clerk invite (`expiresInDays`); Clerk's default is also 30. */
+export const INVITE_TTL_DAYS = 30;
+
+/** An invite older than the Clerk invite lifetime can no longer be accepted. */
+export function isInviteExpired(createdAt: Date, now: Date = new Date()): boolean {
+  return now.getTime() - createdAt.getTime() > INVITE_TTL_DAYS * 24 * 60 * 60 * 1000;
+}
+
 /**
  * Seats a brand-new student in every class still holding an invite for their
  * email. Runs inside the user-creation transaction, so a failure here also

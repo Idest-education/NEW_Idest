@@ -4,6 +4,12 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 import type { AuditService } from '../audit/audit.service.js';
 import type { ClerkClient } from '../auth/clerk-client.provider.js';
 import { UsersService } from './users.service.js';
+import type { ClassInvitationsService } from '../classes/class-invitations.service.js';
+
+const invitations = {
+  prepareBulkCancel: vi.fn().mockResolvedValue({ op: 'cancel-invites-op', emails: ['new@example.com'] }),
+  revokeUnused: vi.fn(),
+};
 
 type Mock = ReturnType<typeof vi.fn>;
 
@@ -62,7 +68,7 @@ describe('UsersService.updateProfile', () => {
     prisma = makePrisma();
     audit = makeAudit();
     clerk = makeClerk();
-    service = new UsersService(prisma, audit, clerk);
+    service = new UsersService(prisma, audit, clerk, invitations as unknown as ClassInvitationsService);
   });
 
   it('writes the trimmed displayName to the local row', async () => {
@@ -131,7 +137,7 @@ describe('UsersService.deleteAccount', () => {
     prisma = makePrisma();
     audit = makeAudit();
     clerk = makeClerk();
-    service = new UsersService(prisma, audit, clerk);
+    service = new UsersService(prisma, audit, clerk, invitations as unknown as ClassInvitationsService);
 
     prisma.class.findMany.mockResolvedValue([{ id: 'class_1' }]);
     prisma.classMember.findMany
@@ -182,6 +188,14 @@ describe('UsersService.deleteAccount', () => {
       where: { id: 'row_1' },
       data: { status: 'deleted', deletedAt: expect.any(Date) },
     });
+  });
+
+  it("cancels the teacher's pending class invites in the same transaction, then revokes them", async () => {
+    await service.deleteAccount(user, { confirmEmail: user.email });
+
+    expect(invitations.prepareBulkCancel).toHaveBeenCalledWith({ teacherId: 'row_1' }, expect.any(Date));
+    expect(prisma.$transaction.mock.calls[0]![0]).toContain('cancel-invites-op');
+    expect(invitations.revokeUnused).toHaveBeenCalledWith(['new@example.com']);
   });
 
   it('never touches submissions', async () => {

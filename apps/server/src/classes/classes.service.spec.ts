@@ -22,13 +22,21 @@ function setup() {
     class: { findUnique: vi.fn().mockResolvedValue(klass) },
     user: { findUnique: vi.fn() },
     classMember: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn(), update: vi.fn() },
+    assignment: { count: vi.fn().mockResolvedValue(0) },
+    inviteLink: { updateMany: vi.fn().mockReturnValue('revoke-links-op') },
+    $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
   } as unknown as PrismaService & {
     class: Record<'findUnique', Mock>;
     user: Record<'findUnique', Mock>;
     classMember: Record<'findUnique' | 'create' | 'update', Mock>;
   };
   const audit = { logEvent: vi.fn() };
-  const invitations = { invite: vi.fn(), cancel: vi.fn() };
+  const invitations = {
+    invite: vi.fn(),
+    cancel: vi.fn(),
+    prepareBulkCancel: vi.fn().mockResolvedValue({ op: 'cancel-invites-op', emails: ['new@example.com'] }),
+    revokeUnused: vi.fn(),
+  };
   const service = new ClassesService(
     prisma,
     audit as unknown as AuditService,
@@ -134,5 +142,19 @@ describe('ClassesService.getClass', () => {
 
     expect(result.invitations).toEqual([]);
     expect(result.inviteLinks).toEqual([]);
+  });
+});
+
+describe('ClassesService.deleteClass', () => {
+  it('cancels the class\'s pending invites with the delete, then revokes their Clerk invites', async () => {
+    const ctx = setup();
+    (ctx.prisma.class as unknown as { update: Mock }).update = vi.fn().mockReturnValue('delete-class-op');
+
+    await ctx.service.deleteClass('class_1', 'teacher_1', 'teacher');
+
+    expect(ctx.invitations.prepareBulkCancel).toHaveBeenCalledWith({ classId: 'class_1' }, expect.any(Date));
+    const ops = (ctx.prisma as unknown as { $transaction: Mock }).$transaction.mock.calls[0]![0];
+    expect(ops).toContain('cancel-invites-op');
+    expect(ctx.invitations.revokeUnused).toHaveBeenCalledWith(['new@example.com']);
   });
 });

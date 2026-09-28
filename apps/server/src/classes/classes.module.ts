@@ -10,6 +10,6 @@ import { AuthModule } from '../auth/auth.module.js';
   imports: [PrismaModule, AuditModule, AuthModule],
   controllers: [ClassesController, InviteLinksController],
   providers: [ClassesService, ClassInvitationsService],
-  exports: [ClassesService],
+  exports: [ClassesService, ClassInvitationsService],
 })
 export class ClassesModule {}

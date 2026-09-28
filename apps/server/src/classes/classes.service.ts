@@ -189,13 +189,18 @@ export class ClassesService {
         `Close the ${openAssignments} active assignment(s) in this class before deleting it`,
       );
     }
+    const now = new Date();
+    const pendingInvites = await this.invitations.prepareBulkCancel({ classId }, now);
     await this.prisma.$transaction([
-      this.prisma.class.update({ where: { id: classId }, data: { deletedAt: new Date() } }),
+      this.prisma.class.update({ where: { id: classId }, data: { deletedAt: now } }),
       this.prisma.inviteLink.updateMany({
         where: { classId, revokedAt: null },
-        data: { revokedAt: new Date() },
+        data: { revokedAt: now },
       }),
+      pendingInvites.op,
     ]);
+    // A deleted class must not seat anyone later: its email invites go too.
+    await this.invitations.revokeUnused(pendingInvites.emails);
     await this.audit.logEvent({
       actorId: userId,
       eventType: 'class.deleted',
