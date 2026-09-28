@@ -12,6 +12,7 @@ import {
   type SubmissionStatus,
 } from "../lib/idest";
 import { band, deviation, isBand, signedBand, stripRef } from "../lib/format";
+import { pagerSlots } from "../lib/pager";
 import { Masthead } from "./masthead";
 import { TourSpot } from "./tour-spot";
 import styles from "./board.module.css";
@@ -504,6 +505,58 @@ export function ActionMenu({
         </div>
       ) : null}
     </div>
+  );
+}
+
+export function Pager({
+  page,
+  totalPages,
+  onPage,
+  label = "Phân trang",
+}: {
+  page: number;
+  totalPages: number;
+  onPage: (page: number) => void;
+  label?: string;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <nav className={styles.pager} aria-label={label}>
+      <button type="button" className={styles.pressQuiet} disabled={page <= 1} onClick={() => onPage(page - 1)}>
+        ← Trước
+      </button>
+      <span className={styles.pagerPages}>
+        {pagerSlots(page, totalPages).map((slot, i) =>
+          slot === "gap" ? (
+            <span key={`gap-${i}`} className={styles.pagerGap} aria-hidden="true">
+              …
+            </span>
+          ) : (
+            <button
+              key={slot}
+              type="button"
+              className={`${styles.pagerNum} ${slot === page ? styles.pagerNumActive : ""}`}
+              aria-current={slot === page ? "page" : undefined}
+              aria-label={`Trang ${slot}`}
+              onClick={() => slot !== page && onPage(slot)}
+            >
+              {slot}
+            </button>
+          ),
+        )}
+      </span>
+      <span className={`${styles.pagerInfo} ${styles.pagerInfoCompact}`}>
+        Trang {page} / {totalPages}
+      </span>
+      <button
+        type="button"
+        className={styles.pressQuiet}
+        disabled={page >= totalPages}
+        onClick={() => onPage(page + 1)}
+      >
+        Sau →
+      </button>
+    </nav>
   );
 }
 

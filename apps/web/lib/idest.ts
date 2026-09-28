@@ -595,12 +595,16 @@ export interface SubmissionPage {
   page: number;
   limit: number;
   totalPages: number;
+  /** Per-status totals under the class and search filters, ignoring the status filter. */
+  counts: Record<SubmissionStatus, number>;
 }
 
 export interface ListSubmissionsParams {
   page?: number;
   limit?: number;
   status?: SubmissionStatus;
+  /** A class id, or "none" for assignments given to no class. */
+  classId?: string;
   q?: string;
 }
 
@@ -609,6 +613,7 @@ export const listSubmissionsPage = (token: string | null, params: ListSubmission
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.status) qs.set("status", params.status);
+  if (params.classId) qs.set("classId", params.classId);
   if (params.q) qs.set("q", params.q);
   return request<SubmissionPage>(`/submissions?${qs.toString()}`, token);
 };
@@ -690,12 +695,15 @@ export interface ClassPage {
   page: number;
   limit: number;
   totalPages: number;
+  /** Per-status totals under the search filter, ignoring the status filter. */
+  counts: Record<ClassStatus, number>;
 }
 
 export interface ListClassesParams {
   page?: number;
   limit?: number;
   status?: ClassStatus;
+  q?: string;
 }
 
 export const listClassesPage = (token: string | null, params: ListClassesParams) => {
@@ -703,6 +711,7 @@ export const listClassesPage = (token: string | null, params: ListClassesParams)
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.status) qs.set("status", params.status);
+  if (params.q) qs.set("q", params.q);
   return request<ClassPage>(`/classes?${qs.toString()}`, token);
 };
 

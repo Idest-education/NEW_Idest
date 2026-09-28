@@ -1627,6 +1627,78 @@ button.strip:active {
   color: var(--ink-soft);
 }
 
+.pagerPages {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pagerNum {
+  min-width: 2.2rem;
+  height: 2.2rem;
+  padding-inline: 0.4rem;
+  display: inline-grid;
+  place-items: center;
+  background: var(--stock);
+  border: 1px solid var(--rule-strong);
+  font-family: var(--font-figure);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    border-color 0.16s var(--ease-press),
+    color 0.16s var(--ease-press);
+}
+
+.pagerNum:hover {
+  border-color: var(--ink-quiet);
+  color: var(--ink);
+}
+
+.pagerNum:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.pagerNumActive {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #f8f7f4;
+  cursor: default;
+}
+
+.pagerNumActive:hover {
+  border-color: var(--ink);
+  color: #f8f7f4;
+}
+
+.pagerGap {
+  min-width: 1.2rem;
+  text-align: center;
+  font-family: var(--font-figure);
+  font-size: 0.78rem;
+  color: var(--ink-quiet);
+}
+
+.pagerInfoCompact {
+  display: none;
+}
+
+@media (max-width: 34rem) {
+  .pager {
+    gap: 0.5rem;
+  }
+
+  .pagerPages {
+    display: none;
+  }
+
+  .pagerInfoCompact {
+    display: inline;
+  }
+}
+
 /* ── Ghost "create new" card/row — first slot in a list ──── */
 
 .paperGhost {

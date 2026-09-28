@@ -21,11 +21,13 @@ import {
 } from "../../../lib/idest";
 import { day, fileSize } from "../../../lib/format";
 import { useAction, useResource } from "../../../lib/use-api";
-import { Blank, ImageDropzone, Notice, Shell, WaitingRack, Wizard, board as s } from "../../../components/board";
+import { Blank, ImageDropzone, Notice, Pager, Shell, WaitingRack, Wizard, board as s } from "../../../components/board";
 
 const WIZARD_STEPS = ["Nội dung", "Lịch & lớp"];
 
-const PAGE_SIZE = 8;
+// The "Giao bài tập mới" ghost card takes the first cell of every page, so
+// 11 cards + 1 ghost = 12 cells: full rows on the 4-, 2- and 1-column grids.
+const PAGE_SIZE = 11;
 
 export default function AssignmentsPage() {
   const [statusFilter, setStatusFilter] = useState<AssignmentStatus | "all">("all");
@@ -46,6 +48,19 @@ export default function AssignmentsPage() {
       }),
     [page, statusFilter, taskTypeFilter, classFilter],
   );
+
+  // Deleting, closing or re-filtering can shrink the result below the current
+  // page — step back to the last page that still exists instead of showing an
+  // empty page with no pager to leave it.
+  useEffect(() => {
+    if (data && page > data.totalPages) setPage(data.totalPages);
+  }, [data, page]);
+
+  const goToPage = (next: number) => {
+    setPage(next);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
 
   const hasFilters = statusFilter !== "all" || taskTypeFilter !== "all" || classFilter !== "all";
 
@@ -92,7 +107,7 @@ export default function AssignmentsPage() {
             setClassFilter(v);
             setPage(1);
           }}
-          onPage={setPage}
+          onPage={goToPage}
           onChanged={reload}
         />
       ) : null}
@@ -502,24 +517,7 @@ function AssignmentsBody({
         </Blank>
       ) : null}
 
-      {totalPages > 1 ? (
-        <div className={s.pager}>
-          <button type="button" className={s.pressQuiet} disabled={page <= 1} onClick={() => onPage(page - 1)}>
-            ← Trước
-          </button>
-          <span className={s.pagerInfo}>
-            Trang {page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            className={s.pressQuiet}
-            disabled={page >= totalPages}
-            onClick={() => onPage(page + 1)}
-          >
-            Sau →
-          </button>
-        </div>
-      ) : null}
+      <Pager page={page} totalPages={totalPages} onPage={onPage} label="Trang bài tập" />
 
       {editingAssignment ? (
         <EditAssignmentRow

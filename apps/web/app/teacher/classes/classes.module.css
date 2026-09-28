@@ -1,0 +1,450 @@
+/* Classes — list cards and the class desk (header, roster, invite links). */
+
+/* ── List cards ───────────────────────────────────────── */
+
+.classCard {
+  gap: 0;
+  color: inherit;
+  min-height: 12.5rem;
+}
+
+.classCard:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.classCardArchived {
+  background: var(--board);
+}
+
+.classDesc {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.classStats {
+  display: flex;
+  gap: 1.4rem;
+  margin-top: 0.9rem;
+}
+
+.classStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.classStatFigure {
+  font-family: var(--font-figure);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.classStatLabel {
+  font-family: var(--font-figure);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+.classFoot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.8rem;
+  border-top: 1px dashed var(--rule-strong);
+  font-family: var(--font-figure);
+  font-size: 0.66rem;
+  color: var(--ink-quiet);
+}
+
+.classGo {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--orange-deep);
+  opacity: 0.75;
+  transition:
+    opacity 0.16s var(--ease-press),
+    transform 0.16s var(--ease-press);
+}
+
+.classCard:hover .classGo {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* ── Desk header ──────────────────────────────────────── */
+
+.deskHead {
+  padding-bottom: 1.1rem;
+  border-bottom: 2px solid var(--rule-strong);
+}
+
+.deskTitleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.deskTitleRow h1 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.deskMenu {
+  flex: none;
+}
+
+.deskDesc {
+  margin-top: 0.6rem;
+  max-width: 68ch;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.deskMeta {
+  margin-top: 0.3rem;
+  font-family: var(--font-figure);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+.deskStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 1.2rem 0 0;
+  background: var(--stock-edge);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  max-width: 44rem;
+}
+
+.deskStat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.3rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--stock);
+}
+
+.deskStat dt {
+  font-family: var(--font-figure);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+.deskStat dd {
+  margin: 0;
+  font-family: var(--font-figure);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirmText {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* ── Panels ───────────────────────────────────────────── */
+
+.panelLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  gap: clamp(1.25rem, 3vw, 2rem);
+  align-items: start;
+  margin-top: 1.4rem;
+}
+
+.panelMain {
+  min-width: 0;
+}
+
+.panelSide {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panelTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.7rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.panelTools > :last-child {
+  margin-left: auto;
+  padding-bottom: 0.55rem;
+}
+
+.emptyLine {
+  padding: 1.5rem 0;
+  font-size: 0.88rem;
+  color: var(--ink-quiet);
+}
+
+.roster {
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+}
+
+.rosterRow {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.rosterRow:last-child {
+  border-bottom: 0;
+}
+
+.rosterRow:hover {
+  background: var(--board);
+}
+
+.rowAction {
+  flex: none;
+  background: none;
+  border: 1px solid transparent;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    color 0.16s var(--ease-press),
+    border-color 0.16s var(--ease-press);
+}
+
+.rowAction:hover {
+  color: var(--alert);
+  border-color: var(--alert);
+}
+
+.rowAction:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.rowAction:disabled {
+  color: var(--ink-quiet);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.sideCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 1rem 1.05rem 1.1rem;
+}
+
+.sideTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sideHint {
+  margin: 0.35rem 0 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.sideSubmit {
+  margin-top: 0.7rem;
+  width: 100%;
+}
+
+.pendingList {
+  margin-top: 0.6rem;
+}
+
+.pendingRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.55rem;
+  border-top: 1px dotted var(--rule);
+}
+
+.pendingInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pendingEmail {
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pendingMeta,
+.pendingExpired {
+  font-family: var(--font-figure);
+  font-size: 0.62rem;
+  color: var(--ink-quiet);
+}
+
+.pendingExpired {
+  color: var(--alert);
+}
+
+/* ── Invite links ─────────────────────────────────────── */
+
+.createBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  margin-bottom: 1.25rem;
+}
+
+.createField {
+  flex: 1 1 18rem;
+  max-width: 28rem;
+}
+
+.inviteGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 1rem;
+}
+
+.inviteCard {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+}
+
+.inviteQr {
+  flex: none;
+  width: 6.5rem;
+  height: 6.5rem;
+  border: 1px solid var(--stock-edge);
+  background: var(--board);
+  image-rendering: pixelated;
+}
+
+.inviteBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.inviteName {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.inviteUrl {
+  font-family: var(--font-figure);
+  font-size: 0.68rem;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inviteUses {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.inviteUses strong {
+  font-family: var(--font-figure);
+  color: var(--ink);
+}
+
+.inviteFull {
+  color: var(--alert);
+}
+
+.inviteActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.inviteActions > button {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 60rem) {
+  .panelLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panelSide {
+    order: -1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .deskStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inviteGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rosterRow {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .classCard:hover .classGo {
+    transform: none;
+  }
+}

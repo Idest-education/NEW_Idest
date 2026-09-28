@@ -8,6 +8,7 @@ import {
   setOnboardingDismissed,
   submitTicket,
   listTickets,
+  listSubmissionsPage,
   tagRevisionsBatch,
 } from "./idest";
 
@@ -228,5 +229,24 @@ describe("cancelClassInvitation", () => {
     const [url, init] = spy.mock.calls[0]!;
     expect(String(url)).toMatch(/\/classes\/class-1\/invitations\/inv1$/);
     expect(init.method).toBe("DELETE");
+  });
+});
+
+describe("listSubmissionsPage", () => {
+  it("sends page, limit, status, class and search as query params", async () => {
+    const spy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }), { status: 200 }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await listSubmissionsPage("tok_123", { page: 2, limit: 12, status: "scored", classId: "none", q: "Lan" });
+
+    const url = new URL(String(spy.mock.calls[0]![0]), "http://x");
+    expect(url.pathname).toMatch(/\/submissions$/);
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      page: "2",
+      limit: "12",
+      status: "scored",
+      classId: "none",
+      q: "Lan",
+    });
   });
 });

@@ -317,7 +317,7 @@ test("giáo viên tạo và quản lý một lớp học", async ({ page, browse
   await page.waitForURL(/\/teacher\/classes\/[0-9a-f-]{36}/, { timeout: 15_000 });
   fixtureClassId = page.url().split("/").pop() ?? "";
 
-  await expect(page.getByText("0 liên kết mời")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("tab", { name: /^Liên kết mời\s*0$/ })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(STUDENT)).toBeHidden();
   await shot(page, "chi-tiet-lop-moi-tao-trong");
 
@@ -329,8 +329,7 @@ test("giáo viên tạo và quản lý một lớp học", async ({ page, browse
   await page.getByRole("button", { name: "Lưu", exact: true }).click();
   await page.waitForTimeout(1_000);
 
-  // Học viên tab is the default active tab, so no click is needed to reach it
-  // — clicking it here would toggle it *closed* instead (tabs are a toggle).
+  // Học viên tab is the default active tab, so no click is needed to reach it.
   if (!(await page.getByText(STUDENT).isVisible({ timeout: 2_000 }).catch(() => false))) {
     await page.locator("#add-member").fill(STUDENT);
     await page.getByRole("button", { name: "Thêm", exact: true }).click();
@@ -339,11 +338,11 @@ test("giáo viên tạo và quản lý một lớp học", async ({ page, browse
   await shot(page, "them-hoc-vien-bang-email");
 
   // Bài tập tab — empty for a fresh class.
-  await page.getByRole("button", { name: /^Bài tập/ }).click();
+  await page.getByRole("tab", { name: /^Bài tập/ }).click();
   await shot(page, "tab-bai-tap-lop-trong");
 
   // Liên kết mời tab — create, preview as an outsider, then revoke.
-  await page.getByRole("button", { name: /^Liên kết mời/ }).click();
+  await page.getByRole("tab", { name: /^Liên kết mời/ }).click();
   await shot(page, "tab-lien-ket-moi-trong");
 
   await page.getByPlaceholder("Nhãn liên kết (tùy chọn)").fill("Tài liệu HDSD — Link mời demo");
@@ -365,6 +364,7 @@ test("giáo viên tạo và quản lý một lớp học", async ({ page, browse
   }
 
   await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await page.getByRole("button", { name: "Xóa liên kết", exact: true }).click();
   await page.waitForTimeout(1_000);
   await shot(page, "sau-khi-thu-hoi-lien-ket-moi");
 

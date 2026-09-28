@@ -1,0 +1,218 @@
+/* List toolbar — status tabs with counts, filter selects and search. Shared by the teacher list pages. */
+
+.toolbar {
+  margin-top: 1.5rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rule);
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0.7rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.16s var(--ease-press),
+    border-color 0.16s var(--ease-press);
+}
+
+.tab:hover {
+  color: var(--ink);
+  border-bottom-color: var(--rule-strong);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.tabActive,
+.tabActive:hover {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--ink);
+}
+
+.tabCount {
+  min-width: 1.5rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--rule-strong);
+  background: var(--board);
+  font-family: var(--font-figure);
+  font-size: 0.66rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.tabActive .tabCount {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #f8f7f4;
+}
+
+.tabAlert .tabCount {
+  border-color: var(--alert);
+  background: var(--alert-wash);
+  color: var(--alert);
+}
+
+.tabAlert.tabActive {
+  border-bottom-color: var(--alert);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.8rem 1.1rem;
+  padding: 0.85rem 1rem 0.95rem;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.control select {
+  min-width: 13rem;
+  padding-block: 0.5rem;
+}
+
+.searchControl {
+  flex: 1 1 18rem;
+  max-width: 28rem;
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.65rem;
+  font-size: 0.95rem;
+  color: var(--ink-quiet);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  background: var(--stock);
+  border: 1px solid var(--rule-strong);
+  padding: 0.5rem 2.2rem 0.5rem 1.9rem;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.searchInput:hover {
+  border-color: var(--ink-quiet);
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+  border-color: var(--ink);
+}
+
+.searchClear {
+  position: absolute;
+  right: 0.25rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: none;
+  border: none;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.searchClear:hover {
+  color: var(--ink);
+}
+
+.reset {
+  align-self: flex-end;
+  margin-bottom: 0.45rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.range {
+  font-family: var(--font-figure);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-quiet);
+}
+
+.inlineLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+@media (max-width: 34rem) {
+  .control,
+  .control select,
+  .searchControl {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+  }
+}
