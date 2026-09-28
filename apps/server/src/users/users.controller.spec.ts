@@ -4,6 +4,7 @@ import type { User } from '@prisma/client';
 import type { Role } from '@repo/auth-contract';
 import { ROLES_KEY } from '../auth/decorators/roles.decorator.js';
 import type { UsersService } from './users.service.js';
+import type { OnboardingService } from './onboarding.service.js';
 import { UsersController } from './users.controller.js';
 
 const user = {
@@ -24,11 +25,19 @@ describe('UsersController', () => {
     updateProfile: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
   };
+  let onboarding: {
+    status: ReturnType<typeof vi.fn>;
+    setDismissed: ReturnType<typeof vi.fn>;
+  };
   let controller: UsersController;
 
   beforeEach(() => {
     users = { updateProfile: vi.fn(), deleteAccount: vi.fn() };
-    controller = new UsersController(users as unknown as UsersService);
+    onboarding = { status: vi.fn(), setDismissed: vi.fn() };
+    controller = new UsersController(
+      users as unknown as UsersService,
+      onboarding as unknown as OnboardingService,
+    );
   });
 
   it('returns a sanitized profile without Clerk or lifecycle fields', () => {
@@ -77,5 +86,43 @@ describe('UsersController', () => {
       controller.deleteMe(user, { confirmEmail: 'ada@example.com' }),
     ).resolves.toEqual(summary);
     expect(users.deleteAccount).toHaveBeenCalledWith(user, { confirmEmail: 'ada@example.com' });
+  });
+
+  const onboardingStatus = {
+    steps: {
+      createClass: true,
+      inviteStudent: false,
+      inviteLink: false,
+      createAssignment: false,
+      openAssignment: false,
+    },
+    targetClassId: 'class_1',
+    dismissedAt: null,
+  };
+
+  it('reads the onboarding status of the calling teacher', async () => {
+    onboarding.status.mockResolvedValueOnce(onboardingStatus);
+
+    await expect(controller.getOnboarding(user)).resolves.toEqual(onboardingStatus);
+    expect(onboarding.status).toHaveBeenCalledWith(user);
+  });
+
+  it('passes the dismissed flag through to OnboardingService', async () => {
+    const hidden = { ...onboardingStatus, dismissedAt: '2026-09-28T05:00:00.000Z' };
+    onboarding.setDismissed.mockResolvedValueOnce(hidden);
+
+    await expect(controller.updateOnboarding(user, { dismissed: true })).resolves.toEqual(hidden);
+    expect(onboarding.setDismissed).toHaveBeenCalledWith(user, true);
+  });
+
+  it('restricts both onboarding routes to teachers', () => {
+    const reflector = new Reflector();
+
+    expect(reflector.get<Role[]>(ROLES_KEY, UsersController.prototype.getOnboarding)).toEqual([
+      'teacher',
+    ]);
+    expect(reflector.get<Role[]>(ROLES_KEY, UsersController.prototype.updateOnboarding)).toEqual([
+      'teacher',
+    ]);
   });
 });

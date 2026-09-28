@@ -4,7 +4,9 @@ import type { Role, UserStatus } from '@repo/auth-contract';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { DeleteAccountDto } from './dto/delete-account.dto.js';
+import { UpdateOnboardingDto } from './dto/update-onboarding.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { OnboardingService, type OnboardingStatus } from './onboarding.service.js';
 import { UsersService, type DeleteAccountSummary } from './users.service.js';
 
 export interface ProfileResponse {
@@ -29,7 +31,10 @@ function toProfile(user: User): ProfileResponse {
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly onboarding: OnboardingService,
+  ) {}
 
   @Get('me')
   me(@CurrentUser() user: User): ProfileResponse {
@@ -43,6 +48,23 @@ export class UsersController {
   ): Promise<ProfileResponse> {
     const updated = await this.users.updateProfile(user, dto);
     return toProfile(updated);
+  }
+
+  /** The new-teacher checklist: which setup steps are done, from real rows. */
+  @Get('me/onboarding')
+  @Roles('teacher')
+  getOnboarding(@CurrentUser() user: User): Promise<OnboardingStatus> {
+    return this.onboarding.status(user);
+  }
+
+  /** Hide (`dismissed: true`) or bring back (`false`) the checklist card. */
+  @Patch('me/onboarding')
+  @Roles('teacher')
+  updateOnboarding(
+    @CurrentUser() user: User,
+    @Body() dto: UpdateOnboardingDto,
+  ): Promise<OnboardingStatus> {
+    return this.onboarding.setDismissed(user, dto.dismissed);
   }
 
   /**
