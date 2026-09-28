@@ -415,6 +415,16 @@ light text, square corners, 2px ink drop shadow). It is the only filled element
 in the masthead, which makes it stand out without orange. On `/feedback` it
 gets `aria-current="page"` and an outline.
 
+#### Dashboard banner — `components/feedback-banner.tsx`
+
+Added after the first build, at the user's request. On the two home pages only
+(`/teacher`, `/student`), a full-width link above the page title reads
+"Nếu có thời gian, bạn hãy giúp chúng tớ điền khảo sát nhé →" and opens
+`/feedback`. It loads `GET /feedback/me`, renders nothing while loading or on
+error, and disappears once `response` is not null
+(`lib/feedback.ts#bannerVisible`). No X. Styled as a note: quiet ground, ink
+left rule, square corners, no orange.
+
 #### `/feedback` page — `app/feedback/page.tsx`
 
 - `Shell` with the role from `getProfile`. Admin → short `Notice` explaining
@@ -538,4 +548,5 @@ một thư mục rồi chạy tệp .sps trong SPSS."
 | `apps/web/components/board.tsx` | Mount `FeedbackPrompt` in `Shell` |
 | `apps/web/components/masthead.tsx`, `board.module.css` | "Góp ý" button |
 | `apps/web/components/feedback-export.tsx`, `apps/web/app/admin/page.tsx` | Export buttons |
+| `apps/web/components/feedback-banner.tsx` + `.module.css`, `apps/web/app/teacher/page.tsx`, `apps/web/app/student/page.tsx` | Dashboard banner |
 | `apps/web/lib/idest.ts`, `apps/web/lib/feedback.ts` + tests | API client, helpers |
