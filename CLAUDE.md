@@ -131,7 +131,7 @@ Re-list all docs (IDs change if recreated):
 | Assessment Analytics & Decision Tracking | `z8rp3etr9y-718` | AI-vs-teacher agreement metrics, revision reason tags, review timing, analytics views, benchmark export; mirrors `docs/superpowers/specs/2026-09-21-assessment-analytics-design.md` |
 | Teacher Onboarding (Checklist + Spotlight) | `z8rp3etr9y-738` | new-teacher tutorial: dashboard checklist, in-page spotlight, `users.onboarding_dismissed_at`; mirrors `docs/superpowers/specs/2026-09-28-teacher-onboarding-design.md` |
 | Class Invite by Email | `z8rp3etr9y-758` | class "Học viên" invite: add existing students, invite new ones via `class_invitations`, join on sign-up; mirrors `docs/superpowers/specs/2026-09-28-class-invite-by-email-design.md` |
-| Feedback Survey (SPSS) | `z8rp3etr9y-778` | in-app questionnaire (SUS, usefulness, AI quality, satisfaction, NPS), teacher pop-up every 10 graded, `feedback_responses`, admin CSV + `.sps` export; mirrors `docs/superpowers/specs/2026-09-28-feedback-survey-design.md` |
+| Feedback Survey (SPSS) | `z8rp3etr9y-778` | in-app questionnaire (UMUX-Lite, usefulness, AI quality, satisfaction, NPS), teacher pop-up every 10 graded, `feedback_responses`, admin CSV + `.sps` export; mirrors `docs/superpowers/specs/2026-09-28-feedback-survey-design.md` |
 
 ### AI & ML — folder `1100360000026707`
 
