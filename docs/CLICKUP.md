@@ -99,6 +99,7 @@ Page objects contain `id`, `name`, `content`.
 | Database Schema | `z8rp3etr9y-338` | System Design |
 | Core User Flows | `z8rp3etr9y-358` | System Design |
 | Assessment Analytics & Decision Tracking | `z8rp3etr9y-718` | System Design |
+| Teacher Onboarding (Checklist + Spotlight) | `z8rp3etr9y-738` | System Design |
 | AI Scoring & Evaluation (SƠ KHAI) | `z8rp3etr9y-378` | AI & ML |
 | 001: Document database and JsonB on Relational database | `z8rp3etr9y-538` | ADR |
 | 002: Essay Submission Method | `z8rp3etr9y-558` | ADR |

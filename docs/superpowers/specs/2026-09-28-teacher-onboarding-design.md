@@ -1,7 +1,7 @@
 # Teacher onboarding: checklist card + in-page spotlight
 
 Date: 2026-09-28
-Status: Approved (design); awaiting spec review
+Status: Approved
 
 ## Problem
 
@@ -320,5 +320,6 @@ Before finishing: `pnpm test` and `pnpm lint` in `apps/server`; `pnpm test`,
 
 ## ClickUp mirror
 
-This spec is mirrored to a ClickUp doc in the System Design folder
-(`1100360000026706`). When the spec changes, update both copies.
+This spec is mirrored to the ClickUp doc "Teacher Onboarding (Checklist +
+Spotlight)" (`z8rp3etr9y-738`, page `z8rp3etr9y-418`) in the System Design
+folder (`1100360000026706`). When the spec changes, update both copies.

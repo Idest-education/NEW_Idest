@@ -129,6 +129,7 @@ Re-list all docs (IDs change if recreated):
 | Database Schema | `z8rp3etr9y-338` | PostgreSQL DDL: tables, columns, constraints, indexes, transaction boundaries |
 | Core User Flows | `z8rp3etr9y-358` | 6 end-to-end flows, submission state machine, key design decisions |
 | Assessment Analytics & Decision Tracking | `z8rp3etr9y-718` | AI-vs-teacher agreement metrics, revision reason tags, review timing, analytics views, benchmark export; mirrors `docs/superpowers/specs/2026-09-21-assessment-analytics-design.md` |
+| Teacher Onboarding (Checklist + Spotlight) | `z8rp3etr9y-738` | new-teacher tutorial: dashboard checklist, in-page spotlight, `users.onboarding_dismissed_at`; mirrors `docs/superpowers/specs/2026-09-28-teacher-onboarding-design.md` |
 
 ### AI & ML — folder `1100360000026707`
 
