@@ -27,6 +27,7 @@ import { day } from "../../../../lib/format";
 import { useAction, useResource } from "../../../../lib/use-api";
 import { ActionMenu, Blank, Notice, Shell, WaitingRack, Wizard, board as s } from "../../../../components/board";
 import { classTabFromParam, type ClassTab } from "../../../../lib/tour";
+import { inviteErrorMessage, isInviteExpired } from "../../../../lib/invitations";
 
 const PAGE_SIZE = 6;
 
@@ -155,10 +156,9 @@ function ClassBody({
       try {
         return await addClassMember(token, klass.id, email);
       } catch (err) {
-        // 503 = Clerk could not send the email; nothing was saved.
-        if (err instanceof ApiError && err.status === 503) {
-          throw new ApiError(503, "Không gửi được email mời. Thử lại sau.");
-        }
+        // 503: the email could not be sent; 409: an account owns it. Nothing was kept.
+        const friendly = err instanceof ApiError ? inviteErrorMessage(err.status) : null;
+        if (err instanceof ApiError && friendly) throw new ApiError(err.status, friendly);
         throw err;
       }
     });
@@ -492,7 +492,11 @@ function StudentsPanel({
                   <span className={s.studentName}>{inv.email}</span>
                   <span className={s.studentEmail}>chưa có tài khoản</span>
                 </span>
-                <span className={s.studentJoined}>mời {day(inv.createdAt)}</span>
+                <span className={s.studentJoined}>
+                  {isInviteExpired(inv.createdAt)
+                    ? "hết hạn — bấm Thêm để gửi lại"
+                    : `mời ${day(inv.createdAt)}`}
+                </span>
                 <button
                   type="button"
                   className={s.pressQuiet}
