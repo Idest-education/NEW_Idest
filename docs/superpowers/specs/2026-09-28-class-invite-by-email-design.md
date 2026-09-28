@@ -31,8 +31,8 @@ Remove both invite sections from `/profile`.
 
 ## Non-goals
 
-- No resend or reminder email for a pending invite.
-- No expiry for pending invites.
+- No reminder email and no separate "resend" button. An expired invite is
+  re-sent when the teacher adds the same email again (rule 2).
 - No change to invite links (`/join/{token}`).
 - `POST /invitations` stays on the server, unused by the UI. Removing it is
   a separate change.
@@ -111,27 +111,48 @@ Rules, in order (`email` lower-cased first):
 1. **An account exists for the email.** Today's logic, unchanged: a student is
    added (a removed membership is reactivated); a non-student gets 400.
    Returns `{ outcome: "added" }`. Audit `class.member_added`.
-2. **No account, and a pending row exists for this class and email.** Return it
-   as `{ outcome: "invited" }`. No new row, no new email.
-3. **No account, no pending row.** In one interactive transaction:
-   1. Insert the row (`teacherId` = the class owner).
+2. **No account, and a live pending row exists for this class and email.**
+   Return it as `{ outcome: "invited" }`. No new row, no new email. A pending
+   row older than `INVITE_TTL_DAYS` (30) is expired, because the Clerk invite
+   behind it is: the old row is closed (`cancelled_at`) and a fresh row is
+   inserted in one short array transaction, then rule 3 continues from step 2.
+3. **No account, no live pending row.** No interactive transaction, so no
+   database connection waits on Clerk:
+   1. Insert and commit the row (`teacherId` = the class owner).
    2. Call Clerk `invitations.createInvitation({ emailAddress, publicMetadata:
       { role: 'student', invitedBy: <actor clerkUserId> }, redirectUrl:
-      `${APP_URL}/sign-up`, notify: true })`, and store the returned id.
-   3. If Clerk reports the email already has a pending invite (422
-      `duplicate_record` or `form_identifier_exists`, the same check as
-      `invitation.controller.ts`), keep the row with `clerkInvitationId` null.
-      The existing email still leads to sign-up, and the join matches by email.
-   4. Any other Clerk error rolls the row back and returns 503
+      `${APP_URL}/sign-up`, notify: true, expiresInDays: 30 })`, and store the
+      returned id.
+   3. Clerk answers 422 (`duplicate_record` or `form_identifier_exists`) both
+      when an invite is already pending for the email and when an account
+      already owns it. Tell the two apart with `users.getUserList({
+      emailAddress: [email] })`:
+      - no Clerk account: an invite is pending (for example from another
+        class). Keep the row with `clerkInvitationId` null; that email still
+        leads to sign-up, and the join matches by email.
+      - a Clerk account exists (it never made an API call, so there is no
+        `users` row): close the row and return 409 `{ error: 'account_exists' }`.
+        No email was sent.
+   4. Any other Clerk error (or a failed lookup) closes the row and returns 503
       `{ error: 'invitation_failed' }`. The API never claims an invite that was
-      not sent.
-   5. A unique-constraint violation (a concurrent duplicate click) re-reads the
-      pending row and returns it as in rule 2.
+      not sent. A "closed" row keeps its history: `cancelled_at` is stamped and
+      `pending_email` is nulled.
+   5. A unique-constraint violation on insert (a concurrent duplicate click)
+      re-reads the pending row and returns it as in rule 2.
 
    Returns `{ outcome: "invited" }`. Audit `class.invitation_created`.
 
-`ClassesService` gains the Clerk client (`CLERK_CLIENT`) and `ConfigService`
-(`APP_URL`) as dependencies.
+The Clerk client (`CLERK_CLIENT`) and `ConfigService` (`APP_URL`) belong to a
+new `ClassInvitationsService` in the classes module; `ClassesService`
+delegates to it.
+
+### Deleting a class or an account
+
+`deleteClass` and `deleteAccount` (users module) close every pending invite of
+the class (or of the teacher) inside their existing transaction, then revoke
+the affected emails' Clerk invites best-effort after commit, as cancel does.
+A deleted class must never seat anyone later. The "still pending" count used
+for revoking also ignores rows whose class is soft-deleted.
 
 ### `GET /classes/:id`
 
@@ -222,7 +243,9 @@ becomes "Hồ sơ cá nhân, đổi tên hiển thị, xóa tài khoản."
 
 | Failure | Behaviour |
 | --- | --- |
-| Clerk invite fails (not a duplicate) | 503 `invitation_failed`; no row kept; web shows "Không gửi được email mời. Thử lại sau." and keeps the typed email |
+| Clerk invite fails (not a duplicate) | 503 `invitation_failed`; the row is closed; web shows "Không gửi được email mời. Thử lại sau." and keeps the typed email |
+| A Clerk account owns the email but has no `users` row | 409 `account_exists`; the row is closed; web shows "Email này đã có tài khoản nhưng chưa từng mở Idest. Nhờ học viên đăng nhập một lần rồi thêm lại." |
+| Pending invite older than 30 days | Shown as "hết hạn — bấm Thêm để gửi lại"; adding the email again supersedes it and re-sends |
 | Email belongs to a teacher/admin | 400 (unchanged); web shows the server message |
 | Concurrent duplicate invite | `(class_id, pending_email)` unique constraint; the loser returns the existing pending row |
 | Cancel on a non-pending or foreign row | 404 |
@@ -234,10 +257,15 @@ becomes "Hồ sơ cá nhân, đổi tên hiển thị, xóa tài khoản."
 Server (Vitest):
 
 - `classes.service.spec.ts` (`addMember`): existing student added; non-student
-  400; pending row returned without a Clerk call; new invite stores the Clerk
-  id; Clerk duplicate keeps a row with a null id; other Clerk error returns 503
-  and inserts no row (transaction rolled back); P2002 on
-  `(class_id, pending_email)` returns the existing row.
+  400; an invite for a new email is delegated. `class-invitations.service.spec.ts`
+  (`invite`): a live pending row is returned without a Clerk call; a new invite
+  commits the row without an interactive transaction and stores the 30-day
+  Clerk id; an expired row is superseded and re-sent; a Clerk duplicate with no
+  Clerk account keeps a row with a null id; a Clerk account owning the email
+  closes the row and returns 409; any other Clerk error closes the row and
+  returns 503; P2002 on `(class_id, pending_email)` returns the existing row.
+- `deleteClass` / `deleteAccount`: pending invites are closed in the same
+  transaction and revoked after it.
 - `classes.service.spec.ts` (`cancelInvitation`): stamps `cancelled_at`;
   404 for accepted/cancelled/foreign rows; revokes Clerk ids only when no
   pending row remains for the email; a revoke failure does not fail the call.
