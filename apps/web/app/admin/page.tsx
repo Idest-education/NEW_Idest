@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Shell, board as s } from "../../components/board";
 import { DeltaBars, HeadlineCards } from "../../components/admin-charts";
+import { FeedbackExport } from "../../components/feedback-export";
 import { fetchOverview } from "../../lib/analytics";
 import { requireAdmin } from "./require-admin";
 import styles from "./admin.module.css";
@@ -38,6 +39,8 @@ export default async function AdminOverviewPage() {
         trước khi nhập điểm của mình, nên đây là mức đồng thuận có neo (anchoring), không phải
         đồng thuận độc lập.
       </p>
+
+      <FeedbackExport />
     </Shell>
   );
 }

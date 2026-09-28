@@ -15,6 +15,7 @@ import { UsersModule } from './users/users.module.js';
 import { RevisionReasonsModule } from './revision-reasons/revision-reasons.module.js';
 import { SupportModule } from './support/support.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
+import { FeedbackModule } from './feedback/feedback.module.js';
 import { ClerkAuthGuard } from './auth/clerk-auth.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
 import { AllExceptionsFilter } from './auth/auth.exception-filter.js';
@@ -41,6 +42,7 @@ import { AppService } from './app.service.js';
     RevisionReasonsModule,
     SupportModule,
     AnalyticsModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [

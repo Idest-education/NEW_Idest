@@ -39,6 +39,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@prisma/client": "6.19.3",
     "@repo/auth-contract": "workspace:*",
+    "@repo/feedback-contract": "workspace:*",
     "@types/amqplib": "^0.10.8",
     "amqplib": "^2.0.1",
     "class-transformer": "^0.5.1",

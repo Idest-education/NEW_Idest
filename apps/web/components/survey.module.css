@@ -1,0 +1,223 @@
+/* Feedback survey. Ink only: orange belongs to the marking rail (DESIGN.md). */
+
+.form {
+  max-width: 52rem;
+  margin-top: 1rem;
+}
+
+.progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 0.6rem 0;
+  background: var(--board);
+  border-bottom: 1px solid var(--rule);
+}
+
+.progressText {
+  min-width: 5.5rem;
+  font-family: var(--font-figure);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.progressTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--rack);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.2s var(--ease-press);
+}
+
+.section {
+  margin-top: 2rem;
+  padding: 1.1rem 1.2rem 1.3rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.sectionNo {
+  font-family: var(--font-figure);
+  font-size: 0.72rem;
+  color: var(--ink-quiet);
+}
+
+.item {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem 0 0;
+  border: 0;
+}
+
+.item + .item {
+  margin-top: 1rem;
+  border-top: 1px dashed var(--rule);
+}
+
+.question {
+  display: block;
+  margin-bottom: 0.6rem;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.optional {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+
+.scale {
+  display: grid;
+  grid-template-columns: repeat(var(--points), minmax(0, 1fr));
+  max-width: 34rem;
+}
+
+.scalePoint {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  margin-left: -1px;
+  border: 1px solid var(--rule-strong);
+  background: var(--stock);
+  font-family: var(--font-figure);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.scalePoint:first-child {
+  margin-left: 0;
+}
+
+.scalePoint:hover {
+  background: var(--board-deep);
+  color: var(--ink);
+}
+
+.scalePoint:has(input:checked) {
+  z-index: 1;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #f8f7f4;
+}
+
+.scalePoint:has(input:focus-visible) {
+  z-index: 2;
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.hiddenRadio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.anchors {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 34rem;
+  margin-top: 0.3rem;
+  font-size: 0.74rem;
+  color: var(--ink-quiet);
+}
+
+.choices {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--rule);
+  background: var(--stock);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.choice:hover {
+  border-color: var(--ink-quiet);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.choice input {
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.numberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 12rem;
+}
+
+.itemError .question {
+  color: var(--alert);
+}
+
+.errorText {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--alert);
+}
+
+.submitBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1.6rem;
+}
+
+.missing {
+  font-size: 0.85rem;
+  color: var(--alert);
+}
+
+@media (max-width: 34rem) {
+  .section {
+    padding: 0.9rem 0.8rem 1rem;
+  }
+
+  .scalePoint {
+    min-height: 2.4rem;
+    font-size: 0.78rem;
+  }
+}

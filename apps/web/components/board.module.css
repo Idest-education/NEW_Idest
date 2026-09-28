@@ -84,6 +84,37 @@
   border-bottom-color: var(--ink);
 }
 
+/* The masthead's one filled control: the feedback survey. Ink, never orange. */
+.navCta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  background: var(--ink);
+  color: #f8f7f4;
+  border: 1px solid #1c1a18;
+  box-shadow: 0 2px 0 #1c1a18;
+  font-size: 0.84rem;
+  font-weight: 600;
+  transition:
+    transform 0.12s var(--ease-press),
+    box-shadow 0.12s var(--ease-press),
+    background 0.16s var(--ease-press);
+}
+
+.navCta:hover {
+  background: #3b3733;
+}
+
+.navCta:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #1c1a18;
+}
+
+.navCtaActive {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* ── Typography ───────────────────────────────────────── */
 
 .label {

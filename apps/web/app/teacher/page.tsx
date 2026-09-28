@@ -10,6 +10,7 @@ import {
 import { stamp } from "../../lib/format";
 import { useResource } from "../../lib/use-api";
 import { Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../components/board";
+import { FeedbackBanner } from "../../components/feedback-banner";
 import { OnboardingCard } from "../../components/onboarding-card";
 
 const WAITING_STATUSES: SubmissionStatus[] = [
@@ -50,6 +51,7 @@ export default function TeacherDashboard() {
 
   return (
     <Shell role="teacher" wide>
+      <FeedbackBanner />
       <h1 className={s.title}>Tổng quan</h1>
       <p className={s.subtitle}>
         AI chấm sơ bộ mỗi bài nộp; không bài nào đến tay học viên khi bạn chưa duyệt.

@@ -13,6 +13,7 @@ import {
 import { band, day, stamp } from "../../lib/format";
 import { useResource } from "../../lib/use-api";
 import { Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../components/board";
+import { FeedbackBanner } from "../../components/feedback-banner";
 
 type Loaded = { assignments: Assignment[]; mine: StudentSubmissionListRow[] };
 
@@ -56,6 +57,7 @@ export default function StudentBoard() {
 
   return (
     <Shell role="student">
+      <FeedbackBanner />
       <h1 className={s.title}>Bài viết của bạn</h1>
       <p className={s.subtitle}>Chọn bài tập, viết bài, nộp. Giáo viên đọc, sửa và duyệt trước khi bạn thấy điểm.</p>
 

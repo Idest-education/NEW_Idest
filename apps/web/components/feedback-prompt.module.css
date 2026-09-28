@@ -1,0 +1,17 @@
+/* Extends the wizard panel: X moves to the top-left corner (product request). */
+.panel {
+  max-width: 26rem;
+  padding-top: 2.6rem;
+}
+
+.close {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+}
+
+.text {
+  margin: 0.6rem 0 1.1rem;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}

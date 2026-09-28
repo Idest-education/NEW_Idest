@@ -330,6 +330,9 @@ warm accent that belongs to the teacher.
 teacher's own marks, and the logo. Nothing the board itself is made of — bays, strips, the
 masthead, primary buttons — is ever orange. Audit test: cover the marking rail and the
 wordmark; if any orange remains on screen, it is wrong.
+One sanctioned exception (product owner, 2026-09-28): the feedback-survey invitation banner on
+the `/teacher` and `/student` dashboards is solid orange, so the pilot survey is hard to miss. It
+disappears once the user has answered. Do not reuse its styling elsewhere.
 
 **The Two Hands Rule.** Grey is the machine's; orange is the teacher's. A figure never
 changes hands by moving — the machine's print stays where it was printed and is ruled

@@ -15,6 +15,7 @@ import { band, deviation, isBand, signedBand, stripRef } from "../lib/format";
 import { pagerSlots } from "../lib/pager";
 import { Masthead } from "./masthead";
 import { TourSpot } from "./tour-spot";
+import { FeedbackPrompt } from "./feedback-prompt";
 import styles from "./board.module.css";
 import type { Role } from "@repo/auth-contract";
 
@@ -34,9 +35,12 @@ export function Shell({
       <Masthead role={role} />
       <main className={`${styles.main} ${wide ? styles.wide : ""}`}>{children}</main>
       {role === "teacher" ? (
-        <Suspense fallback={null}>
-          <TourSpot />
-        </Suspense>
+        <>
+          <Suspense fallback={null}>
+            <TourSpot />
+          </Suspense>
+          <FeedbackPrompt />
+        </>
       ) : null}
     </div>
   );

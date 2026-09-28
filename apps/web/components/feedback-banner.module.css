@@ -1,0 +1,137 @@
+/*
+ * The one sanctioned exception to DESIGN.md's Rationed Orange Rule (product
+ * owner, 2026-09-28): the survey invitation is solid orange so it is hard to
+ * miss. Corners stay square; the hatching and seat shadow are the board's own.
+ */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem 0.85rem 0.9rem;
+  background-color: var(--orange);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(255 255 255 / 0.12) 0 8px,
+    transparent 8px 16px
+  );
+  border: 1px solid var(--orange-deep);
+  box-shadow: 0 3px 0 var(--orange-deep);
+  color: var(--ink);
+  animation: banner-in 0.4s var(--ease-press) backwards;
+  transition:
+    transform 0.12s var(--ease-press),
+    box-shadow 0.12s var(--ease-press);
+}
+
+.banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--orange-deep);
+}
+
+.banner:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--orange-deep);
+}
+
+.banner:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  background: var(--ink);
+  color: var(--orange);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.body {
+  flex: 1;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.text {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.hint {
+  font-family: var(--font-figure);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(42 39 36 / 0.8);
+}
+
+.cta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--ink);
+  color: #f8f7f4;
+  font-size: 0.86rem;
+  font-weight: 600;
+  transition: background 0.16s var(--ease-press);
+}
+
+.banner:hover .cta {
+  background: #3b3733;
+}
+
+.arrow {
+  display: inline-block;
+  animation: nudge 1.4s ease-in-out 0.8s 3;
+  transition: transform 0.16s var(--ease-press);
+}
+
+.banner:hover .arrow {
+  transform: translateX(4px);
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 34rem) {
+  .banner {
+    flex-wrap: wrap;
+  }
+
+  .cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner,
+  .arrow {
+    animation: none;
+    transition: none;
+  }
+}

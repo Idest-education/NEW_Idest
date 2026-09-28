@@ -48,6 +48,15 @@ export function Masthead({ role, home }: { role?: Role; home?: string }) {
               >
                 Trợ giúp
               </Link>
+              {role === "teacher" || role === "student" ? (
+                <Link
+                  href="/feedback"
+                  className={`${styles.navCta} ${pathname === "/feedback" ? styles.navCtaActive : ""}`}
+                  aria-current={pathname === "/feedback" ? "page" : undefined}
+                >
+                  Góp ý
+                </Link>
+              ) : null}
               <Link
                 href="/profile"
                 className={`${styles.navLink} ${pathname === "/profile" ? styles.navLinkActive : ""}`}

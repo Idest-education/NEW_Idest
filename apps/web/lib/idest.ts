@@ -1,4 +1,5 @@
 import type { Role, UserStatus } from "@repo/auth-contract";
+import type { AnswerError, Answers, SurveyRole } from "@repo/feedback-contract";
 import type { RevisionReason, ScoreChange } from "./reason-codes";
 import { apiFetch } from "./api";
 
@@ -401,12 +402,14 @@ async function errorMessage(res: Response): Promise<string> {
   return `Máy chủ trả lỗi ${res.status}.`;
 }
 
+const OFFLINE_MESSAGE = "Không kết nối được máy chủ Idest. Kiểm tra kết nối rồi thử lại.";
+
 async function request<T>(path: string, token: string | null, init: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
     res = await apiFetch(path, token, init);
   } catch {
-    throw new ApiError(0, "Không kết nối được máy chủ Idest. Kiểm tra kết nối rồi thử lại.");
+    throw new ApiError(0, OFFLINE_MESSAGE);
   }
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
   if (res.status === 204) return undefined as T;
@@ -784,3 +787,79 @@ export const getOnboarding = (token: string | null) =>
 
 export const setOnboardingDismissed = (token: string | null, dismissed: boolean) =>
   request<OnboardingStatus>("/users/me/onboarding", token, jsonInit("PATCH", { dismissed }));
+
+export interface FeedbackResponseView {
+  instrumentVersion: number;
+  answers: Answers;
+  editCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeedbackState {
+  role: SurveyRole;
+  instrumentVersion: number;
+  /** Teachers only: distinct submissions they have published. */
+  gradedCount: number | null;
+  /** Students only: their submissions with a visible published result. */
+  resultsReceived: number | null;
+  prompt: boolean;
+  response: FeedbackResponseView | null;
+}
+
+export type SaveFeedbackResult =
+  | { ok: true; response: FeedbackResponseView }
+  | { ok: false; error: "invalid_answers"; items: AnswerError[] }
+  | { ok: false; error: "instrument_version_mismatch" };
+
+export type FeedbackExportFormat = "csv" | "sps";
+
+export const getFeedback = (token: string | null) => request<FeedbackState>("/feedback/me", token);
+
+/**
+ * The two 400s the form can act on come back as values; everything else
+ * throws ApiError like the rest of this client.
+ */
+export async function saveFeedback(
+  token: string | null,
+  instrumentVersion: number,
+  answers: Answers,
+): Promise<SaveFeedbackResult> {
+  let res: Response;
+  try {
+    res = await apiFetch("/feedback/me", token, jsonInit("PUT", { instrumentVersion, answers }));
+  } catch {
+    throw new ApiError(0, OFFLINE_MESSAGE);
+  }
+  if (res.status === 400) {
+    const body = (await res
+      .clone()
+      .json()
+      .catch(() => null)) as { error?: unknown; items?: unknown } | null;
+    if (body?.error === "invalid_answers" && Array.isArray(body.items)) {
+      return { ok: false, error: "invalid_answers", items: body.items as AnswerError[] };
+    }
+    if (body?.error === "instrument_version_mismatch") {
+      return { ok: false, error: "instrument_version_mismatch" };
+    }
+  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  return { ok: true, response: (await res.json()) as FeedbackResponseView };
+}
+
+export const dismissFeedbackPrompt = (token: string | null) =>
+  request<{ prompt: false }>("/feedback/me/prompt-dismissal", token, { method: "POST" });
+
+export async function downloadFeedbackExport(
+  token: string | null,
+  format: FeedbackExportFormat,
+): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await apiFetch(`/feedback/export?format=${format}`, token);
+  } catch {
+    throw new ApiError(0, OFFLINE_MESSAGE);
+  }
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  return res.blob();
+}
