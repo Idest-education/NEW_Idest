@@ -147,12 +147,23 @@ describe("progress and errors", () => {
 });
 
 describe("bannerVisible", () => {
-  const base = { role: "student" as const, instrumentVersion: 1, gradedCount: null, prompt: false };
   const response = { instrumentVersion: 1, answers: {}, editCount: 0, createdAt: "a", updatedAt: "b" };
+  const teacher = { role: "teacher" as const, instrumentVersion: 1, resultsReceived: null, prompt: false };
+  const student = { role: "student" as const, instrumentVersion: 1, gradedCount: null, prompt: false };
 
-  it("shows the survey banner until the user has submitted", () => {
-    expect(bannerVisible({ ...base, response: null })).toBe(true);
-    expect(bannerVisible({ ...base, response })).toBe(false);
+  it("waits until a teacher has graded at least one submission", () => {
+    expect(bannerVisible({ ...teacher, gradedCount: 0, response: null })).toBe(false);
+    expect(bannerVisible({ ...teacher, gradedCount: 1, response: null })).toBe(true);
+  });
+
+  it("waits until a student has received at least one graded result", () => {
+    expect(bannerVisible({ ...student, resultsReceived: 0, response: null })).toBe(false);
+    expect(bannerVisible({ ...student, resultsReceived: 2, response: null })).toBe(true);
+  });
+
+  it("disappears once the user has submitted", () => {
+    expect(bannerVisible({ ...teacher, gradedCount: 5, response })).toBe(false);
+    expect(bannerVisible({ ...student, resultsReceived: 5, response })).toBe(false);
   });
 
   it("stays hidden while the state is loading or failed", () => {

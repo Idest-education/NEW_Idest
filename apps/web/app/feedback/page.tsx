@@ -10,7 +10,6 @@ import {
   type AnswerError,
   type AnswerErrorReason,
   type Answers,
-  type SurveyRole,
 } from "@repo/feedback-contract";
 import {
   getFeedback,
@@ -28,6 +27,7 @@ import {
   initialAnswers,
   progress,
   readDraft,
+  SURVEY_MINUTES,
   writeDraft,
 } from "../../lib/feedback";
 import { stamp } from "../../lib/format";
@@ -35,8 +35,6 @@ import { useAction, useResource } from "../../lib/use-api";
 import { Notice, Shell, board as s } from "../../components/board";
 import { SurveyItemField } from "../../components/survey-item";
 import f from "../../components/survey.module.css";
-
-const MINUTES: Record<SurveyRole, number> = { teacher: 6, student: 4 };
 
 export default function FeedbackPage() {
   const profile = useResource<Profile>((token) => getProfile(token));
@@ -157,7 +155,7 @@ function SurveyForm({
   return (
     <form className={f.form} onSubmit={submit} noValidate>
       <p className={s.subtitle}>
-        Khoảng {MINUTES[role]} phút. Tên và email của bạn không xuất hiện trong dữ liệu phân tích. Bạn có thể
+        Khoảng {SURVEY_MINUTES[role]} phút. Tên và email của bạn không xuất hiện trong dữ liệu phân tích. Bạn có thể
         sửa câu trả lời sau.
       </p>
       {state.response ? <p className={s.fieldHint}>Đã gửi lúc {stamp(state.response.updatedAt)}</p> : null}

@@ -22,9 +22,18 @@ export function promptAllowedOn(pathname: string | null): boolean {
   return !/^\/teacher\/submissions\/[^/]+/.test(pathname);
 }
 
-/** The dashboard banner asks until the user has submitted; nothing while loading or on error. */
+/** Rough time to finish the questionnaire, shown on the page and the banner. */
+export const SURVEY_MINUTES: Record<SurveyRole, number> = { teacher: 6, student: 4 };
+
+/**
+ * The dashboard banner asks once the user has something to judge — a teacher
+ * has graded at least one submission, a student has received at least one
+ * graded result — and stops once they have answered. Nothing while loading.
+ */
 export function bannerVisible(state: FeedbackState | null): boolean {
-  return state !== null && state.response === null;
+  if (state === null || state.response !== null) return false;
+  const activity = state.role === "teacher" ? state.gradedCount : state.resultsReceived;
+  return (activity ?? 0) > 0;
 }
 
 export function draftKey(version: number, userId: string): string {

@@ -801,6 +801,8 @@ export interface FeedbackState {
   instrumentVersion: number;
   /** Teachers only: distinct submissions they have published. */
   gradedCount: number | null;
+  /** Students only: their submissions with a visible published result. */
+  resultsReceived: number | null;
   prompt: boolean;
   response: FeedbackResponseView | null;
 }

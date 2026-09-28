@@ -122,6 +122,7 @@ describe('FeedbackService.state', () => {
       role: 'teacher',
       instrumentVersion: 1,
       gradedCount: 12,
+      resultsReceived: null,
       prompt: true,
       response: null,
     });
@@ -157,12 +158,17 @@ describe('FeedbackService.state', () => {
     expect(at20.prompt).toBe(true);
   });
 
-  it('never prompts a student and skips the graded count', async () => {
-    const prisma = makePrisma();
+  it('never prompts a student and counts the graded results they can see instead', async () => {
+    const prisma = makePrisma({ published: 3 });
     const state = await new FeedbackService(prisma, audit).state(user('student'));
 
-    expect(state).toMatchObject({ role: 'student', gradedCount: null, prompt: false });
-    expect(prisma.publishedResult.findMany).not.toHaveBeenCalled();
+    expect(state).toMatchObject({ role: 'student', gradedCount: null, resultsReceived: 3, prompt: false });
+    expect(prisma.publishedResult.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.publishedResult.findMany).toHaveBeenCalledWith({
+      where: { submission: { studentId: 'student-1' }, unpublishedAt: null },
+      distinct: ['submissionId'],
+      select: { submissionId: true },
+    });
   });
 
   it('refuses an admin', async () => {

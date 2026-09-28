@@ -29,6 +29,8 @@ export interface FeedbackState {
   instrumentVersion: number;
   /** Teachers only: distinct submissions they have published. */
   gradedCount: number | null;
+  /** Students only: their submissions with a visible published result. */
+  resultsReceived: number | null;
   prompt: boolean;
   response: FeedbackResponseView | null;
 }
@@ -78,14 +80,16 @@ export class FeedbackService {
 
   async state(user: User): Promise<FeedbackState> {
     const role = surveyRole(user);
-    const [row, graded] = await Promise.all([
+    const [row, graded, received] = await Promise.all([
       this.prisma.feedbackResponse.findUnique({ where: { userId: user.id } }),
       role === 'teacher' ? this.gradedCount(user.id) : Promise.resolve(null),
+      role === 'student' ? this.resultsReceived(user.id) : Promise.resolve(null),
     ]);
     return {
       role,
       instrumentVersion: INSTRUMENT_VERSION,
       gradedCount: graded,
+      resultsReceived: received,
       prompt: graded !== null && shouldPrompt(graded, user.feedbackPromptDismissedCount, row !== null),
       response: row ? toView(row) : null,
     };
@@ -158,6 +162,16 @@ export class FeedbackService {
     return rows.length;
   }
 
+  /** A student's submissions whose published result they can currently see. */
+  private async resultsReceived(studentId: string): Promise<number> {
+    const rows = await this.prisma.publishedResult.findMany({
+      where: { submission: { studentId }, unpublishedAt: null },
+      distinct: ['submissionId'],
+      select: { submissionId: true },
+    });
+    return rows.length;
+  }
+
   /** Real activity at save time, exported beside the answers. */
   private async usage(user: User, role: SurveyRole): Promise<Usage> {
     const ageDays = Math.floor((Date.now() - user.createdAt.getTime()) / DAY_MS);
@@ -171,13 +185,7 @@ export class FeedbackService {
     }
     const [submissions, published, classes] = await Promise.all([
       this.prisma.submission.count({ where: { studentId: user.id } }),
-      this.prisma.publishedResult
-        .findMany({
-          where: { submission: { studentId: user.id }, unpublishedAt: null },
-          distinct: ['submissionId'],
-          select: { submissionId: true },
-        })
-        .then((rows) => rows.length),
+      this.resultsReceived(user.id),
       this.prisma.classMember.count({ where: { studentId: user.id, removedAt: null } }),
     ]);
     return { submissions, published, classes, age_days: ageDays };
