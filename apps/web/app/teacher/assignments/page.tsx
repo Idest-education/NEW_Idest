@@ -418,7 +418,7 @@ function AssignmentsBody({
       ) : null}
 
       <div className={s.paperGrid}>
-        <button type="button" className={s.paperGhost} onClick={openWizard}>
+        <button type="button" className={s.paperGhost} data-tour="create-assignment" onClick={openWizard}>
           <span className={s.paperGhostIcon} aria-hidden="true">
             +
           </span>
@@ -468,6 +468,7 @@ function AssignmentsBody({
                   type="button"
                   className={s.pressQuiet}
                   disabled={busy}
+                  data-tour={assignment.status === "draft" ? "open-assignment" : undefined}
                   onClick={() => setStatus(assignment.id, "active")}
                 >
                   Mở bài tập

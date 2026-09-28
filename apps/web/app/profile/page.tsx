@@ -156,7 +156,7 @@ function InviteStudent() {
       <div className={s.sectionHead}>
         <h2 className={s.sectionTitle}>Mời học viên qua email</h2>
       </div>
-      <div className={s.railBlock}>
+      <div className={s.railBlock} data-tour="invite-email">
         <label className={s.fieldLabel} htmlFor="invite">
           Email học viên
         </label>

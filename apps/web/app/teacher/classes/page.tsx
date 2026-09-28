@@ -146,7 +146,12 @@ export default function ClassesPage() {
           </Wizard>
 
           <div className={s.rack}>
-            <button type="button" className={s.ghostStrip} onClick={() => setOpen(true)}>
+            <button
+              type="button"
+              className={s.ghostStrip}
+              data-tour="create-class"
+              onClick={() => setOpen(true)}
+            >
               <span aria-hidden="true">+</span> Tạo lớp mới
             </button>
 

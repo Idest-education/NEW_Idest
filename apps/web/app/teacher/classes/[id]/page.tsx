@@ -23,6 +23,7 @@ import {
 import { day } from "../../../../lib/format";
 import { useAction, useResource } from "../../../../lib/use-api";
 import { ActionMenu, Blank, Notice, Shell, WaitingRack, Wizard, board as s } from "../../../../components/board";
+import { classTabFromParam, type ClassTab } from "../../../../lib/tour";
 
 const PAGE_SIZE = 6;
 
@@ -69,8 +70,15 @@ function Pager({
   );
 }
 
-export default function ClassDeskPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ClassDeskPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = use(params);
+  const initialTab = classTabFromParam(use(searchParams).tab);
   const { data, state, error, reload } = useResource<ClassDetail>((token) => getClass(token, id), [id]);
 
   return (
@@ -84,12 +92,20 @@ export default function ClassDeskPage({ params }: { params: Promise<{ id: string
           </Link>
         </>
       ) : null}
-      {state === "ready" && data ? <ClassBody klass={data} onChanged={reload} /> : null}
+      {state === "ready" && data ? <ClassBody klass={data} onChanged={reload} initialTab={initialTab} /> : null}
     </Shell>
   );
 }
 
-function ClassBody({ klass, onChanged }: { klass: ClassDetail; onChanged: () => Promise<void> }) {
+function ClassBody({
+  klass,
+  onChanged,
+  initialTab,
+}: {
+  klass: ClassDetail;
+  onChanged: () => Promise<void>;
+  initialTab: ClassTab;
+}) {
   const { busy, error, run } = useAction();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(klass.name);
@@ -99,7 +115,7 @@ function ClassBody({ klass, onChanged }: { klass: ClassDetail; onChanged: () => 
   const [memberError, setMemberError] = useState<string | null>(null);
   const [inviteLabel, setInviteLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"students" | "assignments" | "invites" | null>("students");
+  const [activeTab, setActiveTab] = useState<ClassTab | null>(initialTab);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -163,7 +179,7 @@ function ClassBody({ klass, onChanged }: { klass: ClassDetail; onChanged: () => 
 
   const activeMembers = klass.members.filter((m) => !m.removedAt);
 
-  const toggleTab = (tab: "students" | "assignments" | "invites") => {
+  const toggleTab = (tab: ClassTab) => {
     setActiveTab((cur) => (cur === tab ? null : tab));
   };
 
@@ -354,7 +370,7 @@ function StudentsPanel({
 
   return (
     <div className={s.classPanel}>
-      <div className={s.fieldRow}>
+      <div className={s.fieldRow} data-tour="invite-student">
         <label className={s.fieldLabel} htmlFor="add-member">
           Thêm học viên bằng email (đã có tài khoản)
         </label>
@@ -597,7 +613,7 @@ function InviteLinksPanel({
 
   return (
     <div className={s.classPanel}>
-      <div className={s.actionRow} style={{ marginTop: 0 }}>
+      <div className={s.actionRow} style={{ marginTop: 0 }} data-tour="invite-link">
         <input
           className={s.field}
           style={{ flex: "1 1 14rem" }}
