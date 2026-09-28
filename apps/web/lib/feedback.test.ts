@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Answers } from "@repo/feedback-contract";
 import {
+  bannerVisible,
   clearDraft,
   draftKey,
   errorText,
@@ -142,5 +143,19 @@ describe("progress and errors", () => {
 
   it("names export files by UTC date", () => {
     expect(exportFilename("sps", new Date("2026-09-28T23:30:00Z"))).toBe("feedback-2026-09-28.sps");
+  });
+});
+
+describe("bannerVisible", () => {
+  const base = { role: "student" as const, instrumentVersion: 1, gradedCount: null, prompt: false };
+  const response = { instrumentVersion: 1, answers: {}, editCount: 0, createdAt: "a", updatedAt: "b" };
+
+  it("shows the survey banner until the user has submitted", () => {
+    expect(bannerVisible({ ...base, response: null })).toBe(true);
+    expect(bannerVisible({ ...base, response })).toBe(false);
+  });
+
+  it("stays hidden while the state is loading or failed", () => {
+    expect(bannerVisible(null)).toBe(false);
   });
 });

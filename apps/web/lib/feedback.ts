@@ -5,6 +5,7 @@ import {
   type Answers,
   type SurveyRole,
 } from "@repo/feedback-contract";
+import type { FeedbackState } from "./idest";
 
 export interface FeedbackDraft {
   savedAt: string;
@@ -19,6 +20,11 @@ export function promptAllowedOn(pathname: string | null): boolean {
   if (!pathname) return false;
   if (pathname === "/feedback" || pathname.startsWith("/feedback/")) return false;
   return !/^\/teacher\/submissions\/[^/]+/.test(pathname);
+}
+
+/** The dashboard banner asks until the user has submitted; nothing while loading or on error. */
+export function bannerVisible(state: FeedbackState | null): boolean {
+  return state !== null && state.response === null;
 }
 
 export function draftKey(version: number, userId: string): string {

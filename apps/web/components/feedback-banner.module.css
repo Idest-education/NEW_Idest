@@ -1,0 +1,39 @@
+/* A note, not an alert: ink on a quiet ground, square, no orange (DESIGN.md). */
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.7rem 1rem;
+  background: var(--board-deep);
+  border: 1px solid var(--rule-strong);
+  border-left: 3px solid var(--ink);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: background 0.16s var(--ease-press);
+}
+
+.banner:hover {
+  background: var(--rack);
+}
+
+.banner:hover span:first-child {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.banner:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.arrow {
+  font-family: var(--font-figure);
+  transition: transform 0.16s var(--ease-press);
+}
+
+.banner:hover .arrow {
+  transform: translateX(3px);
+}
