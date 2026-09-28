@@ -17,6 +17,14 @@ export interface TicketAttachment {
   mimetype: string;
 }
 
+export interface TicketAttachmentInfo {
+  id: string;
+  title?: string;
+  url: string;
+  thumbnailUrl?: string;
+  mimetype?: string;
+}
+
 export interface SupportTicket {
   id: string;
   subject: string;
@@ -28,11 +36,24 @@ export interface SupportTicket {
   createdAt: string;
   /** Only filled for admins: the footer carries the reporter's email. */
   reporter: string | null;
+  attachments?: TicketAttachmentInfo[];
 }
 
 export interface CreatedTicket extends SupportTicket {
   attachmentsUploaded: number;
   attachmentsFailed: number;
+}
+
+interface ClickUpAttachment {
+  id: string;
+  title?: string;
+  url?: string;
+  thumbnail_small?: string;
+  thumbnail_medium?: string;
+  thumbnail_large?: string;
+  url_w_host?: string;
+  mimetype?: string;
+  extension?: string;
 }
 
 interface ClickUpTask {
@@ -42,6 +63,7 @@ interface ClickUpTask {
   text_content?: string | null;
   status?: { status?: string; color?: string; type?: string } | null;
   date_created?: string | null;
+  attachments?: ClickUpAttachment[] | null;
 }
 
 interface ClickUpConfig {
@@ -63,9 +85,34 @@ function footerValue(footer: string, prefix: string): string | null {
   return line ? line.slice(prefix.length).trim() : null;
 }
 
+function isImageAttachment(att: ClickUpAttachment): boolean {
+  if (att.mimetype && att.mimetype.startsWith('image/')) return true;
+  if (att.thumbnail_small || att.thumbnail_medium || att.thumbnail_large) return true;
+  if (att.extension && ['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic', 'heif'].includes(att.extension.toLowerCase())) return true;
+  const urlOrTitle = att.url ?? att.title ?? '';
+  return /\.(png|jpe?g|webp|gif|heic|heif)$/i.test(urlOrTitle);
+}
+
 function toTicket(task: ClickUpTask, withReporter: boolean): SupportTicket {
   const { message, footer } = splitDescription(task.description ?? task.text_content ?? '');
   const created = Number(task.date_created);
+
+  const rawAttachments = task.attachments ?? [];
+  const imageAttachments: TicketAttachmentInfo[] = rawAttachments
+    .filter(isImageAttachment)
+    .map((att) => {
+      const url = att.url ?? att.url_w_host ?? att.thumbnail_large ?? att.thumbnail_small ?? '';
+      const thumbnailUrl = att.thumbnail_small ?? att.thumbnail_medium ?? att.thumbnail_large ?? url;
+      return {
+        id: att.id,
+        title: att.title ?? '',
+        url,
+        thumbnailUrl,
+        mimetype: att.mimetype ?? '',
+      };
+    })
+    .filter((att) => Boolean(att.url));
+
   return {
     id: task.id,
     subject: task.name,
@@ -75,6 +122,7 @@ function toTicket(task: ClickUpTask, withReporter: boolean): SupportTicket {
     statusType: task.status?.type ?? null,
     createdAt: Number.isFinite(created) ? new Date(created).toISOString() : new Date(0).toISOString(),
     reporter: withReporter ? footerValue(footer, 'Từ:') : null,
+    attachments: imageAttachments.length > 0 ? imageAttachments : undefined,
   };
 }
 
@@ -145,7 +193,7 @@ export class SupportService {
     for (let page = 0; page < MAX_LIST_PAGES; page += 1) {
       const url =
         `${CLICKUP_API}/list/${listId}/task?archived=false&include_closed=true` +
-        `&subtasks=false&order_by=created&page=${page}`;
+        `&subtasks=false&order_by=created&include_attachments=true&page=${page}`;
       let res: Response;
       try {
         res = await fetch(url, { headers: { Authorization: token } });
@@ -162,6 +210,25 @@ export class SupportService {
       tasks.push(...batch);
       if (body.last_page !== false || batch.length === 0) break;
     }
+
+    // Fallback: If any task has no attachments property, fetch task details in parallel
+    await Promise.all(
+      tasks.map(async (task) => {
+        if (task.attachments === undefined) {
+          try {
+            const taskRes = await fetch(`${CLICKUP_API}/task/${task.id}`, {
+              headers: { Authorization: token },
+            });
+            if (taskRes.ok) {
+              const detailedTask = (await taskRes.json()) as ClickUpTask;
+              task.attachments = detailedTask.attachments ?? [];
+            }
+          } catch {
+            // Ignore failure for individual task detail fetch
+          }
+        }
+      }),
+    );
 
     return tasks
       .map((task) => toTicket(task, isAdmin))

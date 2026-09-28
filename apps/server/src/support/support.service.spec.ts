@@ -120,6 +120,7 @@ function task(id: string, footer: string, extra: Record<string, unknown> = {}) {
     description: `Nội dung ${id}\n\n---\n${footer}`,
     status: { status: 'to do', color: '#87909e', type: 'open' },
     date_created: String(Date.UTC(2026, 8, Number(id.replace(/\D/g, '')) || 1)),
+    attachments: [],
     ...extra,
   };
 }
@@ -188,5 +189,32 @@ describe('SupportService.listTickets', () => {
 
     const service = new SupportService(makeConfig());
     await expect(service.listTickets(USER)).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('maps image attachments from ClickUp tasks', async () => {
+    const taskWithAtt = task('t5', 'Từ: Cô Lan <teacher@example.com>', {
+      attachments: [
+        {
+          id: 'att-1',
+          title: 'screenshot.png',
+          url: 'https://clickup.com/files/att-1.png',
+          thumbnail_small: 'https://clickup.com/files/att-1-thumb.png',
+          mimetype: 'image/png',
+        },
+      ],
+    });
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ tasks: [taskWithAtt], last_page: true }), { status: 200 }));
+
+    const service = new SupportService(makeConfig());
+    const result = await service.listTickets(USER);
+
+    expect(result[0]?.attachments).toHaveLength(1);
+    expect(result[0]?.attachments?.[0]).toEqual({
+      id: 'att-1',
+      title: 'screenshot.png',
+      url: 'https://clickup.com/files/att-1.png',
+      thumbnailUrl: 'https://clickup.com/files/att-1-thumb.png',
+      mimetype: 'image/png',
+    });
   });
 });
