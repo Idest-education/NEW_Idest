@@ -102,6 +102,23 @@ describe('validateAnswers', () => {
     expect('open_other' in result.answers).toBe(false);
   });
 
+  it('drops NUL characters and repairs lone surrogates, which PostgreSQL JSONB rejects', () => {
+    const result = validateAnswers('teacher', {
+      ...fullAnswers('teacher'),
+      open_like: 'a\u0000b',
+      open_improve: 'cut emoji \uD83D',
+      open_other: '\uDE00 tail',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.answers.open_like).toBe('ab');
+    expect(result.answers.open_improve).toBe('cut emoji \uFFFD');
+    expect(result.answers.open_other).toBe('\uFFFD tail');
+    expect(validateAnswers('teacher', { ...fullAnswers('teacher'), open_like: '😀 ok' })).toMatchObject({
+      answers: { open_like: '😀 ok' },
+    });
+  });
+
   it.each([[[]], [null], ['ux1=4'], [42]])('rejects a non-object payload %j', (input) => {
     expect(errorsOf('teacher', input)).toEqual([{ code: '', reason: 'type' }]);
   });

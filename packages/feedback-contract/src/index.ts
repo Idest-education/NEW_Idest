@@ -301,11 +301,22 @@ function numericBounds(item: SurveyItem): { min: number; max: number } {
   return { min: item.min ?? 0, max: item.max ?? Number.MAX_SAFE_INTEGER };
 }
 
+const NUL = /\u0000/g;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+/**
+ * PostgreSQL JSONB rejects NUL and unpaired surrogates (a textarea's
+ * maxLength can cut an emoji in half), which would turn a save into a 500.
+ */
+function storableText(value: string): string {
+  return value.replace(NUL, '').replace(LONE_SURROGATE, '�').trim();
+}
+
 function checkValue(item: SurveyItem, value: unknown): Checked {
   if (value === null || value === undefined) return { kind: 'skip' };
   if (item.type === 'text') {
     if (typeof value !== 'string') return { kind: 'error', reason: 'type' };
-    const text = value.trim();
+    const text = storableText(value);
     if (text === '') return { kind: 'skip' };
     if (text.length > (item.maxLength ?? TEXT_MAX_LENGTH)) return { kind: 'error', reason: 'too_long' };
     return { kind: 'value', value: text };

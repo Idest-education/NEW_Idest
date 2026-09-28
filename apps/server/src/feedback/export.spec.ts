@@ -126,6 +126,10 @@ describe('CONSTRUCTS', () => {
 describe('toSps', () => {
   const sps = toSps('feedback-2026-09-28.csv');
 
+  it('starts with a UTF-8 byte-order mark so Windows SPSS reads the Vietnamese labels as UTF-8', () => {
+    expect(sps.startsWith('\uFEFF* Idest feedback survey')).toBe(true);
+  });
+
   it('reads the named CSV through a file handle, one variable per column', () => {
     expect(sps).toContain("FILE HANDLE feedback /NAME='feedback-2026-09-28.csv'.");
     expect(sps).toContain('/FILE=feedback');

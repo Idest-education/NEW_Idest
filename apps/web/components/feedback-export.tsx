@@ -1,6 +1,7 @@
 "use client";
 
 import { downloadFeedbackExport, type FeedbackExportFormat } from "../lib/idest";
+import { saveBlob } from "../lib/download";
 import { exportFilename } from "../lib/feedback";
 import { useAction } from "../lib/use-api";
 import { Notice, board as s } from "./board";
@@ -11,15 +12,7 @@ export function FeedbackExport() {
 
   const download = async (format: FeedbackExportFormat) => {
     const blob = await run((token) => downloadFeedbackExport(token, format));
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = exportFilename(format);
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    if (blob) saveBlob(blob, exportFilename(format));
   };
 
   return (

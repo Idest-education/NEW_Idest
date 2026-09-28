@@ -218,5 +218,7 @@ export function toSps(csvFilename: string): string {
   );
   lines.push(`FORMATS ${CONSTRUCTS.map((construct) => construct.name).join(' ')} (F4.2) time_saved (F4.0).`);
   lines.push('EXECUTE.');
-  return `${lines.join('\n')}\n`;
+  // Without a BOM, SPSS on Windows can read the syntax in the local code page
+  // and garble every Vietnamese value label.
+  return `﻿${lines.join('\n')}\n`;
 }
