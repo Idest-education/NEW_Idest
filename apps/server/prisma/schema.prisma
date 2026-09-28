@@ -103,6 +103,8 @@ model User {
   deletedAt       DateTime?  @map("deleted_at") @db.Timestamptz(6)
   /// When the teacher hid the onboarding checklist; null while it should show.
   onboardingDismissedAt DateTime? @map("onboarding_dismissed_at") @db.Timestamptz(6)
+  /// Graded count when the teacher last closed the feedback pop-up; null if never closed.
+  feedbackPromptDismissedCount Int? @map("feedback_prompt_dismissed_count")
 
   // Relations
   assignments      Assignment[]      @relation("TeacherAssignments")
@@ -117,6 +119,7 @@ model User {
   publishedResults PublishedResult[] @relation("TeacherPublishedResults")
   auditEvents      AuditEvent[]      @relation("ActorAuditEvents")
   reasonTags       RevisionReasonTag[] @relation("TeacherReasonTags")
+  feedbackResponse FeedbackResponse?
 
   @@map("users")
 }
@@ -404,4 +407,22 @@ model AuditEvent {
   @@index([eventType], map: "audit_events_event_type_index")
   @@index([createdAt], map: "audit_events_created_at_index")
   @@map("audit_events")
+}
+
+/// One editable feedback-survey response per user.
+/// See docs/superpowers/specs/2026-09-28-feedback-survey-design.md.
+model FeedbackResponse {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+  user              User     @relation(fields: [userId], references: [id])
+  /// 'teacher' | 'student'; enforced by a CHECK constraint in the migration.
+  role              String
+  instrumentVersion Int      @map("instrument_version")
+  answers           Json     @db.JsonB
+  usage             Json     @db.JsonB
+  editCount         Int      @default(0) @map("edit_count")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("feedback_responses")
 }
