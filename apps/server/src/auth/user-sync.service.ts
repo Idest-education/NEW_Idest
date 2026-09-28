@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CLERK_CLIENT, type ClerkClient } from './clerk-client.provider.js';
 import type { RequestAuth } from './types.js';
 import type { Role } from '@repo/auth-contract';
+import { acceptPendingInvitations } from '../classes/class-invitations.js';
 
 @Injectable()
 export class UserSyncService {
@@ -98,15 +99,21 @@ export class UserSyncService {
 
     let created: User;
     try {
-      created = await this.prisma.user.create({
-        data: {
-          clerkUserId: auth.clerkUserId,
-          email,
-          displayName,
-          role,
-          status: 'active',
-          invitedByUserId,
-        },
+      // One transaction: a student either exists and sits in every class that
+      // invited their email, or neither happened and the next request retries.
+      created = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            clerkUserId: auth.clerkUserId,
+            email,
+            displayName,
+            role,
+            status: 'active',
+            invitedByUserId,
+          },
+        });
+        if (user.role === 'student') await acceptPendingInvitations(tx, user);
+        return user;
       });
     } catch (err) {
       if (

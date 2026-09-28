@@ -4,17 +4,26 @@ import { ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { ClerkClient } from './clerk-client.provider.js';
 import { UserSyncService } from './user-sync.service.js';
+import { acceptPendingInvitations } from '../classes/class-invitations.js';
+
+vi.mock('../classes/class-invitations.js', () => ({
+  acceptPendingInvitations: vi.fn().mockResolvedValue(0),
+}));
 
 function makePrisma() {
-  return {
+  const prisma = {
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
     },
-  } as unknown as PrismaService & {
+    $transaction: vi.fn(),
+  };
+  prisma.$transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(prisma));
+  return prisma as unknown as PrismaService & {
     user: Record<'findUnique' | 'create' | 'update' | 'updateMany', ReturnType<typeof vi.fn>>;
+    $transaction: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -42,9 +51,45 @@ describe('UserSyncService.getOrCreate', () => {
   let service: UserSyncService;
 
   beforeEach(() => {
+    vi.mocked(acceptPendingInvitations).mockClear();
     prisma = makePrisma();
     clerk = makeClerk();
     service = new UserSyncService(prisma, clerk);
+  });
+
+  it('seats a new student in their pending classes inside the creation transaction', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(
+      clerkUser({ publicMetadata: { role: 'student', invitedBy: 'user_teacher' } }),
+    );
+    prisma.user.findUnique.mockResolvedValueOnce({ id: 'teacher_row' });
+    const created = { id: 'row_s', role: 'student', email: 'ada@example.com' };
+    prisma.user.create.mockResolvedValueOnce(created);
+
+    await expect(service.getOrCreate({ clerkUserId: 'user_new' })).resolves.toEqual(created);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(acceptPendingInvitations).toHaveBeenCalledWith(prisma, created);
+  });
+
+  it('never seats a new teacher, even if their email was invited', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(clerkUser());
+    prisma.user.create.mockResolvedValueOnce({ id: 'row_t', role: 'teacher', email: 'ada@example.com' });
+
+    await service.getOrCreate({ clerkUserId: 'user_new' });
+
+    expect(acceptPendingInvitations).not.toHaveBeenCalled();
+  });
+
+  it('fails the whole creation when joining fails, so the next request retries', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    clerk.users.getUser.mockResolvedValueOnce(clerkUser({ unsafeMetadata: { role: 'student' } }));
+    prisma.user.create.mockResolvedValueOnce({ id: 'row_s', role: 'student', email: 'ada@example.com' });
+    vi.mocked(acceptPendingInvitations).mockRejectedValueOnce(new Error('join failed'));
+
+    await expect(service.getOrCreate({ clerkUserId: 'user_new' })).rejects.toThrow('join failed');
+    expect(clerk.users.updateUserMetadata).not.toHaveBeenCalled();
   });
 
   it('returns the existing row when present', async () => {
