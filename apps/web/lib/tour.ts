@@ -67,8 +67,8 @@ export function tourHref(id: TourStepId, status: OnboardingStatus): string | nul
   }
 }
 
-export const NEEDS_CLASS = "Cần một lớp đang hoạt động — tạo lớp trước";
-export const NEEDS_ASSIGNMENT = "Giao bài tập trước";
+export const NEEDS_CLASS = "Cần một lớp đang hoạt động — bạn tạo lớp trước nha";
+export const NEEDS_ASSIGNMENT = "Bạn cần giao bài tập trước mới tới bước này";
 
 export interface ChecklistAction {
   tour: TourStepId;

@@ -31,7 +31,7 @@ export function OnboardingCard() {
     <section className={o.card} aria-labelledby="onboarding-title">
       <div className={o.head}>
         <h2 id="onboarding-title" className={o.title}>
-          {complete ? "Bạn đã nắm các bước cơ bản" : "Bắt đầu với Idest"}
+          {complete ? "Bạn đã nắm các bước cơ bản" : "Hãy tập làm quen với Idest!"}
         </h2>
         <span className={o.count} aria-label={`Đã xong ${done} trên ${TOUR_STEP_COUNT} bước`}>
           {done}/{TOUR_STEP_COUNT}

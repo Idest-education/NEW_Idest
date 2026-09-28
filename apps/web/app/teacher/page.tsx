@@ -132,7 +132,7 @@ export default function TeacherDashboard() {
           </div>
 
           <div className={s.sectionHead}>
-            <h2 className={s.sectionTitle}>Bài cần chú ý</h2>
+            <h2 className={s.sectionTitle}>danh sách bài chờ chấm</h2>
             <Link href="/teacher/submissions" className={s.navLink}>
               Xem tất cả →
             </Link>
