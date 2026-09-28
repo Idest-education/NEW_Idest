@@ -2,9 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   addClassMember,
   cancelClassInvitation,
+  dismissFeedbackPrompt,
+  downloadFeedbackExport,
+  getFeedback,
   getOnboarding,
   listUntaggedRevisions,
   recordReviewSessionQuietly,
+  saveFeedback,
   setOnboardingDismissed,
   submitTicket,
   listTickets,
@@ -248,5 +252,80 @@ describe("listSubmissionsPage", () => {
       classId: "none",
       q: "Lan",
     });
+  });
+});
+
+describe("feedback survey client", () => {
+  it("reads the caller's survey state", async () => {
+    const state = { role: "teacher", instrumentVersion: 1, gradedCount: 12, prompt: true, response: null };
+    const spy = vi.fn().mockResolvedValue(jsonResponse(state));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await expect(getFeedback("tok")).resolves.toEqual(state);
+    expect(String(spy.mock.calls[0]![0])).toMatch(/\/feedback\/me$/);
+  });
+
+  it("PUTs the answers and returns the saved response", async () => {
+    const view = { instrumentVersion: 1, answers: { ux1: 4 }, editCount: 0, createdAt: "a", updatedAt: "b" };
+    const spy = vi.fn().mockResolvedValue(jsonResponse(view));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await expect(saveFeedback("tok", 1, { ux1: 4 })).resolves.toEqual({ ok: true, response: view });
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/feedback\/me$/);
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body as string)).toEqual({ instrumentVersion: 1, answers: { ux1: 4 } });
+  });
+
+  it("returns the failing items on invalid_answers", async () => {
+    const items = [{ code: "ux1", reason: "required" }];
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ error: "invalid_answers", items }, 400)) as unknown as typeof fetch;
+
+    await expect(saveFeedback("tok", 1, {})).resolves.toEqual({ ok: false, error: "invalid_answers", items });
+  });
+
+  it("reports a stale questionnaire", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ error: "instrument_version_mismatch" }, 400)) as unknown as typeof fetch;
+
+    await expect(saveFeedback("tok", 1, {})).resolves.toEqual({
+      ok: false,
+      error: "instrument_version_mismatch",
+    });
+  });
+
+  it("throws ApiError with the server message on any other failure", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: ["answers must be an object"] }, 400)) as unknown as typeof fetch;
+    await expect(saveFeedback("tok", 1, {})).rejects.toMatchObject({
+      status: 400,
+      message: "answers must be an object",
+    });
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError("offline")) as unknown as typeof fetch;
+    await expect(saveFeedback("tok", 1, {})).rejects.toMatchObject({ status: 0 });
+  });
+
+  it("POSTs the pop-up dismissal", async () => {
+    const spy = vi.fn().mockResolvedValue(jsonResponse({ prompt: false }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await dismissFeedbackPrompt("tok");
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/feedback\/me\/prompt-dismissal$/);
+    expect(init.method).toBe("POST");
+  });
+
+  it("downloads the export as a blob", async () => {
+    const spy = vi.fn().mockResolvedValue(new Response("resp_id\n", { status: 200 }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    const blob = await downloadFeedbackExport("tok", "sps");
+    await expect(blob.text()).resolves.toBe("resp_id\n");
+    expect(String(spy.mock.calls[0]![0])).toMatch(/\/feedback\/export\?format=sps$/);
   });
 });
