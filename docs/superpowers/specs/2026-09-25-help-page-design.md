@@ -23,7 +23,8 @@ A `/help` page with two things:
 - No in-app rendering of the guide as HTML (user chose the PDF-link route
   over building a guide page; accepted tradeoff: page-level jump, not
   heading-exact).
-- No ticket status tracking, comments, or attachments in this pass.
+- No comments on tickets. (Status tracking and image attachments were added
+  in the 2026-09-28 revision below.)
 - No auto-sync pipeline keeping `apps/web/public/huong-dan-su-dung.pdf` in
   step with `docs/user-guide/huong-dan-su-dung.pdf` — manual copy when the
   guide changes.
@@ -128,3 +129,41 @@ non-goal above).
   thử lại." and keeps the typed text.
 - No retry queue, no offline persistence — out of scope; the user just
   presses submit again.
+
+## Revision 2026-09-28: ticket list, image attachments, guide redesign
+
+### Ticket list
+
+- `GET /support/tickets` (any authenticated role) reads every task in
+  `CLICKUP_SUPPORT_LIST_ID` (`include_closed=true`, paged 100 at a time, at
+  most 10 pages) and returns `{ id, subject, message, status, statusColor,
+  statusType, createdAt, reporter }`, newest first.
+- Visibility: every signed-in user sees every ticket, so the list shows that
+  support activity is real. Only admins get `reporter` (the footer's `Từ:`
+  line), because it carries the reporter's email.
+- `message` is the description with the footer stripped. The ClickUp task URL
+  is not returned: users outside the workspace cannot open it.
+- ClickUp errors: 503 with `Không tải được danh sách yêu cầu. Thử lại sau.`
+
+### Image attachments
+
+- `POST /support/tickets` now accepts `multipart/form-data` (JSON still
+  works) with up to 3 `images` (PNG/JPEG/WEBP/GIF/HEIC/HEIF, 5MB each).
+- After the task is created, each image is uploaded with
+  `POST /task/{id}/attachment` (field `attachment`). Images go straight to
+  ClickUp, not Cloudinary.
+- An attachment failure does not fail the request: the ticket already exists
+  and a 503 would make the user file a duplicate. The response is 201 with
+  the ticket plus `attachmentsUploaded` / `attachmentsFailed`, and the form
+  tells the user how many images did not upload.
+
+### Frontend
+
+- Ticket form (left) and ticket list (right) share a two-column grid that
+  stacks below 56rem. The list refreshes after a successful submit.
+- Images: click, drag-drop, or paste into the form; thumbnails with remove.
+- ClickUp status type maps to Vietnamese labels (`open` Đã tiếp nhận,
+  `custom` Đang xử lý, `done` Đã xử lý, `closed` Đã đóng), with the ClickUp
+  status colour as a dot.
+- Guide section: a "Mở toàn bộ tài liệu (PDF)" button and a numbered chapter
+  grid; each chapter shows a one-line summary, audience, and PDF page.

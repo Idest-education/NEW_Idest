@@ -10,4 +10,9 @@ describe('SupportController authorization', () => {
     const roles = reflector.get<string[] | undefined>(ROLES_KEY, SupportController.prototype.createTicket);
     expect(roles ?? []).toEqual([]);
   });
+
+  it('has no role restriction on listTickets — the service scopes results to the caller', () => {
+    const roles = reflector.get<string[] | undefined>(ROLES_KEY, SupportController.prototype.listTickets);
+    expect(roles ?? []).toEqual([]);
+  });
 });

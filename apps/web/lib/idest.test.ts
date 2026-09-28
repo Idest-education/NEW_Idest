@@ -7,6 +7,7 @@ import {
   recordReviewSessionQuietly,
   setOnboardingDismissed,
   submitTicket,
+  listTickets,
   tagRevisionsBatch,
 } from "./idest";
 
@@ -90,19 +91,20 @@ describe("tagRevisionsBatch", () => {
 });
 
 describe("submitTicket", () => {
-  it("posts the subject and message to the tickets endpoint", async () => {
-    const spy = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  it("posts the subject, message and images as multipart to the tickets endpoint", async () => {
+    const spy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "t1" }), { status: 201 }));
     globalThis.fetch = spy as unknown as typeof fetch;
 
-    await submitTicket("tok_123", "Không nộp được bài", "Bấm Nộp bài nhưng không có phản hồi.");
+    const image = new File(["png"], "shot.png", { type: "image/png" });
+    await submitTicket("tok_123", "Không nộp được bài", "Bấm Nộp bài nhưng không có phản hồi.", [image]);
 
     const [url, init] = spy.mock.calls[0]!;
     expect(String(url)).toMatch(/\/support\/tickets$/);
     expect(init.method).toBe("POST");
-    expect(JSON.parse(init.body as string)).toEqual({
-      subject: "Không nộp được bài",
-      message: "Bấm Nộp bài nhưng không có phản hồi.",
-    });
+    const form = init.body as FormData;
+    expect(form.get("subject")).toBe("Không nộp được bài");
+    expect(form.get("message")).toBe("Bấm Nộp bài nhưng không có phản hồi.");
+    expect(form.getAll("images")).toHaveLength(1);
   });
 
   it("throws an ApiError carrying the server's message on failure", async () => {
@@ -113,6 +115,17 @@ describe("submitTicket", () => {
       ) as unknown as typeof fetch;
 
     await expect(submitTicket("tok_123", "x", "y")).rejects.toThrow("Không gửi được yêu cầu. Thử lại sau.");
+  });
+});
+
+describe("listTickets", () => {
+  it("gets the tickets endpoint and returns the rows", async () => {
+    const rows = [{ id: "t1", subject: "x" }];
+    const spy = vi.fn().mockResolvedValue(new Response(JSON.stringify(rows), { status: 200 }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await expect(listTickets("tok_123")).resolves.toEqual(rows);
+    expect(String(spy.mock.calls[0]![0])).toMatch(/\/support\/tickets$/);
   });
 });
 

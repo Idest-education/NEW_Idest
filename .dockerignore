@@ -13,3 +13,4 @@ coverage
 apps/ai-service/venv
 apps/ai-service/__pycache__
 .playwright-mcp
+out

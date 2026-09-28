@@ -426,8 +426,33 @@ export const getProfile = (token: string | null) => request<Profile>("/users/me"
 export const updateProfile = (token: string | null, displayName: string) =>
   request<Profile>("/users/me", token, jsonInit("PATCH", { displayName }));
 
-export const submitTicket = (token: string | null, subject: string, message: string) =>
-  request<void>("/support/tickets", token, jsonInit("POST", { subject, message }));
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  message: string;
+  status: string;
+  statusColor: string | null;
+  /** ClickUp status type: 'open' | 'custom' | 'done' | 'closed'. */
+  statusType: string | null;
+  createdAt: string;
+  /** Only set for admins, who see every ticket. */
+  reporter: string | null;
+}
+
+export interface CreatedTicket extends SupportTicket {
+  attachmentsUploaded: number;
+  attachmentsFailed: number;
+}
+
+export const listTickets = (token: string | null) => request<SupportTicket[]>("/support/tickets", token);
+
+export const submitTicket = (token: string | null, subject: string, message: string, images: File[] = []) => {
+  const form = new FormData();
+  form.append("subject", subject);
+  form.append("message", message);
+  for (const image of images) form.append("images", image);
+  return request<CreatedTicket>("/support/tickets", token, { method: "POST", body: form });
+};
 
 export interface DeleteAccountSummary {
   message: string;
