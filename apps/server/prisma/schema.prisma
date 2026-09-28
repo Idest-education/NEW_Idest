@@ -109,6 +109,7 @@ model User {
   classes          Class[]           @relation("TeacherClasses")
   classMemberships ClassMember[]     @relation("StudentClassMemberships")
   inviteLinks      InviteLink[]      @relation("TeacherInviteLinks")
+  classInvitations ClassInvitation[] @relation("TeacherClassInvitations")
   redoRequests     RedoRequest[]     @relation("TeacherRedoRequests")
   submissions      Submission[]      @relation("StudentSubmissions")
   scoringResults   ScoringResult[]   @relation("TeacherScoringResults")
@@ -280,6 +281,7 @@ model Class {
   members     ClassMember[]
   assignments Assignment[]
   inviteLinks InviteLink[]
+  invitations ClassInvitation[]
 
   @@index([teacherId], map: "classes_teacher_id_index")
   @@index([status], map: "classes_status_index")
@@ -320,6 +322,33 @@ model InviteLink {
   @@index([classId], map: "invite_links_class_id_index")
   @@index([token], map: "invite_links_token_index")
   @@map("invite_links")
+}
+
+/// A class seat held for an email that has no account yet; filled on sign-up.
+/// Append-only: acceptance and cancellation are timestamps, never deletes.
+model ClassInvitation {
+  id                String    @id @default(uuid()) @db.Uuid
+  classId           String    @map("class_id") @db.Uuid
+  class             Class     @relation(fields: [classId], references: [id])
+  /// The class owner (not necessarily the actor, since admins may invite).
+  teacherId         String    @map("teacher_id") @db.Uuid
+  teacher           User      @relation("TeacherClassInvitations", fields: [teacherId], references: [id])
+  /// Stored lower-case; matched against the new account's email.
+  email             String    @db.VarChar(320)
+  /// Equals `email` while pending, null once accepted or cancelled. Exists only
+  /// so the unique constraint below allows one pending invite per class+email.
+  pendingEmail      String?   @map("pending_email") @db.VarChar(320)
+  /// Null when Clerk already had a pending invite for this email.
+  clerkInvitationId String?   @map("clerk_invitation_id") @db.VarChar(64)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  acceptedAt        DateTime? @map("accepted_at") @db.Timestamptz(6)
+  acceptedUserId    String?   @map("accepted_user_id") @db.Uuid
+  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(6)
+
+  @@unique([classId, pendingEmail], map: "class_invitations_pending_unique")
+  @@index([email], map: "class_invitations_email_index")
+  @@index([classId], map: "class_invitations_class_id_index")
+  @@map("class_invitations")
 }
 
 /// The teacher asking a student to write the essay again.
