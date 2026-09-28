@@ -393,6 +393,8 @@ function statusLabel(ticket: SupportTicket): string {
   return (ticket.statusType && STATUS_LABEL[ticket.statusType]) ?? ticket.status;
 }
 
+const TICKETS_PER_PAGE = 5;
+
 function TicketList({
   tickets,
   state,
@@ -404,6 +406,15 @@ function TicketList({
   error: string | null;
   showReporter: boolean;
 }) {
+  const [page, setPage] = useState(1);
+
+  const totalTickets = tickets?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalTickets / TICKETS_PER_PAGE));
+
+  useEffect(() => {
+    setPage((prevPage) => Math.min(prevPage, totalPages));
+  }, [totalPages]);
+
   if (state === "loading" && !tickets) {
     return (
       <div className={h.listPanel} aria-busy="true" aria-live="polite">
@@ -431,11 +442,15 @@ function TicketList({
     );
   }
 
+  const currentPage = Math.min(page, totalPages);
+  const startIdx = (currentPage - 1) * TICKETS_PER_PAGE;
+  const pageTickets = tickets.slice(startIdx, startIdx + TICKETS_PER_PAGE);
+
   return (
     <div className={h.listPanel}>
       {error ? <Notice tone="alert">{error}</Notice> : null}
       <ul className={h.ticketList}>
-        {tickets.map((ticket) => (
+        {pageTickets.map((ticket) => (
           <li key={ticket.id}>
             <details className={h.ticket}>
               <summary className={h.ticketSummary}>
@@ -456,11 +471,72 @@ function TicketList({
                 ) : null}
               </summary>
               <p className={h.ticketMessage}>{ticket.message || "—"}</p>
+              {ticket.attachments && ticket.attachments.length > 0 ? (
+                <div className={h.ticketAttachments}>
+                  <span className={h.ticketAttachmentLabel}>Ảnh đính kèm</span>
+                  <div className={h.ticketAttachmentGrid}>
+                    {ticket.attachments.map((att) => (
+                      <a
+                        key={att.id}
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={h.ticketAttachmentItem}
+                        title={att.title || "Mở ảnh đính kèm"}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={att.thumbnailUrl || att.url}
+                          alt={att.title || "Ảnh đính kèm"}
+                          className={h.ticketAttachmentImg}
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <p className={h.ticketRef}>Mã yêu cầu: {ticket.id}</p>
             </details>
           </li>
         ))}
       </ul>
+      {totalPages > 1 ? (
+        <div className={h.pagination}>
+          <span className={h.paginationInfo}>
+            Trang {currentPage} / {totalPages} ({totalTickets} yêu cầu)
+          </span>
+          <div className={h.paginationControls}>
+            <button
+              type="button"
+              className={h.pageBtn}
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              aria-label="Trang trước"
+            >
+              ‹
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+              <button
+                key={pNum}
+                type="button"
+                className={`${h.pageBtn} ${pNum === currentPage ? h.pageBtnActive : ""}`}
+                onClick={() => setPage(pNum)}
+              >
+                {pNum}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={h.pageBtn}
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="Trang sau"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
