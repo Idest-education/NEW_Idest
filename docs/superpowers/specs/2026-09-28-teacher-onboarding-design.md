@@ -43,7 +43,7 @@ ready to share), and one open assignment, without reading the PDF.
 | Question | Decision |
 | --- | --- |
 | Tutorial form | Dashboard checklist card; each step links to the real page and spotlights the real control |
-| "Invite a student" path | Both paths shown (add by email in the class, or email invite from `/profile`); spotlight goes to the class tab; ticks on the first class member |
+| "Invite a student" path | One path: the class "Học viên" tab, which adds existing students and invites new ones (see `2026-09-28-class-invite-by-email-design.md`); ticks on the first class member or class invitation. (Originally two paths incl. a `/profile` email invite; `/profile` invites were removed.) |
 | Where "hidden" is stored | New DB column `users.onboarding_dismissed_at` |
 | Progress source | Server endpoint derived from real data (approach A) |
 | Spotlight mechanism | Hand-rolled `TourSpot` component, no library |
@@ -108,7 +108,7 @@ removed members and revoked links still count.
 | Step | True when |
 | --- | --- |
 | `createClass` | any `classes` row with `teacher_id` = teacher |
-| `inviteStudent` | any `class_members` row whose class has `teacher_id` = teacher |
+| `inviteStudent` | any `class_members` row whose class has `teacher_id` = teacher, OR any `class_invitations` row with `teacher_id` = teacher |
 | `inviteLink` | any `invite_links` row with `teacher_id` = teacher |
 | `createAssignment` | any `assignments` row with `teacher_id` = teacher |
 | `openAssignment` | any assignment with `teacher_id` = teacher and status `active` or `closed` |
@@ -136,14 +136,12 @@ Pure module, no React, fully unit-tested.
 type TourStepId =
   | "create-class"
   | "invite-student"
-  | "invite-email"
   | "invite-link"
   | "create-assignment"
   | "open-assignment";
 ```
 
 - `TOUR_STEPS: Record<TourStepId, { step: 1 | 2 | 3 | 4 | 5; title: string; body: string }>`.
-  `invite-student` and `invite-email` both belong to step 2.
 - `isTourStepId(value): value is TourStepId`.
 - `tourHref(id, status): string | null`. Returns null when the step is blocked
   (see the card rules below).
@@ -156,7 +154,6 @@ type TourStepId =
 | --- | --- |
 | `create-class` | `/teacher/classes?tour=create-class` |
 | `invite-student` | `/teacher/classes/{targetClassId}?tab=students&tour=invite-student` |
-| `invite-email` | `/profile?tour=invite-email` |
 | `invite-link` | `/teacher/classes/{targetClassId}?tab=invites&tour=invite-link` |
 | `create-assignment` | `/teacher/assignments?tour=create-assignment` |
 | `open-assignment` | `/teacher/assignments?tour=open-assignment` |
@@ -166,8 +163,7 @@ Bubble copy (Vietnamese, final wording may be polished in the plan):
 | Id | Title | Body |
 | --- | --- | --- |
 | `create-class` | Tạo lớp học | Bấm vào đây, đặt tên lớp rồi bấm "Tạo lớp". Mỗi lớp là một nhóm học viên của bạn. |
-| `invite-student` | Mời học viên | Nhập email của học viên đã có tài khoản rồi bấm "Thêm". Học viên chưa có tài khoản? Dùng liên kết mời (bước 3) hoặc gửi email mời ở trang Tài khoản. |
-| `invite-email` | Mời học viên qua email | Nhập email rồi bấm "Gửi lời mời". Học viên nhận email, tạo tài khoản và vào bảng chấm của bạn. |
+| `invite-student` | Mời học viên | Nhập email học viên rồi bấm "Thêm". Đã có tài khoản thì vào lớp ngay; chưa có thì Idest gửi email mời và tự thêm vào lớp khi họ đăng ký. |
 | `invite-link` | Tạo liên kết mời | Bấm "Tạo liên kết mời", rồi "Copy link" hoặc "Copy QR" gửi cho học viên. Ai mở liên kết sẽ tự vào lớp này. |
 | `create-assignment` | Giao bài tập | Bấm vào đây, nhập đề bài, chọn lớp và hạn nộp. Bài tập mới là bản nháp: học viên chưa thấy. |
 | `open-assignment` | Mở bài tập | Bấm "Mở bài tập" để học viên thấy đề và nộp bài. |
@@ -200,13 +196,12 @@ Bắt đầu với Idest                               2/5
   works for them.
 - The first undone, unblocked row's action is a primary `press`; other undone
   rows use `pressQuiet`.
-- The "Mời học viên" row has two actions: "Thêm bằng email" (`invite-student`)
-  and a secondary "hoặc gửi email mời" (`invite-email`).
+- The "Mời học viên" row has one action, "Thêm học viên →" (`invite-student`),
+  with the hint "Có tài khoản: vào lớp ngay. Chưa có: Idest gửi email mời."
 - Blocked actions are disabled and show the reason:
-  - "Thêm bằng email" and "Tạo liên kết mời" when `targetClassId === null`:
+  - "Thêm học viên" and "Tạo liên kết mời" when `targetClassId === null`:
     "Cần một lớp đang hoạt động — tạo lớp trước". This also covers a teacher
     whose only class is archived or deleted (`createClass` true, no target).
-    "hoặc gửi email mời" is never blocked; it does not need a class.
   - "Mở bài tập" when `createAssignment === false`: "Giao bài tập trước".
 - When all five are done, the header reads "Bạn đã nắm các bước cơ bản", the
   counter shows 5/5, and "Ẩn hướng dẫn" becomes the primary action.
@@ -229,7 +224,6 @@ Targets carry `data-tour="<id>"`:
 | --- | --- |
 | `create-class` | "+ Tạo lớp mới" ghost strip, `app/teacher/classes/page.tsx` |
 | `invite-student` | email field row in `StudentsPanel`, `app/teacher/classes/[id]/page.tsx` |
-| `invite-email` | "Mời học viên qua email" section, `app/profile/page.tsx` |
 | `invite-link` | "Tạo liên kết mời" row in `InviteLinksPanel`, `app/teacher/classes/[id]/page.tsx` |
 | `create-assignment` | "Giao bài tập mới" ghost card, `app/teacher/assignments/page.tsx` |
 | `open-assignment` | "Mở bài tập" button on every draft card, `app/teacher/assignments/page.tsx` |
@@ -244,8 +238,6 @@ Mounting:
   `role === "teacher"`. Next 16 fails the production build when
   `useSearchParams` runs on a prerendered page without a Suspense boundary
   (`node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-search-params.md`).
-- `/profile` passes `role={data?.role}` to `Shell`, so the spotlight mounts
-  there once the profile loads.
 - Class detail reads `?tab=` from the page `searchParams` prop with `use()`, the
   same way it already reads `params`, and uses it as the initial `activeTab`.
   Values other than `students`, `assignments` and `invites` fall back to
