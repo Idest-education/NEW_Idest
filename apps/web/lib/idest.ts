@@ -701,3 +701,26 @@ export const acceptInviteLink = (token: string | null, inviteToken: string) =>
     token,
     { method: "POST" },
   );
+
+export interface OnboardingSteps {
+  createClass: boolean;
+  inviteStudent: boolean;
+  inviteLink: boolean;
+  createAssignment: boolean;
+  openAssignment: boolean;
+}
+
+/** New-teacher checklist, derived server-side from the teacher's real rows. */
+export interface OnboardingStatus {
+  steps: OnboardingSteps;
+  /** Newest active class; null when the teacher has none. */
+  targetClassId: string | null;
+  /** ISO UTC; null while the checklist card should show. */
+  dismissedAt: string | null;
+}
+
+export const getOnboarding = (token: string | null) =>
+  request<OnboardingStatus>("/users/me/onboarding", token);
+
+export const setOnboardingDismissed = (token: string | null, dismissed: boolean) =>
+  request<OnboardingStatus>("/users/me/onboarding", token, jsonInit("PATCH", { dismissed }));

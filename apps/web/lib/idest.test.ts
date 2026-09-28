@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  getOnboarding,
   listUntaggedRevisions,
   recordReviewSessionQuietly,
+  setOnboardingDismissed,
   submitTicket,
   tagRevisionsBatch,
 } from "./idest";
@@ -109,5 +111,56 @@ describe("submitTicket", () => {
       ) as unknown as typeof fetch;
 
     await expect(submitTicket("tok_123", "x", "y")).rejects.toThrow("Không gửi được yêu cầu. Thử lại sau.");
+  });
+});
+
+const onboardingBody = {
+  steps: {
+    createClass: false,
+    inviteStudent: false,
+    inviteLink: false,
+    createAssignment: false,
+    openAssignment: false,
+  },
+  targetClassId: null,
+  dismissedAt: null,
+};
+
+describe("getOnboarding", () => {
+  it("reads the calling teacher's onboarding status", async () => {
+    const spy = vi.fn().mockResolvedValue(jsonResponse(onboardingBody));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await expect(getOnboarding("tok_123")).resolves.toEqual(onboardingBody);
+
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/users\/me\/onboarding$/);
+    expect(init.method).toBeUndefined();
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer tok_123");
+  });
+});
+
+describe("setOnboardingDismissed", () => {
+  it("patches the dismissed flag as JSON", async () => {
+    const spy = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ ...onboardingBody, dismissedAt: "2026-09-28T05:00:00.000Z" }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    const status = await setOnboardingDismissed("tok_123", true);
+
+    expect(status.dismissedAt).toBe("2026-09-28T05:00:00.000Z");
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/users\/me\/onboarding$/);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(String(init.body))).toEqual({ dismissed: true });
+  });
+
+  it("surfaces a 403 as an ApiError with the status", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: "Forbidden resource" }, 403)) as unknown as typeof fetch;
+
+    await expect(setOnboardingDismissed("tok_123", false)).rejects.toMatchObject({ status: 403 });
   });
 });
