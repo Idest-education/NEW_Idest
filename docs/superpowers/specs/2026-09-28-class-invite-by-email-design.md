@@ -1,7 +1,7 @@
 # Class invite by email: add existing students, invite new ones
 
 Date: 2026-09-28
-Status: Approved (design); awaiting spec review
+Status: Approved
 
 ## Problem
 
@@ -68,6 +68,9 @@ model ClassInvitation {
   teacher           User      @relation("TeacherClassInvitations", fields: [teacherId], references: [id])
   /// Stored lower-case; matched against the new account's email.
   email             String    @db.VarChar(320)
+  /// Equals `email` while pending, null once accepted or cancelled. Exists only
+  /// so the unique constraint below allows one pending invite per class+email.
+  pendingEmail      String?   @map("pending_email") @db.VarChar(320)
   /// Null when Clerk already had a pending invite for this email.
   clerkInvitationId String?   @map("clerk_invitation_id") @db.VarChar(64)
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -75,21 +78,22 @@ model ClassInvitation {
   acceptedUserId    String?   @map("accepted_user_id") @db.Uuid
   cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(6)
 
+  @@unique([classId, pendingEmail], map: "class_invitations_pending_unique")
   @@index([email], map: "class_invitations_email_index")
   @@index([classId], map: "class_invitations_class_id_index")
   @@map("class_invitations")
 }
 ```
 
-The migration also adds a partial unique index that Prisma cannot express:
-
-```sql
-CREATE UNIQUE INDEX "class_invitations_pending_unique"
-  ON "class_invitations" ("class_id", "email")
-  WHERE "accepted_at" IS NULL AND "cancelled_at" IS NULL;
-```
-
 A pending invite is a row with `accepted_at IS NULL AND cancelled_at IS NULL`.
+Every write that stamps `accepted_at` or `cancelled_at` also sets
+`pending_email` to null. PostgreSQL treats NULLs as distinct in a unique
+constraint, so accepted and cancelled rows never collide, while two pending
+rows for the same class and email do.
+
+A partial unique index (`WHERE accepted_at IS NULL AND cancelled_at IS NULL`)
+was considered and rejected: Prisma 6 cannot represent it in `schema.prisma`,
+so the next `prisma migrate dev` would generate a migration that drops it.
 
 ### `POST /classes/:id/members` — new response shape
 
@@ -121,7 +125,7 @@ Rules, in order (`email` lower-cased first):
    4. Any other Clerk error rolls the row back and returns 503
       `{ error: 'invitation_failed' }`. The API never claims an invite that was
       not sent.
-   5. A unique-index violation (a concurrent duplicate click) re-reads the
+   5. A unique-constraint violation (a concurrent duplicate click) re-reads the
       pending row and returns it as in rule 2.
 
    Returns `{ outcome: "invited" }`. Audit `class.invitation_created`.
@@ -220,7 +224,7 @@ becomes "Hồ sơ cá nhân, đổi tên hiển thị, xóa tài khoản."
 | --- | --- |
 | Clerk invite fails (not a duplicate) | 503 `invitation_failed`; no row kept; web shows "Không gửi được email mời. Thử lại sau." and keeps the typed email |
 | Email belongs to a teacher/admin | 400 (unchanged); web shows the server message |
-| Concurrent duplicate invite | Unique index; the loser returns the existing pending row |
+| Concurrent duplicate invite | `(class_id, pending_email)` unique constraint; the loser returns the existing pending row |
 | Cancel on a non-pending or foreign row | 404 |
 | Clerk revoke fails on cancel | Logged; cancel still succeeds |
 | Join fails during sign-up | Transaction rolls back; the user row is not created; the next request retries |
@@ -232,8 +236,8 @@ Server (Vitest):
 - `classes.service.spec.ts` (`addMember`): existing student added; non-student
   400; pending row returned without a Clerk call; new invite stores the Clerk
   id; Clerk duplicate keeps a row with a null id; other Clerk error returns 503
-  and inserts no row (transaction rolled back); P2002 on the partial index
-  returns the existing row.
+  and inserts no row (transaction rolled back); P2002 on
+  `(class_id, pending_email)` returns the existing row.
 - `classes.service.spec.ts` (`cancelInvitation`): stamps `cancelled_at`;
   404 for accepted/cancelled/foreign rows; revokes Clerk ids only when no
   pending row remains for the email; a revoke failure does not fail the call.
