@@ -10,19 +10,8 @@ import { ConfigService } from '@nestjs/config';
 import { Roles } from './decorators/roles.decorator.js';
 import { CreateInvitationDto } from './dto/create-invitation.dto.js';
 import { CLERK_CLIENT, type ClerkClient } from './clerk-client.provider.js';
+import { isClerkAlreadyExists } from './clerk-errors.js';
 import type { RequestAuth } from './types.js';
-
-function isClerkAlreadyExists(err: unknown): boolean {
-  const e = err as { status?: number; errors?: Array<{ code?: string }> };
-  return (
-    e?.status === 422 &&
-    Boolean(
-      e.errors?.some(
-        (x) => x.code === 'duplicate_record' || x.code === 'form_identifier_exists',
-      ),
-    )
-  );
-}
 
 @Controller('invitations')
 export class InvitationController {
