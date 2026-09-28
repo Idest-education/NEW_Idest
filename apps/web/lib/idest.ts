@@ -426,6 +426,14 @@ export const getProfile = (token: string | null) => request<Profile>("/users/me"
 export const updateProfile = (token: string | null, displayName: string) =>
   request<Profile>("/users/me", token, jsonInit("PATCH", { displayName }));
 
+export interface TicketAttachmentInfo {
+  id: string;
+  title?: string;
+  url: string;
+  thumbnailUrl?: string;
+  mimetype?: string;
+}
+
 export interface SupportTicket {
   id: string;
   subject: string;
@@ -437,6 +445,7 @@ export interface SupportTicket {
   createdAt: string;
   /** Only set for admins, who see every ticket. */
   reporter: string | null;
+  attachments?: TicketAttachmentInfo[];
 }
 
 export interface CreatedTicket extends SupportTicket {
