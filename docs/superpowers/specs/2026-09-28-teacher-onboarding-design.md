@@ -272,8 +272,11 @@ Behaviour:
    must be able to reach the real control.
 6. The tour ends on "Đã hiểu", Escape, a click on a dimmed rectangle, or a click
    on a `button` or `a` inside the target. Typing in an input inside the target
-   does not end it. Ending calls `router.replace` with the same path and params
-   minus `tour`, and `scroll: false`.
+   does not end it. Ending hides the overlay and bubble at once, then calls
+   `window.history.replaceState` with the same path and params minus `tour`.
+   Next 16 syncs `useSearchParams` from the native history API without a
+   server round-trip, so nothing lingers over the page and a failed fetch can
+   never force a full reload.
 7. A click on the target is never `preventDefault`ed. The real handler runs (for
    example, the create wizard opens) and the overlay unmounts in the same tick.
 
