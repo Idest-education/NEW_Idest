@@ -35,7 +35,10 @@ export class UpdateClassDto {
 }
 
 export class AddMemberDto {
-  @ApiProperty({ example: 'hocvien@example.com', description: 'Email of an existing student account' })
+  @ApiProperty({
+    example: 'hocvien@example.com',
+    description: 'Student email; an address with no account gets an invitation',
+  })
   @IsEmail()
   email!: string;
 }

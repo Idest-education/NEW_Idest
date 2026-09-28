@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { ClassStatus, Prisma, Role } from '@prisma/client';
+import { ClassStatus, Prisma, Role, type User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import {
@@ -15,19 +15,29 @@ import {
   UpdateClassDto,
 } from './dto/class.dto.js';
 import { ListClassesQueryDto } from './dto/list-classes-query.dto.js';
+import { ClassInvitationsService, type ClassInvitationRow } from './class-invitations.service.js';
+import { PENDING } from './class-invitations.js';
 
 const MEMBER_SELECT = {
   id: true,
   joinedAt: true,
   removedAt: true,
   student: { select: { id: true, displayName: true, email: true } },
-};
+} as const;
+
+type MemberRow = Prisma.ClassMemberGetPayload<{ select: typeof MEMBER_SELECT }>;
+
+/** What adding by email did: seated an existing student, or emailed an invite. */
+export type AddMemberResult =
+  | { outcome: 'added'; member: MemberRow }
+  | { outcome: 'invited'; invitation: ClassInvitationRow };
 
 @Injectable()
 export class ClassesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly invitations: ClassInvitationsService,
   ) {}
 
   /** Throws unless this teacher owns the class; admins pass through. */
@@ -127,6 +137,11 @@ export class ClassesService {
         members: { where: { removedAt: null }, select: MEMBER_SELECT, orderBy: { joinedAt: 'asc' } },
         assignments: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' } },
         inviteLinks: { where: { revokedAt: null }, orderBy: { createdAt: 'desc' } },
+        invitations: {
+          where: PENDING,
+          select: { id: true, email: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
     if (!klass || klass.deletedAt) throw new NotFoundException('Class not found');
@@ -137,8 +152,8 @@ export class ClassesService {
     if (role === Role.student) {
       const member = klass.members.some((m) => m.student.id === userId);
       if (!member) throw new ForbiddenException('You are not in this class');
-      // A student reads the roster and the work, never the teacher's invite links.
-      return { ...klass, inviteLinks: [] };
+      // A student reads the roster and the work, never the teacher's invites.
+      return { ...klass, inviteLinks: [], invitations: [] };
     }
     return klass;
   }
@@ -190,13 +205,17 @@ export class ClassesService {
     return { message: 'Class deleted', classId };
   }
 
-  async addMember(classId: string, userId: string, role: string, dto: AddMemberDto) {
-    await this.ownedClass(classId, userId, role);
-    const student = await this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase() } });
+  async addMember(
+    classId: string,
+    actor: Pick<User, 'id' | 'clerkUserId' | 'role'>,
+    dto: AddMemberDto,
+  ): Promise<AddMemberResult> {
+    const klass = await this.ownedClass(classId, actor.id, actor.role);
+    const email = dto.email.trim().toLowerCase();
+    const student = await this.prisma.user.findUnique({ where: { email } });
     if (!student) {
-      throw new NotFoundException(
-        'No account with that email yet — send an invitation or an invite link first',
-      );
+      const invitation = await this.invitations.invite(klass, email, actor);
+      return { outcome: 'invited', invitation };
     }
     if (student.role !== Role.student) {
       throw new BadRequestException('Only student accounts can join a class');
@@ -217,13 +236,18 @@ export class ClassesService {
         });
 
     await this.audit.logEvent({
-      actorId: userId,
+      actorId: actor.id,
       eventType: 'class.member_added',
       entityType: 'class',
       entityId: classId,
       metadata: { studentId: student.id },
     });
-    return member;
+    return { outcome: 'added', member };
+  }
+
+  async cancelInvitation(classId: string, invitationId: string, userId: string, role: string) {
+    await this.ownedClass(classId, userId, role);
+    return this.invitations.cancel(classId, invitationId, userId);
   }
 
   async removeMember(classId: string, studentId: string, userId: string, role: string) {

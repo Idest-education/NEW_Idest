@@ -60,9 +60,23 @@ export class ClassesController {
 
   @Post(':id/members')
   @Roles('teacher', 'admin')
-  @ApiOperation({ summary: 'Add an existing student account to the class (Teacher only)' })
+  @ApiOperation({
+    summary: 'Add a student by email: seats an existing student, or emails an invite (Teacher only)',
+  })
   addMember(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AddMemberDto) {
-    return this.classes.addMember(id, user.id, user.role, dto);
+    return this.classes.addMember(id, user, dto);
+  }
+
+  @Delete(':id/invitations/:invitationId')
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: 'Cancel a pending email invitation to the class (Teacher only)' })
+  @ApiResponse({ status: 404, description: 'No pending invitation with that id in this class' })
+  cancelInvitation(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('invitationId') invitationId: string,
+  ) {
+    return this.classes.cancelInvitation(id, invitationId, user.id, user.role);
   }
 
   @Delete(':id/members/:studentId')
