@@ -9,6 +9,7 @@ import {
   doneCount,
   isTourStepId,
   placeBubble,
+  tourExitUrl,
   tourHref,
   type TourStepId,
 } from "./tour";
@@ -257,9 +258,39 @@ describe("placeBubble", () => {
     ).toEqual({ top: 384, left: 16, placement: "below" });
   });
 
+  it("stays inside the top gutter when the target is scrolled above the viewport", () => {
+    expect(placeBubble({ top: -300, left: 100, width: 200, height: 40 }, bubble, desktop)).toEqual({
+      top: 16,
+      left: 40,
+      placement: "below",
+    });
+  });
+
+  it("stays inside the bottom gutter when the target is scrolled below the viewport", () => {
+    expect(placeBubble({ top: 2000, left: 100, width: 200, height: 40 }, bubble, desktop)).toEqual({
+      top: 624,
+      left: 40,
+      placement: "above",
+    });
+  });
+
   it("pins to the left gutter when the bubble is wider than the viewport", () => {
     expect(
       placeBubble({ top: 100, left: 100, width: 50, height: 40 }, bubble, { width: 300, height: 600 }).left,
     ).toBe(16);
+  });
+});
+
+describe("tourExitUrl", () => {
+  it("drops the tour param and keeps the rest", () => {
+    expect(tourExitUrl("/teacher/classes/c1", "?tab=invites&tour=invite-link")).toBe("/teacher/classes/c1?tab=invites");
+  });
+
+  it("returns the bare path when tour was the only param", () => {
+    expect(tourExitUrl("/teacher/classes", "?tour=create-class")).toBe("/teacher/classes");
+  });
+
+  it("drops every repeated tour param", () => {
+    expect(tourExitUrl("/profile", "?tour=invite-email&x=1&tour=create-class")).toBe("/profile?x=1");
   });
 });

@@ -215,12 +215,22 @@ export function placeBubble(target: Rect | null, bubble: Size, viewport: Size): 
   }
 
   const left = clamp(target.left + target.width / 2 - bubble.width / 2, VIEWPORT_GUTTER, maxLeft);
+  // Every branch clamps vertically: a target scrolled off-screen must not
+  // take the bubble (and its "Đã hiểu" button) with it.
   const below = target.top + target.height + BUBBLE_GAP;
-  if (below <= maxTop) return { top: below, left, placement: "below" };
+  if (below <= maxTop) return { top: clamp(below, VIEWPORT_GUTTER, maxTop), left, placement: "below" };
 
   const above = target.top - BUBBLE_GAP - bubble.height;
-  if (above >= VIEWPORT_GUTTER) return { top: above, left, placement: "above" };
+  if (above >= VIEWPORT_GUTTER) return { top: clamp(above, VIEWPORT_GUTTER, maxTop), left, placement: "above" };
 
   // Neither side fits (a very tall target): keep the bubble on screen.
   return { top: clamp(below, VIEWPORT_GUTTER, maxTop), left, placement: "below" };
+}
+
+/** The current URL without `?tour=`: where ending a tour leaves the teacher. */
+export function tourExitUrl(pathname: string, search: string): string {
+  const params = new URLSearchParams(search);
+  params.delete("tour");
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
 }

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useId, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   TOUR_STEPS,
   TOUR_STEP_COUNT,
   isTourStepId,
   placeBubble,
+  tourExitUrl,
   type Rect,
   type Size,
   type TourStepId,
@@ -43,25 +44,25 @@ export function TourSpot() {
 }
 
 function Spotlight({ id }: { id: TourStepId }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const params = useSearchParams();
   const step = TOUR_STEPS[id];
   const titleId = useId();
   const bodyId = useId();
   const [phase, setPhase] = useState<Phase>({ kind: "searching" });
+  const [ended, setEnded] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
   const [bubbleSize, setBubbleSize] = useState<Size>(BUBBLE_FALLBACK);
   const [vw, vh] = useSyncExternalStore(subscribeViewport, viewportKey, serverViewportKey)
     .split("x")
     .map(Number) as [number, number];
 
+  // Hide at once, then drop `?tour=` through the native history API: Next
+  // syncs useSearchParams from it without a server round-trip, so the page's
+  // own handler (an opening wizard, say) is never covered or reloaded.
   const end = useCallback(() => {
-    const next = new URLSearchParams(params.toString());
-    next.delete("tour");
-    const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [params, pathname, router]);
+    setEnded(true);
+    window.history.replaceState(null, "", tourExitUrl(pathname, window.location.search));
+  }, [pathname]);
 
   // Wait for the page to render the target; data-driven pages mount it late.
   useEffect(() => {
@@ -163,7 +164,7 @@ function Spotlight({ id }: { id: TourStepId }) {
     return () => observer.disconnect();
   }, []);
 
-  if (phase.kind === "searching") return null;
+  if (ended || phase.kind === "searching") return null;
   if (phase.kind === "found" && !rect) return null;
 
   const hole =
