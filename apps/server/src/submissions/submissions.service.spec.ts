@@ -304,3 +304,73 @@ describe('SubmissionsService.openReviewSession', () => {
     );
   });
 });
+
+describe('SubmissionsService.getAllSubmissions (teacher, paginated)', () => {
+  const TEACHER_ID = 'teacher-1';
+
+  function makeListPrisma() {
+    return {
+      submission: {
+        count: vi.fn().mockResolvedValue(3),
+        findMany: vi.fn().mockResolvedValue([]),
+        groupBy: vi.fn().mockResolvedValue([
+          { status: SubmissionStatus.scored, _count: { _all: 2 } },
+          { status: SubmissionStatus.published, _count: { _all: 1 } },
+        ]),
+      },
+    } as unknown as PrismaService & {
+      submission: Record<'count' | 'findMany' | 'groupBy', ReturnType<typeof vi.fn>>;
+    };
+  }
+
+  it("scopes to the teacher's own assignments in the chosen class and counts every status", async () => {
+    const prisma = makeListPrisma();
+    const service = new SubmissionsService(prisma, makeAudit(), makeRabbitmq());
+
+    const result = await service.getAllSubmissions(TEACHER_ID, Role.teacher, {
+      page: 1,
+      limit: 12,
+      classId: 'class-1',
+      status: SubmissionStatus.scored,
+    });
+
+    const listWhere = prisma.submission.findMany.mock.calls[0]![0].where;
+    expect(listWhere.assignment).toEqual({ teacherId: TEACHER_ID, classId: 'class-1' });
+    expect(listWhere.status).toBe(SubmissionStatus.scored);
+
+    // Counts ignore the status filter so every tab can show its own number.
+    const groupWhere = prisma.submission.groupBy.mock.calls[0]![0].where;
+    expect(groupWhere.assignment).toEqual({ teacherId: TEACHER_ID, classId: 'class-1' });
+    expect(groupWhere.status).toBeUndefined();
+
+    expect(result).toMatchObject({ total: 3, page: 1, limit: 12, totalPages: 1 });
+    const { counts } = result as { counts: Record<SubmissionStatus, number> };
+    expect(counts.scored).toBe(2);
+    expect(counts.published).toBe(1);
+    expect(counts.under_review).toBe(0);
+  });
+
+  it("maps classId 'none' to assignments given to no class", async () => {
+    const prisma = makeListPrisma();
+    const service = new SubmissionsService(prisma, makeAudit(), makeRabbitmq());
+
+    await service.getAllSubmissions(TEACHER_ID, Role.teacher, { page: 1, limit: 12, classId: 'none' });
+
+    expect(prisma.submission.findMany.mock.calls[0]![0].where.assignment).toEqual({
+      teacherId: TEACHER_ID,
+      classId: null,
+    });
+  });
+
+  it('orders by submittedAt with an id tiebreaker so pages stay stable', async () => {
+    const prisma = makeListPrisma();
+    const service = new SubmissionsService(prisma, makeAudit(), makeRabbitmq());
+
+    await service.getAllSubmissions(TEACHER_ID, Role.teacher, { page: 2, limit: 12 });
+
+    const args = prisma.submission.findMany.mock.calls[0]![0];
+    expect(args.orderBy).toEqual([{ submittedAt: 'desc' }, { id: 'asc' }]);
+    expect(args.skip).toBe(12);
+    expect(args.take).toBe(12);
+  });
+});

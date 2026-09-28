@@ -84,15 +84,24 @@ export class ClassesService {
         .map((m) => ({ ...m.class, joinedAt: m.joinedAt, memberCount: undefined }));
     }
 
-    const where: Prisma.ClassWhereInput = {
+    const q = query.q?.trim();
+    // Everything except the status filter: the per-status counts are taken
+    // over this, so each status tab shows how many classes it would open.
+    const scopeWhere: Prisma.ClassWhereInput = {
       ...(role === Role.teacher ? { teacherId: userId } : {}),
       deletedAt: null,
+      ...(q ? { name: { contains: q, mode: 'insensitive' } } : {}),
+    };
+    const where: Prisma.ClassWhereInput = {
+      ...scopeWhere,
       ...(query.status ? { status: query.status } : {}),
     };
     const include = {
-      _count: { select: { assignments: true, members: true } },
+      // Deleted assignments stay as rows (soft delete) and must not be counted.
+      _count: { select: { assignments: { where: { deletedAt: null } }, members: true } },
     } satisfies Prisma.ClassInclude;
-    const orderBy: Prisma.ClassOrderByWithRelationInput = { createdAt: 'desc' };
+    // id breaks createdAt ties so skip/take pages never repeat or drop a class.
+    const orderBy: Prisma.ClassOrderByWithRelationInput[] = [{ createdAt: 'desc' }, { id: 'asc' }];
 
     const withCounts = async <T extends { id: string; _count: { assignments: number } }>(classes: T[]) => {
       // Removed students must not inflate the roster count.
@@ -112,16 +121,23 @@ export class ClassesService {
     if (query.page || query.limit) {
       const limit = Math.min(query.limit ?? 20, 100);
       const page = query.page ?? 1;
-      const [total, classes] = await Promise.all([
+      const [total, classes, grouped] = await Promise.all([
         this.prisma.class.count({ where }),
         this.prisma.class.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
+        this.prisma.class.groupBy({ by: ['status'], where: scopeWhere, _count: { _all: true } }),
       ]);
+      const counts = Object.fromEntries(Object.values(ClassStatus).map((status) => [status, 0])) as Record<
+        ClassStatus,
+        number
+      >;
+      for (const group of grouped) counts[group.status] = group._count._all;
       return {
         data: await withCounts(classes),
         total,
         page,
         limit,
         totalPages: Math.max(1, Math.ceil(total / limit)),
+        counts,
       };
     }
 

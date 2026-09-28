@@ -23,6 +23,13 @@ export class ListSubmissionsQueryDto {
   @IsEnum(SubmissionStatus)
   status?: SubmissionStatus;
 
+  @ApiPropertyOptional({
+    description: "Only submissions to this class's assignments; 'none' for assignments given to no class",
+  })
+  @IsOptional()
+  @IsString()
+  classId?: string;
+
   @ApiPropertyOptional({ description: 'Search by student name/email or assignment title' })
   @IsOptional()
   @IsString()

@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ClassStatus } from '@prisma/client';
@@ -22,4 +22,9 @@ export class ListClassesQueryDto {
   @IsOptional()
   @IsEnum(ClassStatus)
   status?: ClassStatus;
+
+  @ApiPropertyOptional({ description: 'Search by class name' })
+  @IsOptional()
+  @IsString()
+  q?: string;
 }

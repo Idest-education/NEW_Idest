@@ -253,6 +253,10 @@ export class AssignmentsService {
       const orderBy: Prisma.AssignmentOrderByWithRelationInput[] = [
         { highlighted: 'desc' },
         { createdAt: 'desc' },
+        // Unique tiebreaker: rows sharing a createdAt (bulk seeds, imports)
+        // would otherwise sort nondeterministically and repeat or vanish
+        // between skip/take pages.
+        { id: 'asc' },
       ];
       const include = {
         class: { select: { id: true, name: true } },

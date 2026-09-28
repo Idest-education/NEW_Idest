@@ -323,9 +323,14 @@ export class SubmissionsService {
     }
 
     const q = query.q?.trim();
-    const where: Prisma.SubmissionWhereInput = {
-      ...(role === Role.teacher ? { assignment: { teacherId: userId } } : {}),
-      ...(query.status ? { status: query.status } : {}),
+    const assignmentWhere: Prisma.AssignmentWhereInput = {
+      ...(role === Role.teacher ? { teacherId: userId } : {}),
+      ...(query.classId === 'none' ? { classId: null } : query.classId ? { classId: query.classId } : {}),
+    };
+    // Everything except the status filter: the per-status counts are taken
+    // over this, so each status tab shows how many rows it would open.
+    const scopeWhere: Prisma.SubmissionWhereInput = {
+      ...(Object.keys(assignmentWhere).length > 0 ? { assignment: assignmentWhere } : {}),
       ...(q
         ? {
             OR: [
@@ -335,6 +340,10 @@ export class SubmissionsService {
             ],
           }
         : {}),
+    };
+    const where: Prisma.SubmissionWhereInput = {
+      ...scopeWhere,
+      ...(query.status ? { status: query.status } : {}),
     };
     const include = {
       assignment: {
@@ -353,7 +362,8 @@ export class SubmissionsService {
       },
       redoRequests: { where: { status: RedoStatus.open }, select: { id: true, reason: true, createdAt: true } },
     } satisfies Prisma.SubmissionInclude;
-    const orderBy: Prisma.SubmissionOrderByWithRelationInput = { submittedAt: 'desc' };
+    // id breaks submittedAt ties so skip/take pages never repeat or drop a row.
+    const orderBy: Prisma.SubmissionOrderByWithRelationInput[] = [{ submittedAt: 'desc' }, { id: 'asc' }];
 
     const shape = <T extends { scoringResults: { scores: unknown }[]; publishedResults: unknown[]; redoRequests: unknown[] }>(
       row: T,
@@ -369,16 +379,23 @@ export class SubmissionsService {
     if (query.page || query.limit) {
       const limit = Math.min(query.limit ?? 20, 100);
       const page = query.page ?? 1;
-      const [total, rows] = await Promise.all([
+      const [total, rows, grouped] = await Promise.all([
         this.prisma.submission.count({ where }),
         this.prisma.submission.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
+        this.prisma.submission.groupBy({ by: ['status'], where: scopeWhere, _count: { _all: true } }),
       ]);
+      const counts = Object.fromEntries(Object.values(SubmissionStatus).map((status) => [status, 0])) as Record<
+        SubmissionStatus,
+        number
+      >;
+      for (const group of grouped) counts[group.status] = group._count._all;
       return {
         data: rows.map(shape),
         total,
         page,
         limit,
         totalPages: Math.max(1, Math.ceil(total / limit)),
+        counts,
       };
     }
 

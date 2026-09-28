@@ -158,3 +158,54 @@ describe('ClassesService.deleteClass', () => {
     expect(ctx.invitations.revokeUnused).toHaveBeenCalledWith(['new@example.com']);
   });
 });
+
+describe('ClassesService.listClasses (teacher, paginated)', () => {
+  function setupList() {
+    const prisma = {
+      class: {
+        count: vi.fn().mockResolvedValue(1),
+        findMany: vi.fn().mockResolvedValue([{ id: 'class_1', _count: { assignments: 2, members: 5 } }]),
+        groupBy: vi.fn().mockResolvedValue([
+          { status: 'active', _count: { _all: 3 } },
+          { status: 'archived', _count: { _all: 1 } },
+        ]),
+      },
+      classMember: { groupBy: vi.fn().mockResolvedValue([{ classId: 'class_1', _count: 4 }]) },
+    } as unknown as PrismaService & {
+      class: Record<'count' | 'findMany' | 'groupBy', Mock>;
+      classMember: Record<'groupBy', Mock>;
+    };
+    const service = new ClassesService(prisma, {} as AuditService, {} as ClassInvitationsService);
+    return { prisma, service };
+  }
+
+  it('searches by name, counts every status, and ignores soft-deleted assignments', async () => {
+    const { prisma, service } = setupList();
+
+    const result = await service.listClasses('teacher_1', 'teacher', {
+      page: 1,
+      limit: 11,
+      status: 'active',
+      q: ' tối ',
+    });
+
+    const args = prisma.class.findMany.mock.calls[0]![0];
+    expect(args.where).toMatchObject({
+      teacherId: 'teacher_1',
+      deletedAt: null,
+      status: 'active',
+      name: { contains: 'tối', mode: 'insensitive' },
+    });
+    expect(args.include._count.select.assignments).toEqual({ where: { deletedAt: null } });
+    expect(args.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'asc' }]);
+
+    // Counts ignore the status filter so both tabs can show their number.
+    expect(prisma.class.groupBy.mock.calls[0]![0].where.status).toBeUndefined();
+
+    expect(result).toMatchObject({
+      total: 1,
+      counts: { active: 3, archived: 1 },
+      data: [{ id: 'class_1', memberCount: 4, assignmentCount: 2 }],
+    });
+  });
+});
