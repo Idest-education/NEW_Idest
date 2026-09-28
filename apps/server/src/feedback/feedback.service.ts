@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import type { FeedbackResponse, User } from '@prisma/client';
 import {
@@ -9,6 +10,7 @@ import {
 } from '@repo/feedback-contract';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { toCsv, toSps } from './export.js';
 
 /** The teacher pop-up shows at 10, 20, 30… graded submissions. */
 export const PROMPT_EVERY = 10;
@@ -32,6 +34,14 @@ export interface FeedbackState {
 }
 
 export type Usage = Record<string, number>;
+
+export type ExportFormat = 'csv' | 'sps';
+
+export interface ExportFile {
+  filename: string;
+  contentType: string;
+  body: string;
+}
 
 /**
  * X hides the pop-up until the next multiple of 10 graded; answering hides it
@@ -107,6 +117,32 @@ export class FeedbackService {
       data: { feedbackPromptDismissedCount: graded },
     });
     return { prompt: false };
+  }
+
+  /** The admin's SPSS files. Both names carry the same UTC date, so the .sps finds the CSV. */
+  async exportFile(actorId: string, format: ExportFormat, now = new Date()): Promise<ExportFile> {
+    const day = now.toISOString().slice(0, 10);
+    let body: string;
+    let rows = 0;
+    if (format === 'csv') {
+      const responses = await this.prisma.feedbackResponse.findMany({ orderBy: { createdAt: 'asc' } });
+      rows = responses.length;
+      body = toCsv(responses);
+    } else {
+      body = toSps(`feedback-${day}.csv`);
+    }
+    await this.audit.logEvent({
+      actorId,
+      eventType: 'feedback.exported',
+      entityType: 'feedback_export',
+      entityId: randomUUID(),
+      metadata: { format, rows },
+    });
+    return {
+      filename: `feedback-${day}.${format}`,
+      contentType: format === 'csv' ? 'text/csv; charset=utf-8' : 'text/plain; charset=utf-8',
+      body,
+    };
   }
 
   /**

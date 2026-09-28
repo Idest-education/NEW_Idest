@@ -261,3 +261,38 @@ describe('FeedbackService.dismissPrompt', () => {
     });
   });
 });
+
+describe('FeedbackService.exportFile', () => {
+  it('builds the dated CSV from every response and audits the export', async () => {
+    const prisma = makePrisma({ rows: [responseRow(), responseRow({ id: 'resp-2', role: 'student' })] });
+    const logEvent = vi.fn().mockResolvedValue({});
+    const service = new FeedbackService(prisma, { logEvent } as unknown as AuditService);
+
+    const file = await service.exportFile('admin-1', 'csv', NOW);
+
+    expect(file.filename).toBe('feedback-2026-09-28.csv');
+    expect(file.contentType).toBe('text/csv; charset=utf-8');
+    expect(file.body.trimEnd().split('\n')).toHaveLength(3);
+    expect(prisma.feedbackResponse.findMany).toHaveBeenCalledWith({ orderBy: { createdAt: 'asc' } });
+    expect(logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'admin-1',
+        eventType: 'feedback.exported',
+        entityType: 'feedback_export',
+        metadata: { format: 'csv', rows: 2 },
+      }),
+    );
+  });
+
+  it('builds the SPSS syntax pointing at the same day CSV without reading responses', async () => {
+    const prisma = makePrisma();
+    const service = new FeedbackService(prisma, { logEvent: vi.fn() } as unknown as AuditService);
+
+    const file = await service.exportFile('admin-1', 'sps', NOW);
+
+    expect(file.filename).toBe('feedback-2026-09-28.sps');
+    expect(file.contentType).toBe('text/plain; charset=utf-8');
+    expect(file.body).toContain("/NAME='feedback-2026-09-28.csv'");
+    expect(prisma.feedbackResponse.findMany).not.toHaveBeenCalled();
+  });
+});
