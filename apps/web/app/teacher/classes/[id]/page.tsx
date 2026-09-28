@@ -5,14 +5,17 @@ import Link from "next/link";
 import { toDataURL } from "qrcode";
 import {
   ASSIGNMENT_STATUS_LABEL,
+  ApiError,
   CLASS_STATUS_LABEL,
   TASK_TYPE_LABEL,
   type Assignment,
   type AssignmentStatus,
   type ClassDetail,
+  type ClassInvitationRow,
   type ClassMemberRow,
   type InviteLinkRow,
   addClassMember,
+  cancelClassInvitation,
   createInviteLink,
   deleteClass,
   getClass,
@@ -113,6 +116,7 @@ function ClassBody({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [memberEmail, setMemberEmail] = useState("");
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [memberNotice, setMemberNotice] = useState<string | null>(null);
   const [inviteLabel, setInviteLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ClassTab | null>(initialTab);
@@ -140,17 +144,42 @@ function ClassBody({
   }, [klass.id, run]);
 
   const addMember = useCallback(async () => {
-    if (!memberEmail.trim()) {
-      setMemberError("Nhập email học viên đã có tài khoản.");
+    const email = memberEmail.trim();
+    if (!email) {
+      setMemberError("Nhập email học viên.");
       return;
     }
     setMemberError(null);
-    const done = await run((token) => addClassMember(token, klass.id, memberEmail.trim()));
-    if (done) {
+    setMemberNotice(null);
+    const result = await run(async (token) => {
+      try {
+        return await addClassMember(token, klass.id, email);
+      } catch (err) {
+        // 503 = Clerk could not send the email; nothing was saved.
+        if (err instanceof ApiError && err.status === 503) {
+          throw new ApiError(503, "Không gửi được email mời. Thử lại sau.");
+        }
+        throw err;
+      }
+    });
+    if (result) {
       setMemberEmail("");
+      setMemberNotice(
+        result.outcome === "added"
+          ? `Đã thêm ${result.member.student.displayName} vào lớp.`
+          : `Chưa có tài khoản với ${result.invitation.email} — đã gửi email mời. Học viên sẽ tự vào lớp khi đăng ký.`,
+      );
       await onChanged();
     }
   }, [klass.id, memberEmail, run, onChanged]);
+
+  const cancelInvitation = useCallback(
+    async (invitationId: string) => {
+      const done = await run((token) => cancelClassInvitation(token, klass.id, invitationId));
+      if (done) await onChanged();
+    },
+    [klass.id, run, onChanged],
+  );
 
   const removeMember = useCallback(
     async (studentId: string) => {
@@ -309,12 +338,15 @@ function ClassBody({
       {activeTab === "students" ? (
         <StudentsPanel
           members={activeMembers}
+          invitations={klass.invitations ?? []}
           busy={busy}
           onRemove={removeMember}
+          onCancelInvitation={cancelInvitation}
           memberEmail={memberEmail}
           onMemberEmailChange={setMemberEmail}
           onAddMember={addMember}
           memberError={memberError}
+          memberNotice={memberNotice}
         />
       ) : null}
 
@@ -338,20 +370,26 @@ function ClassBody({
 
 function StudentsPanel({
   members,
+  invitations,
   busy,
   onRemove,
+  onCancelInvitation,
   memberEmail,
   onMemberEmailChange,
   onAddMember,
   memberError,
+  memberNotice,
 }: {
   members: ClassMemberRow[];
+  invitations: ClassInvitationRow[];
   busy: boolean;
   onRemove: (studentId: string) => void;
+  onCancelInvitation: (invitationId: string) => void;
   memberEmail: string;
   onMemberEmailChange: (v: string) => void;
   onAddMember: () => void;
   memberError: string | null;
+  memberNotice: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -372,7 +410,7 @@ function StudentsPanel({
     <div className={s.classPanel}>
       <div className={s.fieldRow} data-tour="invite-student">
         <label className={s.fieldLabel} htmlFor="add-member">
-          Thêm học viên bằng email (đã có tài khoản)
+          Mời học viên bằng email
         </label>
         <div className={s.actionRow} style={{ marginTop: 0 }}>
           <input
@@ -388,6 +426,7 @@ function StudentsPanel({
           </button>
         </div>
         {memberError ? <Notice tone="alert">{memberError}</Notice> : null}
+        {memberNotice ? <Notice tone="ok">{memberNotice}</Notice> : null}
       </div>
 
       {members.length === 0 ? (
@@ -439,6 +478,34 @@ function StudentsPanel({
           <Pager page={pageClamped} totalPages={totalPages} onPage={setPage} />
         </>
       )}
+
+      {invitations.length > 0 ? (
+        <div style={{ marginTop: "1.25rem" }}>
+          <span className={s.fieldLabel}>Đang chờ đăng ký ({invitations.length})</span>
+          <div className={s.studentList}>
+            {invitations.map((inv) => (
+              <div key={inv.id} className={s.studentRow}>
+                <span className={s.studentAvatar} aria-hidden="true">
+                  @
+                </span>
+                <span className={s.studentInfo}>
+                  <span className={s.studentName}>{inv.email}</span>
+                  <span className={s.studentEmail}>chưa có tài khoản</span>
+                </span>
+                <span className={s.studentJoined}>mời {day(inv.createdAt)}</span>
+                <button
+                  type="button"
+                  className={s.pressQuiet}
+                  disabled={busy}
+                  onClick={() => onCancelInvitation(inv.id)}
+                >
+                  Hủy lời mời
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
