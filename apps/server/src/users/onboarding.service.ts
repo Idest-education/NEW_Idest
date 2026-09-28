@@ -29,13 +29,14 @@ export class OnboardingService {
    * "Ever done" semantics: the tutorial teaches an action, so soft-deleted
    * classes, removed members and revoked links still count. Opened means
    * `active` or `closed`; `archived` is excluded because deleting a draft
-   * also archives it.
+   * also archives it. Inviting counts even before the student signs up.
    */
   async status(user: User): Promise<OnboardingStatus> {
     const teacherId = user.id;
-    const [klass, member, link, assignment, opened, target] = await Promise.all([
+    const [klass, member, invitation, link, assignment, opened, target] = await Promise.all([
       this.prisma.class.findFirst({ where: { teacherId }, ...ID_ONLY }),
       this.prisma.classMember.findFirst({ where: { class: { teacherId } }, ...ID_ONLY }),
+      this.prisma.classInvitation.findFirst({ where: { teacherId }, ...ID_ONLY }),
       this.prisma.inviteLink.findFirst({ where: { teacherId }, ...ID_ONLY }),
       this.prisma.assignment.findFirst({ where: { teacherId }, ...ID_ONLY }),
       this.prisma.assignment.findFirst({
@@ -55,7 +56,7 @@ export class OnboardingService {
     return {
       steps: {
         createClass: klass !== null,
-        inviteStudent: member !== null,
+        inviteStudent: member !== null || invitation !== null,
         inviteLink: link !== null,
         createAssignment: assignment !== null,
         openAssignment: opened !== null,

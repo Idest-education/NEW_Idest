@@ -10,6 +10,7 @@ type FindArgs = { where: { status?: unknown } };
 interface Rows {
   klass?: Row;
   member?: Row;
+  invitation?: Row;
   link?: Row;
   assignment?: Row;
   opened?: Row;
@@ -30,6 +31,7 @@ function makePrisma(rows: Rows = {}) {
       ),
     },
     classMember: { findFirst: vi.fn(() => Promise.resolve(rows.member ?? null)) },
+    classInvitation: { findFirst: vi.fn(() => Promise.resolve(rows.invitation ?? null)) },
     inviteLink: { findFirst: vi.fn(() => Promise.resolve(rows.link ?? null)) },
     assignment: {
       findFirst: vi.fn((args: FindArgs) =>
@@ -40,6 +42,7 @@ function makePrisma(rows: Rows = {}) {
   } as unknown as PrismaService & {
     class: Record<'findFirst', Mock>;
     classMember: Record<'findFirst', Mock>;
+    classInvitation: Record<'findFirst', Mock>;
     inviteLink: Record<'findFirst', Mock>;
     assignment: Record<'findFirst', Mock>;
     user: Record<'update', Mock>;
@@ -152,6 +155,18 @@ describe('OnboardingService.status', () => {
 
     expect(status.steps.createClass).toBe(true);
     expect(status.targetClassId).toBeNull();
+  });
+
+  it('ticks the invite step on a pending or past invitation alone', async () => {
+    const prisma = makePrisma({ invitation: { id: 'inv_1' } });
+
+    const status = await new OnboardingService(prisma).status(teacher);
+
+    expect(status.steps.inviteStudent).toBe(true);
+    expect(prisma.classInvitation.findFirst).toHaveBeenCalledWith({
+      where: { teacherId: 'teacher_1' },
+      select: idOnly,
+    });
   });
 
   it('serialises the dismissal timestamp as ISO UTC', async () => {
