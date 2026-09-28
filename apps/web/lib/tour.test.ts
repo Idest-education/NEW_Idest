@@ -8,6 +8,7 @@ import {
   classTabFromParam,
   doneCount,
   isTourStepId,
+  placeBubble,
   tourHref,
   type TourStepId,
 } from "./tour";
@@ -214,5 +215,51 @@ describe("classTabFromParam", () => {
     expect(classTabFromParam(undefined)).toBe("students");
     expect(classTabFromParam("bogus")).toBe("students");
     expect(classTabFromParam([])).toBe("students");
+  });
+});
+
+describe("placeBubble", () => {
+  const bubble = { width: 320, height: 160 };
+  const desktop = { width: 1280, height: 800 };
+
+  it("sits below the target, centred on it", () => {
+    expect(placeBubble({ top: 100, left: 100, width: 200, height: 40 }, bubble, desktop)).toEqual({
+      top: 152,
+      left: 40,
+      placement: "below",
+    });
+  });
+
+  it("flips above when there is no room below", () => {
+    expect(placeBubble({ top: 700, left: 500, width: 200, height: 40 }, bubble, desktop)).toEqual({
+      top: 528,
+      left: 440,
+      placement: "above",
+    });
+  });
+
+  it("clamps to the right gutter", () => {
+    expect(placeBubble({ top: 100, left: 1200, width: 60, height: 40 }, bubble, desktop).left).toBe(944);
+  });
+
+  it("clamps to the left gutter", () => {
+    expect(placeBubble({ top: 100, left: 0, width: 20, height: 40 }, bubble, desktop).left).toBe(16);
+  });
+
+  it("centres in the viewport when there is no target", () => {
+    expect(placeBubble(null, bubble, desktop)).toEqual({ top: 320, left: 480, placement: "center" });
+  });
+
+  it("stays on screen for a target taller than a phone viewport", () => {
+    const phone = { width: 375, height: 600 };
+    expect(
+      placeBubble({ top: 50, left: 16, width: 343, height: 560 }, { width: 343, height: 200 }, phone),
+    ).toEqual({ top: 384, left: 16, placement: "below" });
+  });
+
+  it("pins to the left gutter when the bubble is wider than the viewport", () => {
+    expect(
+      placeBubble({ top: 100, left: 100, width: 50, height: 40 }, bubble, { width: 300, height: 600 }).left,
+    ).toBe(16);
   });
 });

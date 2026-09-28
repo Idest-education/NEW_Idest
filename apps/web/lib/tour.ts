@@ -170,3 +170,57 @@ export function classTabFromParam(value: string | string[] | undefined): ClassTa
   const first = Array.isArray(value) ? value[0] : value;
   return first === "assignments" || first === "invites" ? first : "students";
 }
+
+export interface Rect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+export interface Size {
+  width: number;
+  height: number;
+}
+
+export interface BubblePlacement {
+  top: number;
+  left: number;
+  placement: "below" | "above" | "center";
+}
+
+export const BUBBLE_GAP = 12;
+export const VIEWPORT_GUTTER = 16;
+
+/** Like Math.min(Math.max(...)), but `min` wins when the range is inverted. */
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), Math.max(min, max));
+}
+
+/**
+ * Fixed-position coordinates for the hint bubble: below the target, flipped
+ * above when it does not fit, always inside a 16px gutter. No target means
+ * the viewport centre.
+ */
+export function placeBubble(target: Rect | null, bubble: Size, viewport: Size): BubblePlacement {
+  const maxLeft = viewport.width - VIEWPORT_GUTTER - bubble.width;
+  const maxTop = viewport.height - VIEWPORT_GUTTER - bubble.height;
+
+  if (!target) {
+    return {
+      top: clamp((viewport.height - bubble.height) / 2, VIEWPORT_GUTTER, maxTop),
+      left: clamp((viewport.width - bubble.width) / 2, VIEWPORT_GUTTER, maxLeft),
+      placement: "center",
+    };
+  }
+
+  const left = clamp(target.left + target.width / 2 - bubble.width / 2, VIEWPORT_GUTTER, maxLeft);
+  const below = target.top + target.height + BUBBLE_GAP;
+  if (below <= maxTop) return { top: below, left, placement: "below" };
+
+  const above = target.top - BUBBLE_GAP - bubble.height;
+  if (above >= VIEWPORT_GUTTER) return { top: above, left, placement: "above" };
+
+  // Neither side fits (a very tall target): keep the bubble on screen.
+  return { top: clamp(below, VIEWPORT_GUTTER, maxTop), left, placement: "below" };
+}

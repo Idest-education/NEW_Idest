@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BAY_LABEL,
   CRITERIA,
@@ -13,6 +13,7 @@ import {
 } from "../lib/idest";
 import { band, deviation, isBand, signedBand, stripRef } from "../lib/format";
 import { Masthead } from "./masthead";
+import { TourSpot } from "./tour-spot";
 import styles from "./board.module.css";
 import type { Role } from "@repo/auth-contract";
 
@@ -31,6 +32,11 @@ export function Shell({
     <div className={styles.page}>
       <Masthead role={role} />
       <main className={`${styles.main} ${wide ? styles.wide : ""}`}>{children}</main>
+      {role === "teacher" ? (
+        <Suspense fallback={null}>
+          <TourSpot />
+        </Suspense>
+      ) : null}
     </div>
   );
 }
