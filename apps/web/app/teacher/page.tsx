@@ -10,6 +10,7 @@ import {
 import { stamp } from "../../lib/format";
 import { useResource } from "../../lib/use-api";
 import { Blank, Notice, Shell, Strip, WaitingRack, board as s } from "../../components/board";
+import { OnboardingCard } from "../../components/onboarding-card";
 
 const WAITING_STATUSES: SubmissionStatus[] = [
   "submitted",
@@ -53,6 +54,8 @@ export default function TeacherDashboard() {
       <p className={s.subtitle}>
         AI chấm sơ bộ mỗi bài nộp; không bài nào đến tay học viên khi bạn chưa duyệt.
       </p>
+
+      <OnboardingCard />
 
       {state === "error" ? <Notice tone="alert">{error}</Notice> : null}
       {state === "loading" ? <WaitingRack /> : null}

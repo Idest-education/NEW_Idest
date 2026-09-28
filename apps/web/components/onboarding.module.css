@@ -1,0 +1,150 @@
+.card {
+  margin: 1.25rem 0 0.5rem;
+  background: var(--stock);
+  border: 1px solid var(--stock-edge);
+  box-shadow: var(--seat);
+  padding: 1rem 1.1rem 0.9rem;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.count {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+.mark {
+  font-family: var(--font-figure);
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-quiet);
+}
+
+.rowDone .mark {
+  color: var(--cleared);
+}
+
+.rowBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.rowDone .rowTitle {
+  color: var(--ink-soft);
+}
+
+.rowHint {
+  font-size: 0.84rem;
+  color: var(--ink-quiet);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 0.75rem;
+}
+
+.textLink {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.textLink:hover {
+  color: var(--ink);
+}
+
+.blocked {
+  font-size: 0.84rem;
+  color: var(--ink-quiet);
+}
+
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.6rem;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-top: 2rem;
+  padding: 1rem 1.1rem;
+  background: var(--rack);
+}
+
+.replayText {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+  }
+
+  .actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

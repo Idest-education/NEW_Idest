@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { getProfile, submitTicket, type Profile } from "../../lib/idest";
 import { useAction, useResource } from "../../lib/use-api";
 import { Notice, Shell, board as s } from "../../components/board";
+import { OnboardingReplay } from "../../components/onboarding-card";
 
 const GUIDE_SECTIONS: { label: string; page: number }[] = [
   { label: "1. Giới thiệu", page: 1 },
@@ -28,6 +29,8 @@ export default function HelpPage() {
       <p className={s.subtitle}>Gặp trục trặc hoặc có câu hỏi? Gửi yêu cầu bên dưới, hoặc mở hướng dẫn sử dụng.</p>
 
       <TicketForm />
+
+      {data?.role === "teacher" ? <OnboardingReplay /> : null}
 
       <div className={s.sectionHead}>
         <h2 className={s.sectionTitle}>Hướng dẫn sử dụng</h2>
