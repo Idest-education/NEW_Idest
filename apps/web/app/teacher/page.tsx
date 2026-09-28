@@ -126,7 +126,7 @@ export default function TeacherDashboard() {
                 <span className={s.quickLinkArrow} aria-hidden="true">→</span>
               </span>
               <p className={s.quickLinkHint}>
-                Hồ sơ cá nhân, mời học viên qua email, tạo liên kết mời vào lớp.
+                Hồ sơ cá nhân, đổi tên hiển thị, xóa tài khoản.
               </p>
             </Link>
           </div>

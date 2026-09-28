@@ -178,7 +178,20 @@ export interface ClassDetail extends ClassSummary {
   members: ClassMemberRow[];
   assignments: Assignment[];
   inviteLinks: InviteLinkRow[];
+  /** Pending email invites; absent/empty in the student view. */
+  invitations?: ClassInvitationRow[];
 }
+
+export interface ClassInvitationRow {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
+/** What adding by email did: seated an existing student, or emailed an invite. */
+export type AddMemberResult =
+  | { outcome: "added"; member: ClassMemberRow }
+  | { outcome: "invited"; invitation: ClassInvitationRow };
 
 export interface InvitePreview {
   className: string;
@@ -539,9 +552,6 @@ export const unpublishResult = (token: string | null, submissionId: string, reas
     jsonInit("POST", reason ? { reason } : {}),
   );
 
-export const inviteStudent = (token: string | null, email: string) =>
-  request<{ id: string; email: string; status: string }>("/invitations", token, jsonInit("POST", { email }));
-
 export const listAllSubmissions = <T = SubmissionListRow[]>(token: string | null) =>
   request<T>("/submissions", token);
 
@@ -678,7 +688,14 @@ export const deleteClass = (token: string | null, id: string) =>
   request<{ message: string; classId: string }>(`/classes/${id}`, token, { method: "DELETE" });
 
 export const addClassMember = (token: string | null, classId: string, email: string) =>
-  request<ClassMemberRow>(`/classes/${classId}/members`, token, jsonInit("POST", { email }));
+  request<AddMemberResult>(`/classes/${classId}/members`, token, jsonInit("POST", { email }));
+
+export const cancelClassInvitation = (token: string | null, classId: string, invitationId: string) =>
+  request<{ message: string; invitationId: string }>(
+    `/classes/${classId}/invitations/${invitationId}`,
+    token,
+    { method: "DELETE" },
+  );
 
 export const removeClassMember = (token: string | null, classId: string, studentId: string) =>
   request<{ message: string }>(`/classes/${classId}/members/${studentId}`, token, { method: "DELETE" });

@@ -4,13 +4,9 @@ import { type FormEvent, useCallback, useState } from "react";
 import { useClerk } from "@clerk/nextjs";
 import type { Role } from "@repo/auth-contract";
 import {
-  type ClassSummary,
   type Profile,
-  createInviteLink,
   deleteAccount,
   getProfile,
-  inviteStudent,
-  listClasses,
   updateProfile,
 } from "../../lib/idest";
 import { MAX_DISPLAY_NAME, validateDisplayName } from "../../lib/profile";
@@ -36,7 +32,7 @@ export default function SettingsPage() {
   return (
     <Shell role={data?.role}>
       <h1 className={s.title}>Cài đặt</h1>
-      <p className={s.subtitle}>Hồ sơ cá nhân và các cách mời học viên vào bảng chấm của bạn.</p>
+      <p className={s.subtitle}>Hồ sơ cá nhân và tài khoản của bạn.</p>
 
       {state === "loading" ? <WaitingRack rows={1} /> : null}
       {state === "error" ? (
@@ -55,8 +51,6 @@ export default function SettingsPage() {
           <ProfileForm profile={data} onSaved={setData} />
           {data.role === "teacher" ? (
             <>
-              <InviteStudent />
-              <CreateInviteLink />
               <DangerZone profile={data} />
             </>
           ) : null}
@@ -146,136 +140,6 @@ function ProfileForm({ profile, onSaved }: { profile: Profile; onSaved: (p: Prof
   );
 }
 
-function InviteStudent() {
-  const { busy, error, run } = useAction();
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState<string | null>(null);
-
-  return (
-    <>
-      <div className={s.sectionHead}>
-        <h2 className={s.sectionTitle}>Mời học viên qua email</h2>
-      </div>
-      <div className={s.railBlock} data-tour="invite-email">
-        <label className={s.fieldLabel} htmlFor="invite">
-          Email học viên
-        </label>
-        <input
-          id="invite"
-          className={s.field}
-          type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setSent(null);
-          }}
-          placeholder="hocvien@example.com"
-        />
-        <div className={s.actionRow}>
-          <button
-            type="button"
-            className={s.press}
-            disabled={busy || !email.trim()}
-            onClick={async () => {
-              const done = await run((token) => inviteStudent(token, email.trim()));
-              if (done) {
-                setSent(done.email);
-                setEmail("");
-              }
-            }}
-          >
-            {busy ? "Đang gửi…" : "Gửi lời mời"}
-          </button>
-          <span className={s.fieldHint}>Học viên nhận email và tự đặt mật khẩu khi đăng ký.</span>
-        </div>
-        {sent ? <Notice tone="ok">Đã gửi lời mời tới {sent}.</Notice> : null}
-        {error ? <Notice tone="alert">{error}</Notice> : null}
-      </div>
-    </>
-  );
-}
-
-function CreateInviteLink() {
-  const { data: classes, state } = useResource<ClassSummary[]>((token) => listClasses(token));
-  const { busy, error, run } = useAction();
-  const [classId, setClassId] = useState("");
-  const [label, setLabel] = useState("");
-  const [url, setUrl] = useState<string | null>(null);
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-
-  return (
-    <>
-      <div className={s.sectionHead}>
-        <h2 className={s.sectionTitle}>Tạo liên kết mời vào lớp</h2>
-      </div>
-      <div className={s.railBlock}>
-        {state === "ready" && classes && classes.length > 0 ? (
-          <>
-            <div className={s.fieldRow}>
-              <label className={s.fieldLabel} htmlFor="link-class">
-                Lớp
-              </label>
-              <select
-                id="link-class"
-                className={s.field}
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-              >
-                <option value="">— Chọn lớp —</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={s.actionRow}>
-              <input
-                className={s.field}
-                style={{ flex: "1 1 14rem" }}
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                placeholder="Nhãn liên kết (tùy chọn)"
-              />
-              <button
-                type="button"
-                className={s.press}
-                disabled={busy || !classId}
-                onClick={async () => {
-                  const link = await run((token) =>
-                    createInviteLink(token, classId, { label: label.trim() || undefined }),
-                  );
-                  if (link) {
-                    setUrl(`${origin}/join/${link.token}`);
-                    setLabel("");
-                  }
-                }}
-              >
-                {busy ? "Đang tạo…" : "Tạo liên kết"}
-              </button>
-            </div>
-            {url ? (
-              <Notice tone="ok">
-                Đã tạo: <span className={s.figure}>{url}</span> — gửi cho học viên để họ tự vào lớp.
-              </Notice>
-            ) : null}
-            {error ? <Notice tone="alert">{error}</Notice> : null}
-          </>
-        ) : (
-          <p className={s.fieldHint}>
-            Chưa có lớp nào. Tạo một lớp ở mục Lớp học trước, rồi quay lại đây để tạo liên kết mời.
-          </p>
-        )}
-      </div>
-    </>
-  );
-}
-
-/**
- * Closing the board. Two steps on purpose: the panel stays shut until asked
- * for, and the final button only wakes up once the teacher has retyped their
- * own email — the same check the server runs before it touches a row.
- */
 function DangerZone({ profile }: { profile: Profile }) {
   const { signOut } = useClerk();
   const { busy, error, run } = useAction();

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  addClassMember,
+  cancelClassInvitation,
   getOnboarding,
   listUntaggedRevisions,
   recordReviewSessionQuietly,
@@ -162,5 +164,56 @@ describe("setOnboardingDismissed", () => {
       .mockResolvedValue(jsonResponse({ message: "Forbidden resource" }, 403)) as unknown as typeof fetch;
 
     await expect(setOnboardingDismissed("tok_123", false)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("addClassMember", () => {
+  it("returns an added outcome for an existing student", async () => {
+    const body = {
+      outcome: "added",
+      member: {
+        id: "m1",
+        joinedAt: "2026-09-28T00:00:00.000Z",
+        removedAt: null,
+        student: { id: "s1", displayName: "Ada", email: "ada@example.com" },
+      },
+    };
+    const spy = vi.fn().mockResolvedValue(jsonResponse(body, 201));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    const result = await addClassMember("tok_123", "class-1", "ada@example.com");
+
+    expect(result.outcome).toBe("added");
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/classes\/class-1\/members$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({ email: "ada@example.com" });
+  });
+
+  it("returns an invited outcome for an email with no account", async () => {
+    const body = {
+      outcome: "invited",
+      invitation: { id: "inv1", email: "new@example.com", createdAt: "2026-09-28T00:00:00.000Z" },
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue(jsonResponse(body, 201)) as unknown as typeof fetch;
+
+    const result = await addClassMember("tok_123", "class-1", "new@example.com");
+
+    expect(result).toEqual(body);
+  });
+});
+
+describe("cancelClassInvitation", () => {
+  it("deletes the pending invitation of the class", async () => {
+    const spy = vi.fn().mockResolvedValue(jsonResponse({ message: "Invitation cancelled", invitationId: "inv1" }));
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    await expect(cancelClassInvitation("tok_123", "class-1", "inv1")).resolves.toEqual({
+      message: "Invitation cancelled",
+      invitationId: "inv1",
+    });
+    const [url, init] = spy.mock.calls[0]!;
+    expect(String(url)).toMatch(/\/classes\/class-1\/invitations\/inv1$/);
+    expect(init.method).toBe("DELETE");
   });
 });
