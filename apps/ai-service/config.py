@@ -10,13 +10,16 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 # Identifies this grader in ai_model_versions. Bump it whenever the system
 # prompt, the response schema, or the generation config changes — otherwise two
 # different graders share one row and the analysis compares them as one.
-SCORER_REVISION = os.getenv("SCORER_REVISION", "2026-09-26-v3")
+# Not read from the environment: a stale .env value once filed results from a new
+# prompt under an old revision, and ai_model_versions never rewrites a row.
+SCORER_REVISION = "2026-10-11-v8"
 # How much Gemini may reason before answering. Thinking tokens bill as OUTPUT,
 # and output is roughly 90% of the cost of scoring one essay, so the cheapest
 # level that still grades well is pinned rather than left to the model default.
 # MINIMAL | LOW | MEDIUM | HIGH, or empty to send no thinking config at all —
 # needed for models that do not accept thinking_level and would return 400.
-GEMINI_THINKING_LEVEL = os.getenv("GEMINI_THINKING_LEVEL", "MINIMAL").strip().upper()
+# MINIMAL was tried first and compressed every batch into bands 4-8.
+GEMINI_THINKING_LEVEL = os.getenv("GEMINI_THINKING_LEVEL", "LOW").strip().upper()
 # Gemini flash models are natively multimodal, so a Task 1 chart is on by default.
 GEMINI_SUPPORTS_VISION = os.getenv("GEMINI_SUPPORTS_VISION", "true").lower() not in ("false", "0", "no")
 

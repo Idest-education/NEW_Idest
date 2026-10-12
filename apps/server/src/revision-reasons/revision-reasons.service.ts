@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { ReasonSource } from '@prisma/client';
+import { Prisma, ReasonSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagRevisionsDto } from './dto/tag-revisions.dto.js';
 import { reasonPromptThreshold } from './threshold.js';
@@ -9,12 +9,12 @@ import { reasonPromptThreshold } from './threshold.js';
 export class RevisionReasonsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Revisions this teacher made on this assignment that carry no reason yet. */
-  async listUntagged(teacherId: string, assignmentId: string) {
+  /** Revisions this teacher made on one assignment or batch that carry no reason yet. */
+  async listUntagged(teacherId: string, scope: Prisma.SubmissionWhereInput) {
     return this.prisma.scoreRevision.findMany({
       where: {
         revisedBy: teacherId,
-        submission: { assignmentId },
+        submission: scope,
         reasonTags: { none: {} },
       },
       select: {
@@ -27,6 +27,7 @@ export class RevisionReasonsService {
           select: {
             id: true,
             attemptNumber: true,
+            sourceRef: true,
             student: { select: { id: true, displayName: true } },
           },
         },
@@ -35,14 +36,14 @@ export class RevisionReasonsService {
     });
   }
 
-  /** Untagged count against the prompt threshold for this assignment. */
-  async promptState(teacherId: string, assignmentId: string) {
+  /** Untagged count against the prompt threshold for one assignment or batch. */
+  async promptState(teacherId: string, scope: Prisma.SubmissionWhereInput) {
     const [submissionCount, untagged] = await Promise.all([
-      this.prisma.submission.count({ where: { assignmentId } }),
+      this.prisma.submission.count({ where: scope }),
       this.prisma.scoreRevision.findMany({
         where: {
           revisedBy: teacherId,
-          submission: { assignmentId },
+          submission: scope,
           reasonTags: { none: {} },
         },
         select: { id: true },

@@ -1,0 +1,136 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.item + .item {
+  border-top: 1px solid var(--line);
+}
+
+.band {
+  width: 44px;
+  font-size: var(--fs-22);
+  font-weight: 800;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.title {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title:hover {
+  text-decoration: underline;
+}
+
+.card .title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.card {
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    border-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-3px);
+}
+
+.card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.card .title:focus-visible {
+  outline: none;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  text-align: center;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+}
+
+.emptyIcon {
+  font-size: 2rem;
+  color: var(--accent);
+}
+
+.emptyTitle {
+  font-weight: 700;
+  font-size: var(--fs-18);
+}
+
+@media (max-width: 560px) {
+  .item {
+    flex-wrap: wrap;
+  }
+
+  .main {
+    flex-basis: calc(100% - 60px);
+  }
+}

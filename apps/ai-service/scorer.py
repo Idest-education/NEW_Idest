@@ -7,10 +7,11 @@ holding results from three models instead of one.
 
 The layers, outermost first:
 
-    RotatingScorer        pick the next grader that is not rate-limited
-      CachedScorer        already scored this essay with this grader? serve it
-        ThrottledScorer   hold the call until this provider's rate floor allows it
-          provider        GPT / Gemini / Qwen / Ollama / stub
+    RotatingScorer          pick the next grader that is not rate-limited
+      CachedScorer          already scored this essay with this grader? serve it
+        RevisingScorer      extreme overall band? the same grader moderates its draft
+          ThrottledScorer   hold the call until this provider's rate floor allows it
+            provider        GPT / Gemini / Qwen / Ollama / stub
 
 The cache sits under the rotation, once per grader, because a cache key includes
 the grader's identity. The rotation still asks every cache first, so an essay
@@ -44,6 +45,7 @@ from providers import (
     GeminiScorer,
     OllamaScorer,
     OpenAICompatibleScorer,
+    RevisingScorer,
     RotatingScorer,
     Scorer,
     StubScorer,
@@ -131,9 +133,15 @@ def _build_one(name: str) -> Scorer | None:
 
 
 def _wrap(scorer: Scorer, name: str, cache_enabled: bool, cache_dir: str, min_seconds: float) -> Scorer:
-    """Puts the throttle and then the cache around one grader."""
+    """Puts the throttle, the second reading and then the cache around one grader.
+
+    The second reading sits above the throttle so its call waits for the rate
+    floor too, and below the cache so a cached result is the revised one.
+    """
     if name in METERED and min_seconds > 0:
         scorer = ThrottledScorer(scorer, RateLimiter(min_seconds))
+    if name != STUB:
+        scorer = RevisingScorer(scorer)
     if cache_enabled:
         scorer = CachedScorer(scorer, ScoringCache(cache_dir, enabled=True))
     return scorer

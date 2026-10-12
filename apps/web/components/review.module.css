@@ -1,0 +1,340 @@
+.panes {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  display: grid;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .panes {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+
+  .formPane {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+}
+
+.essayPane,
+.formPane {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.formPane {
+  container-type: inline-size;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.crumbs a {
+  text-decoration: none;
+}
+
+.title {
+  font-size: var(--fs-22);
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.prompt {
+  font-weight: 600;
+  white-space: pre-wrap;
+}
+
+.chart {
+  max-height: 260px;
+  width: auto;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+}
+
+.essay {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  font-size: var(--fs-18);
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.history summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--fs-14);
+}
+
+.history ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-14);
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.bandRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.aiBand {
+  font-size: var(--fs-28);
+  font-weight: 700;
+  color: var(--text-2);
+  line-height: 1.1;
+}
+
+.mainBand {
+  font-size: var(--fs-40);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.arrow {
+  transform: rotate(90deg);
+  color: var(--text-2);
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.fieldset:disabled {
+  opacity: 0.8;
+}
+
+.section {
+  display: grid;
+  gap: 10px;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.h2 {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+/* All four criteria in one frame: a 2 x 2 grid once the pane is wide enough. */
+.criteria {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+@container (min-width: 440px) {
+  .criteria {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.criterion {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.critHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 8px;
+}
+
+.critName {
+  display: grid;
+  min-width: 0;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.critShort {
+  font-size: var(--fs-12);
+  font-weight: 800;
+  color: var(--text-2);
+  letter-spacing: 0.04em;
+}
+
+.critMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.critNote {
+  min-height: 0;
+  height: 100%;
+  padding: 8px 10px;
+  font-size: var(--fs-14);
+  line-height: 1.5;
+  resize: none;
+}
+
+.grow {
+  field-sizing: content;
+  min-height: 3lh;
+  max-height: 12lh;
+  resize: none;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.stepBtn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: var(--fs-18);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stepBtn:not(:disabled):hover {
+  background: var(--surface-2);
+}
+
+.stepBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stepValue {
+  min-width: 40px;
+  text-align: center;
+  font-size: var(--fs-16);
+  font-weight: 800;
+  border-radius: 6px;
+}
+
+/* "Why?" opens in the top layer (native popover), so the grid never grows. */
+.whyPop {
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(70dvh, 520px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.whyPop:popover-open {
+  display: grid;
+  gap: 10px;
+}
+
+.whyPop::backdrop {
+  background: rgb(0 0 0 / 25%);
+}
+
+.whyTitle {
+  font-weight: 700;
+}
+
+.quote {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--text-2);
+  font-style: italic;
+  font-size: var(--fs-14);
+}
+
+/* Always reachable: pinned to the bottom of the pane while scrolling. */
+.actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 -20px -20px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+.actions > :first-child {
+  margin-right: auto;
+}
+
+.problem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  /* The pane scrolls; sticky stops at its padding, so reach past it. */
+  .actions {
+    bottom: -20px;
+  }
+}

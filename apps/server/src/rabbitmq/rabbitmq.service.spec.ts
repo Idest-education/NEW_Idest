@@ -84,7 +84,7 @@ describe('RabbitMQService broker failure handling', () => {
 
     await expect(
       service.publishScoringJob({
-        submissionId: 's-1', assignmentId: 'a-1', studentId: 'stu-1', attemptNumber: 1,
+        submissionId: 's-1', assignmentId: 'a-1', studentId: 'stu-1', batchId: null, attemptNumber: 1,
         taskPrompt: 'p', taskType: 'task_2', essayText: 'e', wordCount: 1,
         submittedAt: new Date().toISOString(),
       }),

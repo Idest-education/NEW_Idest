@@ -10,3 +10,9 @@ export const CurrentUser = createParamDecorator(
     return request.localUser;
   },
 );
+
+/** The signed-in caller on a @Public route, or null when anonymous. */
+export const OptionalUser = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): User | null =>
+    context.switchToHttp().getRequest<{ localUser?: User }>().localUser ?? null,
+);

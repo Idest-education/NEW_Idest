@@ -3,22 +3,22 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from worker import ScoringWorker
+from extraction.worker import ExtractionWorker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ai-service")
 
-worker_task = None
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global worker_task
-    worker = ScoringWorker()
-    worker_task = asyncio.create_task(worker.start())
-    logger.info("Started AI Scoring Worker task in background.")
+    tasks = [
+        asyncio.create_task(ScoringWorker().start()),
+        asyncio.create_task(ExtractionWorker().start()),
+    ]
+    logger.info("Started scoring and extraction workers in background.")
     yield
-    if worker_task:
-        worker_task.cancel()
-        logger.info("Cancelled AI Scoring Worker task.")
+    for task in tasks:
+        task.cancel()
+    logger.info("Cancelled background workers.")
 
 app = FastAPI(
     title="Idest AI Scoring Service",

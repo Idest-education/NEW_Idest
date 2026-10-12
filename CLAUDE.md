@@ -18,11 +18,14 @@ University of Information Technology (UIT), VNU-HCM — undergraduate thesis (KL
 
 ### One-line summary
 
-A website where students submit IELTS Writing essays, an LLM produces a preliminary
-assessment (overall band + 4 criterion scores + feedback), a teacher reviews/edits/approves
-it, and the student sees only the published result. AI results and teacher revisions are
-stored separately (append-only) to build a benchmark dataset and later train + evaluate a
-CatBoost ML model against the LLM and teacher scores.
+**Since 2026-10-11 (Sprint 3 pivot):** a free web tool for grading IELTS Writing. Anyone can
+grade one essay without an account (typed text, or photos that are transcribed and confirmed);
+signed-in teachers can also bulk-grade images, PDF, Word and Excel files, edit and finalize each
+AI score, and download the scores as Excel. An LLM produces each assessment (overall band +
+4 criterion scores + feedback). AI results and teacher revisions are still stored separately
+(append-only) to build the benchmark dataset for the later CatBoost comparison. The old
+class/assignment LMS is hidden (code and tables kept). Design:
+`docs/superpowers/specs/2026-10-11-grading-tool-pivot-design.md`.
 
 ## What this file is
 
@@ -41,14 +44,16 @@ Turborepo monorepo (pnpm).
 
 ```
 apps/
-  server/   NestJS + TypeScript — core backend API (auth, assignments, submissions,
-            review workflow, publication, history). Vitest, oxlint.
-  web/      Next.js + TypeScript — teacher and student web client.
+  server/      NestJS + TypeScript — core backend API (public grading, bulk batches, file
+               intake, review workflow, finalization, history; hidden LMS modules). Vitest, oxlint.
+  web/         Next.js + TypeScript — the grading tool and the teacher area.
+  ai-service/  Python FastAPI — RabbitMQ workers: scoring (LLM graders) and extraction
+               (OCR, PDF/Word/Excel parsing, AI sheet mapping). pytest.
 docs/       See "docs/ folder" below.
 ```
 
-Planned but not yet in the repo: a Python **FastAPI** service for AI scoring, and a
-**RabbitMQ** queue + background worker for async scoring jobs.
+Queues: `ai_scoring_queue` / `ai_scoring_results_queue` and `ai_extraction_queue` /
+`ai_extraction_results_queue` (RabbitMQ).
 
 ## Tech stack (from the thesis)
 
@@ -132,6 +137,7 @@ Re-list all docs (IDs change if recreated):
 | Teacher Onboarding (Checklist + Spotlight) | `z8rp3etr9y-738` | new-teacher tutorial: dashboard checklist, in-page spotlight, `users.onboarding_dismissed_at`; mirrors `docs/superpowers/specs/2026-09-28-teacher-onboarding-design.md` |
 | Class Invite by Email | `z8rp3etr9y-758` | class "Học viên" invite: add existing students, invite new ones via `class_invitations`, join on sign-up; mirrors `docs/superpowers/specs/2026-09-28-class-invite-by-email-design.md` |
 | Feedback Survey (SPSS) | `z8rp3etr9y-778` | in-app questionnaire (UMUX-Lite, usefulness, AI quality, satisfaction, NPS), teacher pop-up every 10 graded, `feedback_responses`, admin CSV + `.sps` export; mirrors `docs/superpowers/specs/2026-09-28-feedback-survey-design.md` |
+| Grading-Tool Pivot | `z8rp3etr9y-798` | free public grader + teacher bulk grading: decoupled `submissions`, `grading_batches`, `intake_files`, extraction worker, Excel export, hidden LMS; mirrors `docs/superpowers/specs/2026-10-11-grading-tool-pivot-design.md` |
 
 ### AI & ML — folder `1100360000026707`
 
@@ -159,17 +165,21 @@ Fetch: `GET /api/v2/list/{list_id}/task?archived=false&include_closed=true`
 | --- | --- | --- |
 | Sprint 1 | `1100360000028044` | 2026-09-07 → 2026-09-20 |
 | Sprint 2 | `1100360000028055` | 2026-09-21 → 2026-10-04 |
+| Sprint 3 | `1100360000102040` | 2026-10-05 → 2026-10-18 (grading-tool pivot) |
 
 Sprint 1 covers auth & roles, essay submission, AI scoring, assessment persistence,
 teacher review, final assessment, student result view, assessment history, basic user
 management, basic evaluation & monitoring, plus thesis/setup tasks. Sprint 2 begins pilot
-teacher onboarding. Always re-fetch for current status and assignees.
+teacher onboarding. Sprint 3 holds the grading-tool pivot (home screen, remove class
+management, OCR, bulk grading, Excel cleaning/export, English UI, rebrand). Always re-fetch
+for current status and assignees.
 
 ## Domain quick reference
 
-Entities (all history append-only): `users`, `assignments`, `submissions`,
+Entities (all history append-only): `users`, `submissions` (`source` = `assignment` |
+`public` | `batch`, with its own task snapshot), `grading_batches`, `intake_files`,
 `scoring_results`, `score_revisions`, `published_results`, `ai_model_versions`,
-`audit_events`.
+`audit_events`. Hidden LMS: `assignments`, `classes`, `class_members`, invites, `redo_requests`.
 
 Submission state machine:
 `submitted → queued → scoring → scored → under_review → published`
@@ -181,8 +191,9 @@ Submission state machine:
 2. **History is append-only.** Never overwrite an original submission, AI result, revision,
    or published version. Teacher edits are new `score_revisions` rows.
 3. **Every AI result records its `ai_model_versions` reference** (model, version, config).
-4. **Students see only `published_results`** — never internal AI output, revisions, notes,
-   or failed attempts.
+4. **A user sees only their own AI result or a teacher-finalized result** — never another
+   user's essays, revisions or notes. Anonymous gradings are reachable only by their UUID.
+   (Legacy class students still see only `published_results`.)
 5. **AI scoring is asynchronous** and must not block user requests; a scoring failure must
    never lose or corrupt the submission and must be retryable without resubmission.
 6. **CP over AP**: on failure, prefer rejecting/delaying an operation over returning or

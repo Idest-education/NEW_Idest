@@ -47,3 +47,6 @@ __pycache__/
 # Cached AI scoring results (content-addressed, safe to delete)
 apps/ai-service/.cache/
 .playwright-mcp/
+
+# e2e screenshots (e2e/aio.spec.ts)
+.screenshots/

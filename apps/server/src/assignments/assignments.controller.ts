@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Controller,
   Post,
   Patch,
@@ -14,7 +13,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
-import type { Request } from 'express';
+import { imageFileFilter } from '../cloudinary/image-upload.js';
 import { AssignmentsService } from './assignments.service.js';
 import { CreateAssignmentDto } from './dto/create-assignment.dto.js';
 import { UpdateAssignmentStatusDto } from './dto/update-assignment-status.dto.js';
@@ -25,18 +24,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import type { User } from '@prisma/client';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-// Kept to formats at least one configured grader can actually see (Gemini
-// reads HEIC/HEIF; OpenAI does not, but the rotation just falls through to
-// Gemini on a 4xx). SVG/BMP/TIFF are left out: no vision provider reads them,
-// so accepting them would only produce essays graded against no picture.
-const ALLOWED_IMAGE_MIME_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'image/heic',
-  'image/heif',
-]);
+
 
 @ApiTags('Assignments')
 @ApiBearerAuth('Bearer')
@@ -93,13 +81,7 @@ export class AssignmentsController {
     FileInterceptor('image', {
       storage: memoryStorage(),
       limits: { fileSize: MAX_IMAGE_BYTES },
-      fileFilter: (_req: Request, file, callback) => {
-        if (!ALLOWED_IMAGE_MIME_TYPES.has(file.mimetype)) {
-          callback(new BadRequestException({ error: 'unsupported_image_type' }), false);
-          return;
-        }
-        callback(null, true);
-      },
+      fileFilter: imageFileFilter,
     }),
   )
   async uploadImage(

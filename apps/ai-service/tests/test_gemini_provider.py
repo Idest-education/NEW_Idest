@@ -6,20 +6,14 @@ import json
 import pytest
 from providers.gemini import GeminiScorer
 
+# A model reply in the scoring schema. Overall is computed, not returned.
 SCORED = {
-    "scores": {
-        "task_response": 7.0,
-        "coherence_cohesion": 7.0,
-        "lexical_resource": 6.5,
-        "grammatical_range_accuracy": 6.5,
-        "overall": 7.0,
-    },
-    "feedback": {
-        "summary": "Well argued.",
-        "strengths": ["Clear thesis"],
-        "improvements": ["Tighter conclusion"],
-        "sentence_feedback": [],
-    },
+    "task_response": {"evidence": [], "reasoning": "Fits band 7.0.", "band": 7.0, "comment": "Keep going."},
+    "coherence_cohesion": {"evidence": [], "reasoning": "Fits band 7.0.", "band": 7.0, "comment": "Keep going."},
+    "lexical_resource": {"evidence": [], "reasoning": "Fits band 6.5.", "band": 6.5, "comment": "Keep going."},
+    "grammatical_range_accuracy": {"evidence": [], "reasoning": "Fits band 6.5.", "band": 6.5, "comment": "Keep going."},
+    "sentence_feedback": [],
+    "comment": "Well argued.",
 }
 
 
@@ -81,7 +75,7 @@ async def test_a_score_comes_back_in_the_shared_shape():
 
     assert result["status"] == "completed"
     assert result["scores"]["overall"] == 7.0
-    assert result["feedback"]["summary"] == "Well argued."
+    assert result["feedback"]["comment"] == "Well argued."
     assert result["processing_metadata"]["provider"] == "google"
     assert result["processing_metadata"]["total_tokens"] == 950
     assert isinstance(result["processing_metadata"]["elapsed_ms"], int)
@@ -105,7 +99,7 @@ async def test_the_request_carries_the_prompt_and_the_schema():
     assert sent["model"] == "gemini-3.6-flash"
     assert "<<<STUDENT_ESSAY>>>\nessay body\n<<<END_STUDENT_ESSAY>>>" in sent["contents"]
     assert sent["config"].response_mime_type == "application/json"
-    assert "IELTS Writing Examiner" in sent["config"].system_instruction
+    assert "IELTS Writing examiner" in sent["config"].system_instruction
 
 
 async def test_the_event_loop_keeps_running_during_a_call():

@@ -7,20 +7,14 @@ import httpx
 import pytest
 from providers.ollama import OllamaScorer
 
+# A model reply in the scoring schema. Overall is computed, not returned.
 SCORED = {
-    "scores": {
-        "task_response": 6.0,
-        "coherence_cohesion": 6.5,
-        "lexical_resource": 6.0,
-        "grammatical_range_accuracy": 5.5,
-        "overall": 6.0,
-    },
-    "feedback": {
-        "summary": "Addresses the task.",
-        "strengths": ["Clear position"],
-        "improvements": ["Wider vocabulary"],
-        "sentence_feedback": [],
-    },
+    "task_response": {"evidence": [], "reasoning": "Fits band 6.0.", "band": 6.0, "comment": "Keep going."},
+    "coherence_cohesion": {"evidence": [], "reasoning": "Fits band 6.5.", "band": 6.5, "comment": "Keep going."},
+    "lexical_resource": {"evidence": [], "reasoning": "Fits band 6.0.", "band": 6.0, "comment": "Keep going."},
+    "grammatical_range_accuracy": {"evidence": [], "reasoning": "Fits band 5.5.", "band": 5.5, "comment": "Keep going."},
+    "sentence_feedback": [],
+    "comment": "Addresses the task.",
 }
 
 
@@ -68,7 +62,7 @@ async def test_a_local_score_comes_back_in_the_shared_shape(captured):
 
     assert result["status"] == "completed"
     assert result["scores"]["overall"] == 6.0
-    assert result["feedback"]["summary"] == "Addresses the task."
+    assert result["feedback"]["comment"] == "Addresses the task."
     assert result["processing_metadata"]["provider"] == "ollama"
     assert result["processing_metadata"]["total_tokens"] == 1043
     assert isinstance(result["processing_metadata"]["elapsed_ms"], int)
@@ -84,7 +78,7 @@ async def test_generation_is_constrained_to_the_scoring_schema(captured):
     await OllamaScorer().score_essay("t", "task_2", "e")
 
     schema = captured["body"]["format"]
-    assert schema["properties"].keys() == {"scores", "feedback"}
+    assert schema["properties"].keys() == {"task_response", "coherence_cohesion", "lexical_resource", "grammatical_range_accuracy", "sentence_feedback", "comment"}
     assert captured["body"]["stream"] is False
 
 
@@ -99,7 +93,7 @@ async def test_the_essay_is_sent_inside_its_delimiters(captured):
 
     system, user = captured["body"]["messages"]
     assert system["role"] == "system"
-    assert "IELTS Writing Examiner" in system["content"]
+    assert "IELTS Writing examiner" in system["content"]
     assert "<<<STUDENT_ESSAY>>>\nessay body\n<<<END_STUDENT_ESSAY>>>" in user["content"]
 
 

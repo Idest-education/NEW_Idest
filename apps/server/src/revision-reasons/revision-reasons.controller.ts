@@ -17,7 +17,14 @@ export class RevisionReasonsController {
   @ApiOperation({ summary: "List this teacher's revisions on an assignment that carry no reason yet" })
   @ApiResponse({ status: 200, description: 'Untagged revisions with their score changes' })
   async listUntagged(@CurrentUser() user: User, @Param('assignmentId') assignmentId: string) {
-    return this.revisionReasonsService.listUntagged(user.id, assignmentId);
+    return this.revisionReasonsService.listUntagged(user.id, { assignmentId });
+  }
+
+  @Get('batches/:batchId/revisions/untagged')
+  @Roles('teacher', 'admin')
+  @ApiOperation({ summary: "List this teacher's revisions in a bulk-grading batch that carry no reason yet" })
+  async listUntaggedInBatch(@CurrentUser() user: User, @Param('batchId') batchId: string) {
+    return this.revisionReasonsService.listUntagged(user.id, { batchId });
   }
 
   @Post('revision-reasons/batch')

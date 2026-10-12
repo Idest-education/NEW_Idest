@@ -116,3 +116,12 @@ def test_next_delay_refuses_a_non_retryable_error():
 
 def test_next_delay_backs_off_when_the_provider_gives_no_advice():
     assert next_delay(2, ApiError(503), base=BASE, cap=CAP, jitter=1.0) == 4.0
+
+
+def test_a_reply_in_the_wrong_shape_is_worth_one_more_call():
+    from pydantic import ValidationError
+    from schemas import to_result
+
+    with pytest.raises(ValidationError) as caught:
+        to_result({"scores": {}}, "essay")
+    assert is_retryable(caught.value) is True

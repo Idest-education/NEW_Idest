@@ -16,9 +16,9 @@ import httpx
 
 from config import SCORER_REVISION
 from image_fetch import fetch_task_image
-from prompt import IELTS_SYSTEM_PROMPT, build_schema_instruction, build_user_prompt
+from prompt import build_schema_instruction, prompts_for
 from providers.base import base_configuration, completed_result, ensure_vision_capable
-from schemas import IELTSScoringResult
+from schemas import IELTSScoringResult, to_result
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,21 @@ def strip_code_fence(text: str) -> str:
     if body.rstrip().endswith("```"):
         body = body.rstrip()[: -len("```")]
     return body.strip()
+
+
+def strict_schema(node):
+    """The schema with `additionalProperties: false` on every object.
+
+    OpenAI's strict json_schema mode rejects a schema without it. It is added
+    here rather than on the pydantic models because Gemini's SDK rejects it.
+    """
+    if isinstance(node, dict):
+        node = {k: strict_schema(v) for k, v in node.items()}
+        if node.get("type") == "object":
+            node["additionalProperties"] = False
+    elif isinstance(node, list):
+        node = [strict_schema(v) for v in node]
+    return node
 
 
 class OpenAICompatibleScorer:
@@ -100,19 +115,18 @@ class OpenAICompatibleScorer:
                 "json_schema": {
                     "name": SCHEMA_NAME,
                     "strict": True,
-                    "schema": IELTSScoringResult.model_json_schema(),
+                    "schema": strict_schema(IELTSScoringResult.model_json_schema()),
                 },
             }
         return {"type": "json_object"}
 
-    def _user_content(self, task_prompt: str, task_type: str, essay_text: str) -> str:
-        content = build_user_prompt(task_prompt, task_type, essay_text)
+    def _user_content(self, user_prompt: str) -> str:
         if self.structured_mode == JSON_OBJECT:
-            content += build_schema_instruction(IELTSScoringResult.model_json_schema())
-        return content
+            user_prompt += build_schema_instruction(IELTSScoringResult.model_json_schema())
+        return user_prompt
 
-    async def _user_message(self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None):
-        text = self._user_content(task_prompt, task_type, essay_text)
+    async def _user_message(self, user_prompt: str, task_image_url: str | None):
+        text = self._user_content(user_prompt)
         if not task_image_url:
             return text
 
@@ -124,17 +138,23 @@ class OpenAICompatibleScorer:
         ]
 
     async def score_essay(
-        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+        self,
+        task_prompt: str,
+        task_type: str,
+        essay_text: str,
+        task_image_url: str | None = None,
+        review_of: dict | None = None,
     ) -> dict:
         ensure_vision_capable(self.provider_name, self.supports_vision, task_image_url)
+        system_prompt, user_prompt = prompts_for(task_prompt, task_type, essay_text, review_of)
 
         request = {
             "model": self.model_name,
             "messages": [
-                {"role": "system", "content": IELTS_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {
                     "role": "user",
-                    "content": await self._user_message(task_prompt, task_type, essay_text, task_image_url),
+                    "content": await self._user_message(user_prompt, task_image_url),
                 },
             ],
             "response_format": self._response_format(),
@@ -159,9 +179,10 @@ class OpenAICompatibleScorer:
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             content = payload["choices"][0]["message"]["content"]
             parsed_data = json.loads(strip_code_fence(content))
+            scores, feedback = to_result(parsed_data, essay_text)
             return completed_result(
-                scores=parsed_data.get("scores"),
-                feedback=parsed_data.get("feedback"),
+                scores=scores,
+                feedback=feedback,
                 raw_output=parsed_data,
                 model_name=self.model_name,
                 provider=self.provider_name,

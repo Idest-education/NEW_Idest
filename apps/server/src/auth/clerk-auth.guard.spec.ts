@@ -45,6 +45,19 @@ describe('ClerkAuthGuard', () => {
     expect(verifyToken).not.toHaveBeenCalled();
   });
 
+  it('identifies a signed-in caller on a public route and ignores a bad token', async () => {
+    (reflector.getAllAndOverride as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    verifyToken.mockResolvedValueOnce({ sub: 'user_1', sid: 'sess_1' });
+    const good = ctx({ authorization: 'Bearer good' });
+    await expect(guard.canActivate(good.context)).resolves.toBe(true);
+    expect(good.request.auth).toMatchObject({ clerkUserId: 'user_1' });
+
+    verifyToken.mockRejectedValueOnce(new Error('token expired'));
+    const bad = ctx({ authorization: 'Bearer bad' });
+    await expect(guard.canActivate(bad.context)).resolves.toBe(true);
+    expect(bad.request.auth).toBeUndefined();
+  });
+
   it('rejects a missing Authorization header', async () => {
     const { context } = ctx({});
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);

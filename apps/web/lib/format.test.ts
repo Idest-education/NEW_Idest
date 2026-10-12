@@ -1,54 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { band, isBand, overallFromCriteria, signedBand, stripRef } from "./format";
+import { bandTone, bandWord, groupByDate, markPhrases, overallFrom, pageOf } from "./format";
 
-describe("isBand", () => {
-  it("accepts valid IELTS bands", () => {
-    for (const v of [0, 0.5, 6, 6.5, 9]) expect(isBand(v)).toBe(true);
-  });
+const s = (a: number, b: number, c: number, d: number) => ({
+  task_response: a,
+  coherence_cohesion: b,
+  lexical_resource: c,
+  grammatical_range_accuracy: d,
+});
 
-  it("rejects out-of-range, wrong-step and non-numbers", () => {
-    for (const v of [-0.5, 9.5, 66.5, 6.3]) expect(isBand(v)).toBe(false);
-    expect(isBand(undefined)).toBe(false);
-    expect(isBand(Number.NaN)).toBe(false);
+describe("overallFrom", () => {
+  it("rounds the mean to the nearest half band, .25 and .75 rounding up", () => {
+    expect(overallFrom(s(6, 6, 6, 6))).toBe(6);
+    expect(overallFrom(s(6, 6, 6, 7))).toBe(6.5); // 6.25
+    expect(overallFrom(s(6, 7, 7, 7))).toBe(7); // 6.75
+    expect(overallFrom(s(6, 6, 6, 6.5))).toBe(6); // 6.125
   });
 });
 
-describe("overallFromCriteria", () => {
-  it("averages four bands to the nearest half band", () => {
-    expect(
-      overallFromCriteria({
-        task_response: 6.5,
-        coherence_cohesion: 7,
-        lexical_resource: 6.5,
-        grammatical_range_accuracy: 6,
-      }),
-    ).toBe(6.5);
-  });
-
-  it("refuses to average an out-of-band figure", () => {
-    expect(
-      overallFromCriteria({
-        task_response: 6.5,
-        coherence_cohesion: 7,
-        lexical_resource: 66.5,
-        grammatical_range_accuracy: 6,
-      }),
-    ).toBeUndefined();
+describe("groupByDate", () => {
+  it("groups by calendar day relative to now, in input order", () => {
+    const now = new Date(2026, 9, 11, 9, 0);
+    const at = (d: number, h = 12) => new Date(2026, 9, d, h).toISOString();
+    const groups = groupByDate([at(11, 8), at(10, 23), at(8), at(1), at(11, 1)], (x) => x, now);
+    expect(groups.map((g) => [g.label, g.items.length])).toEqual([
+      ["Today", 2],
+      ["Yesterday", 1],
+      ["Previous 7 days", 1],
+      ["Earlier", 1],
+    ]);
   });
 });
 
-describe("band figures", () => {
-  it("prints one decimal, or an em dash when absent", () => {
-    expect(band(7)).toBe("7.0");
-    expect(band(undefined)).toBe("—");
+describe("markPhrases", () => {
+  it("marks each phrase once, in text order, and keeps every character", () => {
+    const text = "He go to school. He go home.";
+    const parts = markPhrases(text, ["He go home", "He go", "missing"]);
+    expect(parts.map((p) => p.text).join("")).toBe(text);
+    expect(parts.filter((p) => p.mark !== null).map((p) => [p.text, p.mark])).toEqual([
+      ["He go", 1],
+      ["He go home", 0],
+    ]);
+  });
+});
+
+describe("bandTone and bandWord", () => {
+  it("groups bands into four tones at the planned edges", () => {
+    expect([4, 5, 5.5, 6, 6.5, 7, 7.5, 9].map(bandTone)).toEqual(["low", "low", "mid", "mid", "good", "good", "great", "great"]);
   });
 
-  it("signs a deviation", () => {
-    expect(signedBand(0.5)).toBe("+0.5");
-    expect(signedBand(0)).toBe("±0.0");
+  it("names the whole band a score falls in", () => {
+    expect(bandWord(6.5)).toBe("Competent user");
+    expect(bandWord(7)).toBe("Good user");
+    expect(bandWord(9)).toBe("Expert user");
+    expect(bandWord(0)).toBe("Did not attempt");
   });
+});
 
-  it("builds a strip ref from the submission id", () => {
-    expect(stripRef("03f65b54-061f-4118-a641-59f96cc1cf09", 2)).toBe("BB-C1CF09/2");
+describe("pageOf", () => {
+  it("cuts 15 per page and clamps the page into range", () => {
+    const items = Array.from({ length: 31 }, (_, i) => i);
+    expect(pageOf(items, 1)).toEqual({ items: items.slice(0, 15), page: 1, totalPages: 3 });
+    expect(pageOf(items, 3).items).toEqual([30]);
+    expect(pageOf(items, 9).page).toBe(3);
+    expect(pageOf([], 1)).toEqual({ items: [], page: 1, totalPages: 1 });
   });
 });

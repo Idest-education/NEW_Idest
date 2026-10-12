@@ -144,6 +144,8 @@ export async function seedAnalyticsFixtures(prisma: PrismaClient): Promise<Fixtu
         assignmentId: assignment.id,
         studentId: student.id,
         attemptNumber,
+        taskType: assignment.taskType,
+        taskPrompt: assignment.taskPrompt,
         essayText: `Essay number ${attemptNumber}.`,
         wordCount,
         status: 'published',

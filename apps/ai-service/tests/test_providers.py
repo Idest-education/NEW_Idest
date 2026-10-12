@@ -114,7 +114,7 @@ def test_the_prompt_hash_is_the_one_past_results_were_scored_under():
     """
     assert (
         hashlib.sha256(IELTS_SYSTEM_PROMPT.encode()).hexdigest()
-        == "8ad146800dabc27e8454f8727b77ac716f44cb999d266885595f72e12106f805"
+        == "4d369f98694dc4d572c0408204b136d55442c74c407cbfade9815e5d80c80952"
     )
 
 
@@ -136,3 +136,10 @@ def test_the_scorer_revision_was_bumped_for_the_thinking_level():
     assert SCORER_REVISION != "2026-09-21-v1"
     for scorer in (GeminiScorer(api_key=""), OllamaScorer(), StubScorer()):
         assert scorer.descriptor()["modelVersion"] == SCORER_REVISION
+
+
+def test_the_user_prompt_states_the_word_count_and_length_penalty():
+    short = build_user_prompt("t", "task_2", "one two three\n\nfour")
+    assert "Word count: 4 (minimum 250, under length)" in short
+    assert "Paragraphs: 2" in short
+    assert "under length" not in build_user_prompt("t", "task_1", "word " * 150)

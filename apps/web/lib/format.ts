@@ -1,108 +1,123 @@
-import { CRITERIA, type Criterion, type Scores } from "./idest";
+import type { CriterionKey, Scores, SubmissionStatus, TaskType } from "./api";
 
-/** Band figures are always printed to one decimal, or an em dash when absent. */
-export function band(value: number | undefined | null): string {
-  if (typeof value !== "number" || Number.isNaN(value)) return "—";
-  return value.toFixed(1);
-}
+export const band = (n: number | null | undefined) => (typeof n === "number" ? n.toFixed(1) : "—");
 
-/** Position of a band on the 0–9 rule, as a percentage. */
-export function bandOffset(value: number | undefined | null): number {
-  if (typeof value !== "number" || Number.isNaN(value)) return 0;
-  return Math.min(100, Math.max(0, (value / 9) * 100));
-}
+export const countWords = (text: string) => {
+  const t = text.trim();
+  return t ? t.split(/\s+/).length : 0;
+};
 
-export function deviation(
-  from: number | undefined | null,
-  to: number | undefined | null,
-): number | null {
-  if (typeof from !== "number" || typeof to !== "number") return null;
-  const diff = Number((to - from).toFixed(1));
-  return diff === 0 ? 0 : diff;
-}
+export const taskLabel = (t: TaskType) => (t === "task_1" ? "Task 1" : "Task 2");
 
-export function signedBand(value: number | null): string {
-  if (value === null) return "—";
-  if (value === 0) return "±0.0";
-  return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(1)}`;
-}
-
-export function criterionValues(
-  scores: Scores | undefined,
-): Array<{ criterion: Criterion; value: number | undefined }> {
-  return CRITERIA.map((criterion) => ({
-    criterion,
-    value: typeof scores?.[criterion] === "number" ? scores[criterion] : undefined,
-  }));
-}
-
-/** A valid IELTS band: 0–9 in steps of 0.5. Mirrors the server's own guard. */
-export function isBand(value: number | undefined | null): value is number {
-  if (typeof value !== "number" || Number.isNaN(value)) return false;
-  if (value < 0 || value > 9) return false;
-  return Math.abs(value * 2 - Math.round(value * 2)) < 1e-9;
-}
-
-/** IELTS overall is the mean of four criteria rounded to the nearest half band. */
-export function overallFromCriteria(scores: Scores): number | undefined {
-  const values = CRITERIA.map((c) => scores[c]).filter(isBand);
-  if (values.length !== CRITERIA.length) return undefined;
-  const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+/** IELTS overall: mean of the four criteria, rounded to the nearest half band (.25 and .75 round up). */
+export function overallFrom(scores: Record<CriterionKey, number>): number {
+  const { task_response, coherence_cohesion, lexical_resource, grammatical_range_accuracy } = scores;
+  const mean = (task_response + coherence_cohesion + lexical_resource + grammatical_range_accuracy) / 4;
   return Math.round(mean * 2) / 2;
 }
 
-const dateTime = new Intl.DateTimeFormat("vi-VN", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
+export const withOverall = (s: Record<CriterionKey, number>): Scores => ({ ...s, overall: overallFrom(s) });
 
-const dateOnly = new Intl.DateTimeFormat("vi-VN", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
+export const STATUS_LABEL: Record<SubmissionStatus, string> = {
+  submitted: "Not sent yet",
+  queued: "Queued",
+  scoring: "Scoring",
+  scored: "AI draft",
+  under_review: "Draft saved",
+  published: "Finalized",
+  failed: "Failed",
+  abuse: "Flagged",
+};
 
-export function stamp(value: string | Date | null | undefined): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
-  return dateTime.format(date);
+export const isWorking = (s: SubmissionStatus) => s === "queued" || s === "scoring";
+
+export function fileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function day(value: string | Date | null | undefined): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "—";
-  return dateOnly.format(date);
+export const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+export const dateTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+export type DateGroup = "Today" | "Yesterday" | "Previous 7 days" | "Earlier";
+
+/** Groups items by calendar day relative to `now`, keeping the input order inside each group. */
+export function groupByDate<T>(items: T[], dateOf: (item: T) => string, now = new Date()) {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const day = 86_400_000;
+  const groups = new Map<DateGroup, T[]>();
+  for (const item of items) {
+    const t = new Date(dateOf(item)).getTime();
+    const group: DateGroup =
+      t >= startOfToday
+        ? "Today"
+        : t >= startOfToday - day
+          ? "Yesterday"
+          : t >= startOfToday - 7 * day
+            ? "Previous 7 days"
+            : "Earlier";
+    groups.set(group, [...(groups.get(group) ?? []), item]);
+  }
+  return [...groups.entries()].map(([label, list]) => ({ label, items: list }));
 }
 
-export function fileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
-  return `${(kb / 1024).toFixed(1)} MB`;
+/** Splits an essay into plain and marked parts, marking the first unused match of each phrase. */
+export function markPhrases(text: string, phrases: string[]): { text: string; mark: number | null }[] {
+  const hits: { start: number; end: number; index: number }[] = [];
+  phrases.forEach((phrase, index) => {
+    const p = phrase.trim();
+    if (!p) return;
+    let from = 0;
+    for (;;) {
+      const start = text.indexOf(p, from);
+      if (start < 0) return;
+      const end = start + p.length;
+      if (!hits.some((h) => start < h.end && end > h.start)) {
+        hits.push({ start, end, index });
+        return;
+      }
+      from = start + 1;
+    }
+  });
+  hits.sort((a, b) => a.start - b.start);
+  const parts: { text: string; mark: number | null }[] = [];
+  let cursor = 0;
+  for (const h of hits) {
+    if (h.start > cursor) parts.push({ text: text.slice(cursor, h.start), mark: null });
+    parts.push({ text: text.slice(h.start, h.end), mark: h.index });
+    cursor = h.end;
+  }
+  if (cursor < text.length) parts.push({ text: text.slice(cursor), mark: null });
+  return parts;
 }
 
-export function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (!trimmed) return 0;
-  return trimmed.split(/\s+/).length;
+export function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** The ref printed on every strip: BB-<tail>/<attempt>. */
-export function stripRef(id: string | undefined, attempt?: number): string {
-  if (!id) return "BB-——————";
-  const tail = id.replace(/-/g, "").slice(-6).toUpperCase();
-  return attempt ? `BB-${tail}/${attempt}` : `BB-${tail}`;
-}
+export type Tone = "low" | "mid" | "good" | "great";
 
-export function splitParagraphs(essay: string): string[] {
-  return essay
-    .split(/\r?\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+/** Color family for a band: up to 5, 5.5–6, 6.5–7, then 7.5 and above. */
+export const bandTone = (n: number): Tone => (n <= 5 ? "low" : n <= 6 ? "mid" : n <= 7 ? "good" : "great");
+
+const BAND_WORDS = ["Did not attempt", "Non-user", "Intermittent user", "Extremely limited", "Limited user", "Modest user", "Competent user", "Good user", "Very good user", "Expert user"];
+
+/** The IELTS descriptor for the whole band a score falls in (6.5 is still "Competent user"). */
+export const bandWord = (n: number) => BAND_WORDS[Math.max(0, Math.min(9, Math.floor(n)))]!;
+
+export const PAGE_SIZE = 15;
+
+/** One page of an in-memory list, with the page clamped into range. */
+export function pageOf<T>(items: T[], page: number) {
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const current = Math.min(Math.max(1, page), totalPages);
+  return { items: items.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE), page: current, totalPages };
 }

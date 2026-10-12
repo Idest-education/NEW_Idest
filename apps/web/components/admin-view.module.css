@@ -1,0 +1,71 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.value {
+  font-size: var(--fs-28);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.h2 {
+  font-size: var(--fs-18);
+  font-weight: 700;
+}
+
+.deltas {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 12px;
+}
+
+.deltas div {
+  display: grid;
+}
+
+.deltas dt {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.deltas dd {
+  margin: 0;
+  font-size: var(--fs-22);
+  font-weight: 700;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-14);
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.table th {
+  font-size: var(--fs-12);
+  color: var(--text-2);
+}

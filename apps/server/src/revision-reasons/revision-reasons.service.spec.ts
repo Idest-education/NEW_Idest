@@ -84,7 +84,7 @@ describe('RevisionReasonsService.promptState', () => {
       Array.from({ length: 8 }, (_, i) => ({ id: `rev-${i}` })),
     );
 
-    const state = await service.promptState(TEACHER_ID, ASSIGNMENT_ID);
+    const state = await service.promptState(TEACHER_ID, { assignmentId: ASSIGNMENT_ID });
 
     expect(state).toEqual({ untaggedCount: 8, threshold: 8, shouldPrompt: true });
   });
@@ -93,7 +93,7 @@ describe('RevisionReasonsService.promptState', () => {
     prisma.submission.count.mockResolvedValue(40);
     prisma.scoreRevision.findMany.mockResolvedValue([{ id: 'rev-1' }]);
 
-    const state = await service.promptState(TEACHER_ID, ASSIGNMENT_ID);
+    const state = await service.promptState(TEACHER_ID, { assignmentId: ASSIGNMENT_ID });
 
     expect(state.shouldPrompt).toBe(false);
   });

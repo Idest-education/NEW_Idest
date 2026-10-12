@@ -5,6 +5,7 @@ from providers.gemini import GeminiScorer
 from providers.ollama import OllamaScorer
 from providers.stub import StubScorer
 from providers.openai_compatible import OpenAICompatibleScorer
+from providers.revising import RevisingScorer
 from providers.rotating import RotatingScorer
 from providers.throttled import ThrottledScorer
 
@@ -115,8 +116,9 @@ def test_a_metered_provider_is_throttled_beneath_the_cache(monkeypatch, gemini_k
     )
 
     assert isinstance(built, CachedScorer)
-    assert isinstance(built.inner, ThrottledScorer)
-    assert isinstance(built.inner.inner, GeminiScorer)
+    assert isinstance(built.inner, RevisingScorer)
+    assert isinstance(built.inner.inner, ThrottledScorer)
+    assert isinstance(built.inner.inner.inner, GeminiScorer)
 
 
 def test_the_throttle_carries_the_configured_interval(monkeypatch, gemini_key, tmp_path):
@@ -126,7 +128,7 @@ def test_the_throttle_carries_the_configured_interval(monkeypatch, gemini_key, t
         "gemini", cache_enabled=False, cache_dir=str(tmp_path), min_seconds_between_calls=6.0
     )
 
-    assert built.limiter.min_interval == 6.0
+    assert built.inner.limiter.min_interval == 6.0
 
 
 def test_a_free_local_provider_is_not_throttled(monkeypatch, tmp_path):
@@ -137,7 +139,8 @@ def test_a_free_local_provider_is_not_throttled(monkeypatch, tmp_path):
         "ollama", cache_enabled=False, cache_dir=str(tmp_path), min_seconds_between_calls=6.0
     )
 
-    assert isinstance(built, OllamaScorer)
+    assert isinstance(built, RevisingScorer)
+    assert isinstance(built.inner, OllamaScorer)
 
 
 def test_the_stub_is_not_throttled(tmp_path, no_gemini_key):
@@ -155,7 +158,8 @@ def test_a_zero_interval_leaves_the_throttle_out(monkeypatch, gemini_key, tmp_pa
         "gemini", cache_enabled=False, cache_dir=str(tmp_path), min_seconds_between_calls=0.0
     )
 
-    assert isinstance(built, GeminiScorer)
+    assert isinstance(built, RevisingScorer)
+    assert isinstance(built.inner, GeminiScorer)
 
 
 # --- rotation -----------------------------------------------------------------
@@ -209,8 +213,9 @@ def test_each_rotation_member_gets_its_own_cache_and_throttle(all_three_keys, tm
 
     for candidate in built.candidates:
         assert isinstance(candidate, CachedScorer)
-        assert isinstance(candidate.inner, ThrottledScorer)
-        assert candidate.inner.limiter.min_interval == 6.0
+        assert isinstance(candidate.inner, RevisingScorer)
+        assert isinstance(candidate.inner.inner, ThrottledScorer)
+        assert candidate.inner.inner.limiter.min_interval == 6.0
 
 
 def test_a_key_that_is_missing_is_left_out_of_the_rotation(tmp_path, monkeypatch):

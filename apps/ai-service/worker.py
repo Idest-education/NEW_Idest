@@ -9,6 +9,7 @@ from config import (
     RETRY_BASE_SECONDS,
     RETRY_MAX_SECONDS,
 )
+from providers.rotating import PIN_KEY
 from retry import next_delay
 from scorer import build_scorer
 from schemas import ScoringJobPayload
@@ -107,9 +108,13 @@ class ScoringWorker:
 
         logger.info(f"Processing AI scoring for submission {submission_id}")
 
-        result = await self.score_with_retries(
-            submission_id, task_prompt, task_type, essay_text, task_image_url
-        )
+        pin = PIN_KEY.set(data.get("batchId"))
+        try:
+            result = await self.score_with_retries(
+                submission_id, task_prompt, task_type, essay_text, task_image_url
+            )
+        finally:
+            PIN_KEY.reset(pin)
 
         result_payload = {
             "submissionId": submission_id,

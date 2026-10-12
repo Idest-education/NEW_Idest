@@ -1,16 +1,15 @@
 import { SignIn } from "@clerk/nextjs";
-import styles from "../../auth.module.css";
+import type { Metadata } from "next";
+import Image from "next/image";
+import welcomeIo from "../../../public/illustrations/welcome-io.webp";
 
-export default function Page() {
+export const metadata: Metadata = { title: "Sign in" };
+
+export default function SignInPage() {
   return (
-    // Force the destination to the landing page rather than honouring any
-    // `redirect_url` query param. That param can point at a role-gated route
-    // (e.g. /student) which the proxy middleware bounces before the role
-    // claim is visible, and Clerk's own redirect-loop guard then renders
-    // this page blank instead of erroring. Landing on "/" is always public,
-    // does its own single server-verified role redirect, and never loops.
-    <div className={styles.wrap}>
-      <SignIn signUpUrl="/sign-up" forceRedirectUrl="/" />
+    <div className="page" style={{ justifyItems: "center" }}>
+      <Image src={welcomeIo} alt="" sizes="280px" priority style={{ width: 280, height: "auto", maxWidth: "100%" }} />
+      <SignIn />
     </div>
   );
 }

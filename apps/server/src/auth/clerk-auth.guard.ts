@@ -22,34 +22,34 @@ export class ClerkAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
-
     const request = context.switchToHttp().getRequest<{
       headers: Record<string, string | undefined>;
       auth?: RequestAuth;
     }>();
 
+    const auth = await this.authenticate(request.headers);
+    if (auth) request.auth = auth;
+    // Public routes still learn who is calling when a valid token is sent.
+    if (isPublic) return true;
+    if (!auth) throw new UnauthorizedException({ error: 'unauthenticated' });
+    return true;
+  }
+
+  private async authenticate(headers: Record<string, string | undefined>): Promise<RequestAuth | null> {
     // Dev/Test helper: requires both a non-production NODE_ENV and an explicit opt-in
     // flag, so a misconfigured/missing NODE_ENV in a real deployment can't alone open
     // this bypass.
-    const testUserHeader = request.headers['x-test-user'];
+    const testUserHeader = headers['x-test-user'];
     if (
       process.env.NODE_ENV !== 'production' &&
       process.env.ALLOW_TEST_AUTH === 'true' &&
       testUserHeader
     ) {
-      request.auth = {
-        clerkUserId: testUserHeader,
-        sessionId: 'sess_dev_test',
-        claims: {},
-      };
-      return true;
+      return { clerkUserId: testUserHeader, sessionId: 'sess_dev_test', claims: {} };
     }
 
-    const header = request.headers.authorization;
-    if (!header || !header.startsWith('Bearer ')) {
-      throw new UnauthorizedException({ error: 'unauthenticated' });
-    }
+    const header = headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) return null;
     const token = header.slice('Bearer '.length);
 
     const secretKey = this.config.getOrThrow<string>('CLERK_SECRET_KEY');
@@ -62,14 +62,13 @@ export class ClerkAuthGuard implements CanActivate {
         secretKey,
         authorizedParties,
       });
-      request.auth = {
+      return {
         clerkUserId: payload.sub,
         sessionId: String(payload.sid),
         claims: payload as unknown as Record<string, unknown>,
       };
-      return true;
     } catch {
-      throw new UnauthorizedException({ error: 'unauthenticated' });
+      return null;
     }
   }
 }

@@ -25,17 +25,26 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    const request = context.switchToHttp().getRequest<{
+      auth?: RequestAuth;
+      localUser?: User;
+    }>();
+
+    if (isPublic) {
+      // Best effort: a public route may personalise for a signed-in caller,
+      // but must never fail because of the caller's account.
+      if (request.auth) {
+        const user = await this.userSync.getOrCreate(request.auth).catch(() => null);
+        if (user?.status === 'active') request.localUser = user;
+      }
+      return true;
+    }
 
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    const request = context.switchToHttp().getRequest<{
-      auth?: RequestAuth;
-      localUser?: User;
-    }>();
     if (!request.auth) {
       throw new UnauthorizedException({ error: 'unauthenticated' });
     }

@@ -16,10 +16,17 @@ class ThrottledScorer:
         self.limiter = limiter
 
     async def score_essay(
-        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+        self,
+        task_prompt: str,
+        task_type: str,
+        essay_text: str,
+        task_image_url: str | None = None,
+        review_of: dict | None = None,
     ) -> dict:
         await self.limiter.acquire()
-        return await self.inner.score_essay(task_prompt, task_type, essay_text, task_image_url)
+        if review_of is None:
+            return await self.inner.score_essay(task_prompt, task_type, essay_text, task_image_url)
+        return await self.inner.score_essay(task_prompt, task_type, essay_text, task_image_url, review_of=review_of)
 
     def descriptor(self) -> dict:
         return self.inner.descriptor()

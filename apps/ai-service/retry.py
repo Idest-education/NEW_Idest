@@ -10,6 +10,8 @@ import json
 import logging
 import re
 
+from pydantic import ValidationError
+
 logger = logging.getLogger(__name__)
 
 # Worth another call after a wait: the limit resets, the outage clears.
@@ -22,6 +24,10 @@ NON_RETRYABLE_STATUS = {400, 401, 403, 404, 405, 413, 422}
 # Raised by our own code, not by the provider. The essay is not the problem and
 # the next attempt hits the same line.
 PROGRAMMING_ERRORS = (TypeError, AttributeError, KeyError, NameError, IndexError)
+
+# A reply that is not valid JSON, or not the scoring shape: the model's fault,
+# and the next sample can come back well-formed. Both subclass ValueError.
+BAD_REPLY = (json.JSONDecodeError, ValidationError)
 
 # Both spellings a Gemini 429 uses for its own advice: the RetryInfo detail
 # ("retryDelay": "31s") and the HTTP header (Retry-After: 31).
@@ -90,9 +96,9 @@ def is_retryable(exc) -> bool:
         # Any other client error is a request we built wrong.
         return not 400 <= status < 500
 
-    # A truncated or malformed JSON body can come back well-formed next time,
-    # so this is checked before its ValueError base class.
-    if isinstance(exc, json.JSONDecodeError):
+    # A truncated, malformed or off-shape reply can come back well-formed next
+    # time, so this is checked before its ValueError base class.
+    if isinstance(exc, BAD_REPLY):
         return True
     if isinstance(exc, PROGRAMMING_ERRORS):
         return False

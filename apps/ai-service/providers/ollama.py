@@ -20,9 +20,9 @@ from config import (
     SCORER_REVISION,
 )
 from image_fetch import fetch_task_image
-from prompt import IELTS_SYSTEM_PROMPT, build_user_prompt
+from prompt import prompts_for
 from providers.base import base_configuration, completed_result, ensure_vision_capable
-from schemas import IELTSScoringResult
+from schemas import IELTSScoringResult, to_result
 
 logger = logging.getLogger(__name__)
 
@@ -83,11 +83,17 @@ class OllamaScorer:
         return True
 
     async def score_essay(
-        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+        self,
+        task_prompt: str,
+        task_type: str,
+        essay_text: str,
+        task_image_url: str | None = None,
+        review_of: dict | None = None,
     ) -> dict:
         ensure_vision_capable("ollama", self.supports_vision, task_image_url)
 
-        user_message = {"role": "user", "content": build_user_prompt(task_prompt, task_type, essay_text)}
+        system_prompt, user_prompt = prompts_for(task_prompt, task_type, essay_text, review_of)
+        user_message = {"role": "user", "content": user_prompt}
         if task_image_url:
             image_bytes, _mime_type = await fetch_task_image(task_image_url)
             user_message["images"] = [base64.b64encode(image_bytes).decode("ascii")]
@@ -95,7 +101,7 @@ class OllamaScorer:
         request = {
             "model": self.model_name,
             "messages": [
-                {"role": "system", "content": IELTS_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 user_message,
             ],
             # Ollama constrains generation to this JSON Schema, the same way the
@@ -115,9 +121,10 @@ class OllamaScorer:
 
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             parsed_data = json.loads(payload["message"]["content"])
+            scores, feedback = to_result(parsed_data, essay_text)
             return completed_result(
-                scores=parsed_data.get("scores"),
-                feedback=parsed_data.get("feedback"),
+                scores=scores,
+                feedback=feedback,
                 raw_output=parsed_data,
                 model_name=self.model_name,
                 provider=PROVIDER,

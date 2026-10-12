@@ -1,0 +1,261 @@
+.shell {
+  display: flex;
+  min-height: 100dvh;
+}
+
+.skip {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 50;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.skip:focus {
+  top: 8px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  width: var(--sidebar);
+  flex-shrink: 0;
+  border-right: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.shell[data-collapsed] .sidebar {
+  display: none;
+}
+
+.drawer {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: min(86vw, 320px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  background: var(--surface-2);
+}
+
+.drawer[open] {
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 56px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topLogo {
+  text-decoration: none;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.content:focus {
+  outline: none;
+}
+
+@media (min-width: 900px) {
+  .shell:not([data-collapsed]) .topbar {
+    display: none;
+  }
+
+  .shell[data-collapsed] .topbar {
+    justify-content: flex-start;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 899px) {
+  .sidebar {
+    display: none;
+  }
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px 10px;
+  gap: 8px;
+}
+
+.sideHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 0 8px;
+  min-height: 44px;
+}
+
+.sideHead a {
+  text-decoration: none;
+}
+
+.nav {
+  display: grid;
+  gap: 2px;
+}
+
+.navItem,
+.recent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--fs-14);
+  font-weight: 500;
+}
+
+.navItem:hover,
+.recent:hover {
+  background: var(--line);
+}
+
+.navItem[aria-current="page"],
+.recent[aria-current="page"] {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 600;
+}
+
+.recents {
+  flex: 1;
+  overflow-y: auto;
+  margin: 8px -4px 0;
+  padding: 0 4px;
+}
+
+.recents ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group + .group {
+  margin-top: 12px;
+}
+
+.groupLabel {
+  padding: 4px 10px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0;
+}
+
+.recent {
+  min-height: 36px;
+  font-weight: 400;
+}
+
+.recent .icon {
+  color: var(--text-2);
+  font-size: 1.1em;
+}
+
+.recentTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentMeta {
+  font-size: var(--fs-12);
+  font-weight: 700;
+}
+
+.recentsNote {
+  padding: 8px 10px;
+  font-size: var(--fs-14);
+  color: var(--text-2);
+}
+
+.signIn {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin: 8px 4px;
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.signInTitle {
+  font-weight: 700;
+  font-size: var(--fs-14);
+}
+
+.sideFoot {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  font-size: var(--fs-14);
+  flex-shrink: 0;
+}
+
+.footText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.footLabel {
+  font-size: var(--fs-14);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,100 @@
+.wrap {
+  position: relative;
+}
+
+.text {
+  white-space: pre-wrap;
+}
+
+.mark {
+  padding: 1px 2px;
+  border-radius: 3px;
+  border-bottom: 2px solid var(--mark);
+  background: var(--mark-bg);
+  color: inherit;
+  cursor: pointer;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background 0.15s;
+}
+
+.mark:hover,
+.mark[data-active] {
+  background: color-mix(in srgb, var(--mark-bg) 70%, var(--mark));
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pop {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-14);
+  line-height: 1.5;
+  white-space: normal;
+  animation: popIn 0.18s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+@keyframes popIn {
+  from {
+    transform: translateY(-4px) scale(0.98);
+    opacity: 0;
+  }
+}
+
+.comment,
+.form {
+  display: grid;
+  gap: 6px;
+}
+
+.comment .chip {
+  justify-self: start;
+}
+
+.why {
+  color: var(--text-2);
+}
+
+.fix {
+  font-weight: 600;
+}
+
+.tryLabel {
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.quote {
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.form select,
+.form textarea {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: var(--fs-14);
+}
+
+.popActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.spacer {
+  flex: 1;
+}

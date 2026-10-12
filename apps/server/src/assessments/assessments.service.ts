@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
+import { submissionOwnerId } from '../submissions/submission-owner.js';
 import { RevisionReasonsService } from '../revision-reasons/revision-reasons.service.js';
 import { PersistScoringResultDto } from './dto/persist-scoring-result.dto.js';
 import { CreateScoreRevisionDto } from './dto/create-score-revision.dto.js';
@@ -230,7 +231,7 @@ export class AssessmentPersistenceService implements OnModuleInit {
       throw new BadRequestException(`Orphaned revision rejected: submissionId ${submissionId} does not exist`);
     }
 
-    if (teacher.role === Role.teacher && submission.assignment.teacherId !== teacherId) {
+    if (teacher.role === Role.teacher && submissionOwnerId(submission) !== teacherId) {
       throw new ForbiddenException('You are not authorized to manage this assignment');
     }
 
@@ -304,7 +305,11 @@ export class AssessmentPersistenceService implements OnModuleInit {
     // failure computing it must never roll back a teacher's revision.
     const reasonPrompt = await this.revisionReasons.promptState(
       teacherId,
-      submission.assignmentId,
+      submission.assignmentId
+        ? { assignmentId: submission.assignmentId }
+        : submission.batchId
+          ? { batchId: submission.batchId }
+          : { id: submission.id },
     );
 
     return { ...revision, reasonPrompt };
@@ -324,7 +329,7 @@ export class AssessmentPersistenceService implements OnModuleInit {
       throw new NotFoundException('Submission not found');
     }
 
-    if (teacher.role === Role.teacher && submission.assignment.teacherId !== teacherId) {
+    if (teacher.role === Role.teacher && submissionOwnerId(submission) !== teacherId) {
       throw new ForbiddenException('You are not authorized to manage this assignment');
     }
 
@@ -403,7 +408,7 @@ export class AssessmentPersistenceService implements OnModuleInit {
       throw new NotFoundException('Submission not found');
     }
 
-    if (teacher.role === Role.teacher && submission.assignment.teacherId !== teacherId) {
+    if (teacher.role === Role.teacher && submissionOwnerId(submission) !== teacherId) {
       throw new ForbiddenException('You are not authorized to manage this assignment');
     }
 
@@ -467,7 +472,7 @@ export class AssessmentPersistenceService implements OnModuleInit {
       };
     }
 
-    if (role === Role.teacher && submission.assignment.teacherId !== userId) {
+    if (role === Role.teacher && submissionOwnerId(submission) !== userId) {
       throw new ForbiddenException('You are not authorized to access this submission history');
     }
 

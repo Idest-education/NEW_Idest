@@ -3,7 +3,7 @@
 from typing import Protocol, runtime_checkable
 
 from config import MAX_RETRIES
-from prompt import PROMPT_SHA256
+from prompt import PROMPT_SHA256, REVISE_OUTSIDE, REVISE_PROMPT_SHA256
 
 # Every provider reports exactly these keys, so a result is comparable across
 # providers and the server sees one shape. Asserted in the provider tests.
@@ -58,6 +58,8 @@ def base_configuration() -> dict:
     """The part of `descriptor()["configuration"]` every provider shares."""
     return {
         "system_prompt_sha256": PROMPT_SHA256,
+        "revise_prompt_sha256": REVISE_PROMPT_SHA256,
+        "revise_outside": list(REVISE_OUTSIDE),
         "max_retries": MAX_RETRIES,
     }
 

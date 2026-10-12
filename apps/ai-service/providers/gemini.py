@@ -6,9 +6,9 @@ import time
 
 from config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_SUPPORTS_VISION, GEMINI_THINKING_LEVEL, SCORER_REVISION
 from image_fetch import fetch_task_image
-from prompt import IELTS_SYSTEM_PROMPT, build_user_prompt
+from prompt import prompts_for
 from providers.base import NO_TOKEN_COUNTS, base_configuration, completed_result, ensure_vision_capable
-from schemas import IELTSScoringResult
+from schemas import IELTSScoringResult, to_result
 
 logger = logging.getLogger(__name__)
 
@@ -69,13 +69,18 @@ class GeminiScorer:
         return self.client is not None
 
     async def score_essay(
-        self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None = None
+        self,
+        task_prompt: str,
+        task_type: str,
+        essay_text: str,
+        task_image_url: str | None = None,
+        review_of: dict | None = None,
     ) -> dict:
         from google.genai import types
 
         ensure_vision_capable("gemini", self.supports_vision, task_image_url)
 
-        prompt = build_user_prompt(task_prompt, task_type, essay_text)
+        system_prompt, prompt = prompts_for(task_prompt, task_type, essay_text, review_of)
         contents = prompt
         if task_image_url:
             image_bytes, mime_type = await fetch_task_image(task_image_url)
@@ -90,7 +95,7 @@ class GeminiScorer:
                 model=self.model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=IELTS_SYSTEM_PROMPT,
+                    system_instruction=system_prompt,
                     response_mime_type="application/json",
                     response_schema=IELTSScoringResult,
                     thinking_config=self._thinking_config(),
@@ -98,9 +103,10 @@ class GeminiScorer:
             )
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             parsed_data = json.loads(response.text)
+            scores, feedback = to_result(parsed_data, essay_text)
             return completed_result(
-                scores=parsed_data.get("scores"),
-                feedback=parsed_data.get("feedback"),
+                scores=scores,
+                feedback=feedback,
                 raw_output=parsed_data,
                 model_name=self.model_name,
                 provider=PROVIDER,

@@ -330,3 +330,34 @@ async def test_a_cached_result_keeps_the_provenance_of_its_original_grader(tmp_p
     hit = await score(rotator, "essay one")
 
     assert hit["model_descriptor"]["provider"] == "openai"
+
+
+async def test_a_batch_sticks_to_one_grader():
+    from providers.rotating import PIN_KEY
+
+    graders = trio([], [], [])
+    rotator = rotating(graders)
+    token = PIN_KEY.set("batch-1")
+    try:
+        served = {(await score(rotator, f"essay {i}"))["processing_metadata"]["provider"] for i in range(4)}
+    finally:
+        PIN_KEY.reset(token)
+
+    assert len(served) == 1
+
+
+async def test_a_pinned_grader_that_is_limited_falls_through_to_the_next():
+    from providers.rotating import PIN_KEY
+
+    graders = trio([], [], [])
+    rotator = rotating(graders)
+    token = PIN_KEY.set("batch-1")
+    try:
+        first = (await score(rotator, "one"))["processing_metadata"]["provider"]
+        pinned = next(g for g in graders if g.provider == first)
+        pinned.outcomes = [RateLimited()]
+        second = (await score(rotator, "two"))["processing_metadata"]["provider"]
+    finally:
+        PIN_KEY.reset(token)
+
+    assert second != first

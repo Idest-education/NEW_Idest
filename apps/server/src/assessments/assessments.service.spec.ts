@@ -174,7 +174,7 @@ describe('AssessmentPersistenceService.createTeacherRevision', () => {
     });
 
     expect(result.reasonPrompt).toEqual({ untaggedCount: 8, threshold: 8, shouldPrompt: true });
-    expect(reasons.promptState).toHaveBeenCalledWith('teacher-1', 'assignment-1');
+    expect(reasons.promptState).toHaveBeenCalledWith('teacher-1', { assignmentId: 'assignment-1' });
   });
 });
 

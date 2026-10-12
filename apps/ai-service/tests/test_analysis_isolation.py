@@ -24,6 +24,7 @@ SERVICE_MODULES = (
     "providers/throttled.py",
     "providers/openai_compatible.py",
     "providers/rotating.py",
+    "providers/revising.py",
     "providers/hosts.py",
 )
 

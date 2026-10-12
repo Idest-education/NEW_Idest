@@ -11,26 +11,29 @@ so the analysis can still compare graders over the dataset. It compares them on
 different essays, though, so the comparison is unpaired.
 """
 
-import json
 import logging
 import time
+import zlib
+from contextvars import ContextVar
 
-from retry import PROGRAMMING_ERRORS, retry_after_seconds, status_code
+from retry import BAD_REPLY, PROGRAMMING_ERRORS, retry_after_seconds, status_code
 
 logger = logging.getLogger(__name__)
+
+# Set by the worker around one job. Jobs sharing a key (one batch) start at the
+# same grader, so a teacher compares essays scored by one model, not three.
+# A context variable, so the Scorer interface and every layer under it stay as
+# they are. crc32, not hash(): str hashes are salted per process.
+PIN_KEY: ContextVar[str | None] = ContextVar("pin_key", default=None)
 
 
 def _is_our_bug(exc: Exception) -> bool:
     """Errors another provider would raise identically, so rotating wastes calls."""
     if isinstance(exc, PROGRAMMING_ERRORS):
         return True
-    # A ValueError that is not a JSON decode failure came from our own argument
+    # A ValueError that is not a bad model reply came from our own argument
     # checking, not from the endpoint.
-    return isinstance(exc, ValueError) and status_code(exc) is None and not _is_bad_json(exc)
-
-
-def _is_bad_json(exc: Exception) -> bool:
-    return isinstance(exc, json.JSONDecodeError)
+    return isinstance(exc, ValueError) and status_code(exc) is None and not isinstance(exc, BAD_REPLY)
 
 
 class RotatingScorer:
@@ -68,7 +71,9 @@ class RotatingScorer:
 
     def _rotation_order(self) -> list[int]:
         count = len(self.candidates)
-        return [(self._cursor + offset) % count for offset in range(count)]
+        pin = PIN_KEY.get()
+        start = zlib.crc32(pin.encode()) % count if pin else self._cursor
+        return [(start + offset) % count for offset in range(count)]
 
     def _cached_elsewhere(
         self, task_prompt: str, task_type: str, essay_text: str, task_image_url: str | None
@@ -114,7 +119,8 @@ class RotatingScorer:
 
             candidate = self.candidates[index]
             self._last_attempted = index
-            self._cursor = (index + 1) % len(self.candidates)
+            if PIN_KEY.get() is None:
+                self._cursor = (index + 1) % len(self.candidates)
             attempted += 1
 
             try:

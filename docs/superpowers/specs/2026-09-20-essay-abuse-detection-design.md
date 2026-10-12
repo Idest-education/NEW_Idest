@@ -207,3 +207,36 @@ never as instructions. ~3 lines changed, no new dependency.
   event is written, response shape matches a normal successful submit.
 - Integration tests for `POST /submissions/:id/abuse-review`: all three decision/action
   combinations, plus 400 when submission status isn't `abuse`, plus ownership guard.
+
+## Update 2026-10-11 — "not worth grading" checks
+
+`detectAbuse(essayText, wordCount, taskPrompt?)` now covers everything that should never reach the LLM
+grader. It is still heuristic-only (D1) and still tuned for false negatives (D5). Callers pass the task
+prompt; the public grader refuses a flagged essay (`essay_rejected` with reasons), batch intake and
+assignments park it as `abuse` for the teacher (unchanged).
+
+| Reason | Signal |
+| --- | --- |
+| `too_short` | 20 words or fewer (the grader's own band-1 rule) |
+| `too_long` | over 1,500 words, or over 15,000 characters (words glued by zero-width or no spaces) |
+| `gibberish` | the original four signals plus runs of a repeated character or pair ("aaaaa", "hahaha") |
+| `not_english` | over 20% non-Latin letters, over 5% diacritic marks (Vietnamese), or under 20% English function words (other Latin languages, keyword lists, word salad); needs 100+ letters |
+| `repetitive` | 30%+ of 8-word runs already seen (paragraph pasted to reach the count) |
+| `copied_prompt` | 50%+ of 6-word runs come from the task prompt |
+| `off_topic` | 80+ words and not one subject word (5-letter stem, IELTS boilerplate excluded) shared with a prompt that has 3+ subject words |
+| `not_essay` | code tokens or braces, 3+ HTML tags, 60%+ bullet lines, 15+ lines under 3 words each, or a short message asking to be graded |
+| `spam` | links, emails, phone numbers, handles or messenger names, and advertising phrases (two signals) |
+| `prompt_injection` | expanded phrase list: instruction overrides, chat-template and role markers, our own `<<<`/`>>>` delimiters and section names, persona switches and jailbreaks, score demands, JSON score payloads and schema keys, prompt-leak requests, addressing the grader; matched after NFKC folding (fullwidth, math letters), homoglyph mapping (Cyrillic/Greek lookalikes), leetspeak reversal, and again on a letters-only squash (spaced-out letters) |
+| `hidden_text` | 5+ invisible characters (soft hyphen and BOM excluded), any bidi override or Unicode tag character, 2+ words mixing Latin with Cyrillic/Greek, or a 60+ character base64 blob |
+
+This supersedes D7 in one respect: an essay sharing no subject word at all with its prompt is now
+flagged as `off_topic`. A partly relevant or weak essay still passes; judging relevance beyond that stays
+with the grader and the teacher.
+
+Calibration: all 102 essays in the development database pass with wide margins (function-word ratio
+0.33-0.49 against a 0.20 floor; prompt overlap at most 0.012 against 0.5; repetition at most 0.007 against
+0.3). The grader prompt separately treats a copy of one of its reference essays as memorised (band 0),
+since those texts are now inside the prompt.
+
+Known gaps, by design: AI-generated or memorised essays from the web, and a fluent essay on a different
+but related topic, cannot be told apart heuristically.

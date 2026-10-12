@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
-import { RabbitMQService } from '../rabbitmq/rabbitmq.service.js';
+import { RabbitMQService, scoringJobFor } from '../rabbitmq/rabbitmq.service.js';
+import { submissionOwnerId } from './submission-owner.js';
 import { CreateSubmissionDto } from './dto/create-submission.dto.js';
 import { CreateRedoRequestDto } from './dto/create-redo-request.dto.js';
 import { AbuseReviewDto } from './dto/abuse-review.dto.js';
@@ -112,7 +113,7 @@ export class SubmissionsService {
 
     // 5. Word count & heuristic abuse detection
     const wordCount = this.calculateWordCount(dto.essayText);
-    const abuseResult = detectAbuse(dto.essayText, wordCount);
+    const abuseResult = detectAbuse(dto.essayText, wordCount, assignment.taskPrompt);
 
     // 6. Calculate next attempt number
     const previousAttemptsCount = await this.prisma.submission.count({
@@ -127,6 +128,9 @@ export class SubmissionsService {
           assignmentId,
           studentId,
           attemptNumber: nextAttemptNumber,
+          taskType: assignment.taskType,
+          taskPrompt: assignment.taskPrompt,
+          taskImageUrl: assignment.taskImageUrl,
           essayText: dto.essayText,
           wordCount,
           status: abuseResult ? SubmissionStatus.abuse : SubmissionStatus.submitted,
@@ -168,18 +172,7 @@ export class SubmissionsService {
     }
 
     // 8. Queue AI scoring job via RabbitMQ
-    const publishSuccess = await this.rabbitmqService.publishScoringJob({
-      submissionId: submission.id,
-      assignmentId,
-      studentId,
-      attemptNumber: submission.attemptNumber,
-      taskPrompt: assignment.taskPrompt,
-      taskType: assignment.taskType,
-      taskImageUrl: assignment.taskImageUrl,
-      essayText: submission.essayText,
-      wordCount: submission.wordCount,
-      submittedAt: submission.submittedAt.toISOString(),
-    });
+    const publishSuccess = await this.rabbitmqService.publishScoringJob(scoringJobFor(submission));
 
     if (publishSuccess) {
       // Transition status to queued
@@ -238,11 +231,11 @@ export class SubmissionsService {
           wordCount: submission.wordCount,
           status: submission.status,
           submittedAt: submission.submittedAt,
-          assignment: {
+          assignment: submission.assignment && {
             id: submission.assignment.id,
             title: submission.assignment.title,
-            taskPrompt: submission.assignment.taskPrompt,
-            taskType: submission.assignment.taskType,
+            taskPrompt: submission.taskPrompt,
+            taskType: submission.taskType,
             dueAt: submission.assignment.dueAt,
           },
           publishedResult: null,
@@ -267,7 +260,7 @@ export class SubmissionsService {
       };
     }
 
-    if (role === Role.teacher && submission.assignment.teacherId !== userId) {
+    if (role === Role.teacher && submissionOwnerId(submission) !== userId) {
       throw new ForbiddenException('You do not own the assignment for this submission');
     }
 
@@ -409,7 +402,7 @@ export class SubmissionsService {
       include: { assignment: true },
     });
     if (!submission) throw new NotFoundException('Submission not found');
-    if (role === Role.teacher && submission.assignment.teacherId !== teacherId) {
+    if (role === Role.teacher && submissionOwnerId(submission) !== teacherId) {
       throw new ForbiddenException('You do not own the assignment for this submission');
     }
     return submission;
@@ -476,18 +469,7 @@ export class SubmissionsService {
       throw new BadRequestException(`Only failed submissions can be retried (status: ${submission.status})`);
     }
 
-    const publishSuccess = await this.rabbitmqService.publishScoringJob({
-      submissionId: submission.id,
-      assignmentId: submission.assignmentId,
-      studentId: submission.studentId,
-      attemptNumber: submission.attemptNumber,
-      taskPrompt: submission.assignment.taskPrompt,
-      taskType: submission.assignment.taskType,
-      taskImageUrl: submission.assignment.taskImageUrl,
-      essayText: submission.essayText,
-      wordCount: submission.wordCount,
-      submittedAt: submission.submittedAt.toISOString(),
-    });
+    const publishSuccess = await this.rabbitmqService.publishScoringJob(scoringJobFor(submission));
 
     if (!publishSuccess) {
       throw new ConflictException('Scoring queue is unavailable right now — try again shortly');
@@ -533,18 +515,7 @@ export class SubmissionsService {
     }
 
     if (dto.action === 'requeue') {
-      const publishSuccess = await this.rabbitmqService.publishScoringJob({
-        submissionId: submission.id,
-        assignmentId: submission.assignmentId,
-        studentId: submission.studentId,
-        attemptNumber: submission.attemptNumber,
-        taskPrompt: submission.assignment.taskPrompt,
-        taskType: submission.assignment.taskType,
-        taskImageUrl: submission.assignment.taskImageUrl,
-        essayText: submission.essayText,
-        wordCount: submission.wordCount,
-        submittedAt: submission.submittedAt.toISOString(),
-      });
+      const publishSuccess = await this.rabbitmqService.publishScoringJob(scoringJobFor(submission));
       if (!publishSuccess) {
         throw new ConflictException('Scoring queue is unavailable right now — try again shortly');
       }
@@ -598,7 +569,7 @@ export class SubmissionsService {
     if (!submission) {
       throw new NotFoundException(`Submission ${submissionId} not found`);
     }
-    if (teacher.role === Role.teacher && submission.assignment.teacherId !== teacherId) {
+    if (teacher.role === Role.teacher && submissionOwnerId(submission) !== teacherId) {
       throw new ForbiddenException('You are not authorized to review this submission');
     }
 

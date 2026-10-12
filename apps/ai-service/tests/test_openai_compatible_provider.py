@@ -12,20 +12,14 @@ from providers.openai_compatible import (
     token_counts,
 )
 
+# A model reply in the scoring schema. Overall is computed, not returned.
 SCORED = {
-    "scores": {
-        "task_response": 6.5,
-        "coherence_cohesion": 6.0,
-        "lexical_resource": 6.5,
-        "grammatical_range_accuracy": 6.0,
-        "overall": 6.5,
-    },
-    "feedback": {
-        "summary": "Clear but repetitive.",
-        "strengths": ["Coherent paragraphs"],
-        "improvements": ["Vary sentence length"],
-        "sentence_feedback": [],
-    },
+    "task_response": {"evidence": [], "reasoning": "Fits band 6.5.", "band": 6.5, "comment": "Keep going."},
+    "coherence_cohesion": {"evidence": [], "reasoning": "Fits band 6.0.", "band": 6.0, "comment": "Keep going."},
+    "lexical_resource": {"evidence": [], "reasoning": "Fits band 6.5.", "band": 6.5, "comment": "Keep going."},
+    "grammatical_range_accuracy": {"evidence": [], "reasoning": "Fits band 6.0.", "band": 6.0, "comment": "Keep going."},
+    "sentence_feedback": [],
+    "comment": "Clear but repetitive.",
 }
 
 
@@ -96,7 +90,10 @@ async def test_json_schema_mode_constrains_generation(captured):
     fmt = captured["body"]["response_format"]
     assert fmt["type"] == "json_schema"
     assert fmt["json_schema"]["strict"] is True
-    assert fmt["json_schema"]["schema"]["properties"].keys() == {"scores", "feedback"}
+    schema = fmt["json_schema"]["schema"]
+    assert schema["additionalProperties"] is False
+    assert all(d["additionalProperties"] is False for d in schema["$defs"].values() if d.get("type") == "object")
+    assert fmt["json_schema"]["schema"]["properties"].keys() == {"task_response", "coherence_cohesion", "lexical_resource", "grammatical_range_accuracy", "sentence_feedback", "comment"}
 
 
 async def test_json_object_mode_asks_for_the_shape_in_the_prompt(captured):
@@ -126,7 +123,7 @@ async def test_the_essay_is_sent_inside_its_delimiters(captured):
     await gpt().score_essay("Some task", "task_1", "essay body")
 
     system, user = captured["body"]["messages"]
-    assert "IELTS Writing Examiner" in system["content"]
+    assert "IELTS Writing examiner" in system["content"]
     assert "<<<STUDENT_ESSAY>>>\nessay body\n<<<END_STUDENT_ESSAY>>>" in user["content"]
 
 

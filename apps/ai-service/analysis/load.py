@@ -223,10 +223,10 @@ def load_feedback_pairs_db(database_url: str) -> pd.DataFrame:
     query = sqlalchemy.text(
         """
         SELECT o.submission_id,
-               sr.feedback->>'summary'              AS ai_summary,
+               COALESCE(sr.feedback->>'comment', sr.feedback->>'summary') AS ai_summary,
                sr.feedback->'strengths'             AS ai_strengths,
                sr.feedback->'improvements'          AS ai_improvements,
-               rev.final_feedback->>'summary'       AS teacher_summary,
+               COALESCE(rev.final_feedback->>'comment', rev.final_feedback->>'summary') AS teacher_summary,
                rev.final_feedback->'strengths'      AS teacher_strengths,
                rev.final_feedback->'improvements'   AS teacher_improvements
         FROM v_assessment_outcomes o
