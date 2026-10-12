@@ -52,8 +52,8 @@ apps/
 docs/       See "docs/ folder" below.
 ```
 
-Queues: `ai_scoring_queue` / `ai_scoring_results_queue` and `ai_extraction_queue` /
-`ai_extraction_results_queue` (RabbitMQ).
+Queues: `ai_scoring_queue` / `ai_scoring_results_queue`, `ai_extraction_queue` /
+`ai_extraction_results_queue` and `ai_chat_queue` / `ai_chat_results_queue` (RabbitMQ).
 
 ## Tech stack (from the thesis)
 
@@ -179,7 +179,7 @@ for current status and assignees.
 Entities (all history append-only): `users`, `submissions` (`source` = `assignment` |
 `public` | `batch`, with its own task snapshot), `grading_batches`, `intake_files`,
 `scoring_results`, `score_revisions`, `published_results`, `ai_model_versions`,
-`audit_events`. Hidden LMS: `assignments`, `classes`, `class_members`, invites, `redo_requests`.
+`audit_events`, `chat_turns` (follow-up questions on a graded public essay). Hidden LMS: `assignments`, `classes`, `class_members`, invites, `redo_requests`.
 
 Submission state machine:
 `submitted → queued → scoring → scored → under_review → published`

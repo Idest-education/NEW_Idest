@@ -2,6 +2,9 @@ app = "idest-web"
 primary_region = "sin"
 
 [build]
+  [build.args]
+    # Public by design; the secret half lives in idest-server's TURNSTILE_SECRET.
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY = "0x4AAAAAAFUpeNNUHsO7kS29"
 
 [env]
   PORT = "3000"

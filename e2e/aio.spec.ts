@@ -66,7 +66,7 @@ test("anonymous grading: compose, wait, read the result", async ({ page }) => {
   await page.getByRole("button", { name: "Grade" }).click();
   await page.waitForURL(new RegExp(`/r/${UUID}$`));
 
-  const working = page.getByText(/In line for grading|Reading your essay/);
+  const working = page.getByText(/Grading in progress|Reading your essay/);
   if (await working.waitFor({ timeout: 8000 }).then(() => true, () => false)) await shot(page, "result-grading");
 
   await expect(page.getByText("Overall band")).toBeVisible({ timeout: 170_000 });

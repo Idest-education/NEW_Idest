@@ -75,13 +75,47 @@ describe('GradingService.grade', () => {
     expect(t.prisma.submission.create).not.toHaveBeenCalled();
   });
 
-  it('does not meter a signed-in teacher, who owns the submission', async () => {
-    t.prisma.submission.count.mockResolvedValue(99);
-    const teacher = { user: { id: 'teacher-1', role: Role.teacher } as never, clientHash: 'hash-1' };
+  const TEACHER: Caller = { user: { id: 'teacher-1', role: Role.teacher } as never, clientHash: 'hash-1' };
+  /** Calls in the last day vs the last hour, told apart by the window start. */
+  function calls(day: number, hour: number) {
+    t.prisma.submission.count.mockImplementation(({ where }) =>
+      Date.now() - where.submittedAt.gte.getTime() > 2 * 60 * 60 * 1000 ? day : hour,
+    );
+  }
 
-    await t.service.grade(teacher, DTO);
+  it('meters a signed-in teacher by account, not IP, and lets them past the anonymous cap', async () => {
+    calls(99, 5);
 
+    await t.service.grade(TEACHER, DTO);
+
+    expect(t.prisma.submission.count.mock.calls[0][0].where).toMatchObject({ ownerId: 'teacher-1' });
+    expect(t.prisma.submission.count.mock.calls[0][0].where.clientHash).toBeUndefined();
     expect(t.prisma.submission.create.mock.calls[0][0].data.ownerId).toBe('teacher-1');
+  });
+
+  it('refuses a teacher past the daily limit of 100', async () => {
+    calls(100, 0);
+
+    await expect(t.service.grade(TEACHER, DTO)).rejects.toMatchObject({
+      response: { error: 'daily_limit_reached', limit: 100 },
+    });
+  });
+
+  it('refuses anyone past the hourly limit of 30', async () => {
+    calls(40, 30);
+
+    await expect(t.service.grade(TEACHER, DTO)).rejects.toMatchObject({
+      response: { error: 'hourly_limit_reached', limit: 30 },
+    });
+    expect(t.prisma.submission.create).not.toHaveBeenCalled();
+  });
+
+  it('reports whichever window has fewer gradings left', async () => {
+    calls(95, 2);
+    await expect(t.service.quota(TEACHER)).resolves.toEqual({ remaining: 5, limit: 100, window: 'day' });
+
+    calls(10, 28);
+    await expect(t.service.quota(TEACHER)).resolves.toEqual({ remaining: 2, limit: 30, window: 'hour' });
   });
 
   it('rejects a flagged essay without storing it', async () => {

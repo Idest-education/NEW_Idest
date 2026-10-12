@@ -12,7 +12,7 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 # different graders share one row and the analysis compares them as one.
 # Not read from the environment: a stale .env value once filed results from a new
 # prompt under an old revision, and ai_model_versions never rewrites a row.
-SCORER_REVISION = "2026-10-11-v8"
+SCORER_REVISION = "2026-10-12-v10"
 # How much Gemini may reason before answering. Thinking tokens bill as OUTPUT,
 # and output is roughly 90% of the cost of scoring one essay, so the cheapest
 # level that still grades well is pinned rather than left to the model default.

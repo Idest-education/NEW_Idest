@@ -26,6 +26,9 @@ import { PageQueryDto } from './dto/page-query.dto.js';
 import { GradingService, type Caller } from './grading.service.js';
 import { GradeEssayDto } from './dto/grade-essay.dto.js';
 import { clientHash } from './client-hash.js';
+import { Turnstile } from './turnstile.guard.js';
+import { ChatService } from './chat.service.js';
+import { AskQuestionDto } from './dto/ask-question.dto.js';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
@@ -36,6 +39,7 @@ const MAX_PHOTO_PAGES = 5;
 export class GradingController {
   constructor(
     private readonly grading: GradingService,
+    private readonly chat: ChatService,
     private readonly config: ConfigService,
   ) {}
 
@@ -46,6 +50,7 @@ export class GradingController {
 
   @Post()
   @Public()
+  @Turnstile('grade')
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'Grade one essay. No account needed; optional Task 1 chart image.' })
   @ApiConsumes('multipart/form-data', 'application/json')
@@ -67,6 +72,7 @@ export class GradingController {
 
   @Post('transcribe')
   @Public()
+  @Turnstile('transcribe')
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'Transcribe photos of a handwritten essay (pages in order)' })
   @ApiConsumes('multipart/form-data')
@@ -92,6 +98,13 @@ export class GradingController {
     return this.grading.transcription(id);
   }
 
+  @Get('quota')
+  @Public()
+  @ApiOperation({ summary: 'Gradings left in the tighter of the daily and hourly windows' })
+  quota(@Req() req: Request, @OptionalUser() user: User | null) {
+    return this.grading.quota(this.caller(req, user));
+  }
+
   @Get('mine')
   @Roles('teacher', 'admin')
   @ApiOperation({ summary: "The signed-in teacher's single-essay gradings" })
@@ -104,6 +117,26 @@ export class GradingController {
   @ApiOperation({ summary: 'Status and result of a public grading' })
   result(@Param('id', ParseUUIDPipe) id: string, @OptionalUser() user: User | null) {
     return this.grading.result(id, user);
+  }
+
+  @Get(':id/chat')
+  @Public()
+  @ApiOperation({ summary: "Follow-up questions on the caller's own graded essay, and how many are left" })
+  thread(@Req() req: Request, @OptionalUser() user: User | null, @Param('id', ParseUUIDPipe) id: string) {
+    return this.chat.thread(this.caller(req, user), id);
+  }
+
+  @Post(':id/chat')
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @ApiOperation({ summary: 'Ask the AI a follow-up question about a graded essay (1 anonymous, 5 signed in)' })
+  ask(
+    @Req() req: Request,
+    @OptionalUser() user: User | null,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AskQuestionDto,
+  ) {
+    return this.chat.ask(this.caller(req, user), id, dto.question);
   }
 
   @Post(':id/retry')

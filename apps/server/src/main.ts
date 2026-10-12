@@ -14,7 +14,7 @@ async function bootstrap(): Promise<void> {
     origin: (config.get<string>('CORS_ORIGINS') ?? config.getOrThrow<string>('CLERK_AUTHORIZED_PARTIES')).split(
       ',',
     ),
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'CF-Turnstile-Response'],
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

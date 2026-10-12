@@ -7,6 +7,7 @@ import { isWorking, shortDate, taskLabel } from "../lib/format";
 import { EssayText } from "./essay-text";
 import { useApi, useLoad } from "../lib/use-api";
 import { Assessment } from "./assessment";
+import { Chat } from "./chat";
 import { Icon } from "./icon";
 import { Io, type IoMood } from "./io";
 import { useToast } from "./toast";
@@ -156,6 +157,8 @@ export function ResultView({ id }: { id: string }) {
               </Link>
             )}
           </div>
+
+          {data.result && <Chat id={id} />}
         </div>
       </article>
     </div>
@@ -173,7 +176,7 @@ function Working({ status }: { status: "queued" | "scoring" | string }) {
     <div className={styles.working}>
       <div>
         <p className={styles.workingTitle}>
-          {status === "queued" ? "In line for grading" : "Reading your essay against the four criteria"}
+          {status === "queued" ? "Grading in progress" : "Reading your essay against the four criteria"}
         </p>
         <p className="hint">Io usually takes under a minute. You can leave this page; the link keeps working.</p>
       </div>

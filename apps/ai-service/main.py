@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from worker import ScoringWorker
 from extraction.worker import ExtractionWorker
+from chat import ChatWorker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ai-service")
@@ -13,8 +14,9 @@ async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(ScoringWorker().start()),
         asyncio.create_task(ExtractionWorker().start()),
+        asyncio.create_task(ChatWorker().start()),
     ]
-    logger.info("Started scoring and extraction workers in background.")
+    logger.info("Started scoring, extraction and chat workers in background.")
     yield
     for task in tasks:
         task.cancel()

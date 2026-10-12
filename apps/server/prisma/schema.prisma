@@ -107,6 +107,12 @@ enum ReasonSource {
   batch
 }
 
+enum ChatTurnStatus {
+  pending
+  answered
+  failed
+}
+
 enum ModelStatus {
   experimental
   active
@@ -220,6 +226,7 @@ model Submission {
   scoreRevisions   ScoreRevision[]
   publishedResults PublishedResult[]
   redoRequests     RedoRequest[]
+  chatTurns        ChatTurn[]
 
   @@unique([assignmentId, studentId, attemptNumber])
   @@index([assignmentId], map: "submissions_assignment_id_index")
@@ -522,4 +529,19 @@ model FeedbackResponse {
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("feedback_responses")
+}
+
+/// One follow-up question about a graded public essay, and the AI's answer.
+model ChatTurn {
+  id           String         @id @default(uuid()) @db.Uuid
+  submissionId String         @map("submission_id") @db.Uuid
+  submission   Submission     @relation(fields: [submissionId], references: [id])
+  question     String         @db.Text
+  answer       String?        @db.Text
+  status       ChatTurnStatus @default(pending)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  answeredAt   DateTime?      @map("answered_at") @db.Timestamptz(6)
+
+  @@index([submissionId, createdAt], map: "chat_turns_submission_index")
+  @@map("chat_turns")
 }

@@ -114,7 +114,7 @@ def test_the_prompt_hash_is_the_one_past_results_were_scored_under():
     """
     assert (
         hashlib.sha256(IELTS_SYSTEM_PROMPT.encode()).hexdigest()
-        == "4d369f98694dc4d572c0408204b136d55442c74c407cbfade9815e5d80c80952"
+        == "caa09d95fd7173210b72991071e7f9d517a834dcf0778a19e31b9d774b4b38a3"
     )
 
 

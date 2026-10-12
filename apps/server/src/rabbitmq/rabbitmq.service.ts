@@ -79,6 +79,26 @@ export interface ExtractionResultMessage {
   extractor?: string;
 }
 
+export interface ChatJobPayload {
+  turnId: string;
+  taskType: string;
+  taskPrompt: string;
+  essayText: string;
+  wordCount: number;
+  /** The assessment the candidate is asking about. */
+  result: { by: 'ai' | 'teacher'; scores: unknown; feedback: unknown };
+  /** Earlier answered turns on the same essay, oldest first. */
+  history: { question: string; answer: string }[];
+  question: string;
+}
+
+export interface ChatResultMessage {
+  turnId: string;
+  status: 'answered' | 'failed';
+  answer: string | null;
+  error: string | null;
+}
+
 /**
  * Strips the password from a broker URL before it reaches a log.
  *
@@ -108,6 +128,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private readonly resultQueueName = 'ai_scoring_results_queue';
   private readonly extractionQueueName = 'ai_extraction_queue';
   private readonly extractionResultQueueName = 'ai_extraction_results_queue';
+  private readonly chatQueueName = 'ai_chat_queue';
+  private readonly chatResultQueueName = 'ai_chat_results_queue';
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -133,6 +155,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       await ch.assertQueue(this.resultQueueName, { durable: true });
       await ch.assertQueue(this.extractionQueueName, { durable: true });
       await ch.assertQueue(this.extractionResultQueueName, { durable: true });
+      await ch.assertQueue(this.chatQueueName, { durable: true });
+      await ch.assertQueue(this.chatResultQueueName, { durable: true });
       this.isConnected = true;
       this.logger.log(`Connected to RabbitMQ at ${redactAmqpUrl(url)}`);
     } catch (err) {
@@ -174,12 +198,20 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     return this.publish(this.extractionQueueName, payload, `extraction job for file ${payload.fileId}`);
   }
 
+  async publishChatJob(payload: ChatJobPayload): Promise<boolean> {
+    return this.publish(this.chatQueueName, payload, `chat job for turn ${payload.turnId}`);
+  }
+
   async consumeScoringResults(handler: (message: any) => Promise<void>) {
     await this.consume(this.resultQueueName, handler);
   }
 
   async consumeExtractionResults(handler: (message: ExtractionResultMessage) => Promise<void>) {
     await this.consume(this.extractionResultQueueName, handler);
+  }
+
+  async consumeChatResults(handler: (message: ChatResultMessage) => Promise<void>) {
+    await this.consume(this.chatResultQueueName, handler);
   }
 
   private async publish(queue: string, payload: unknown, label: string): Promise<boolean> {

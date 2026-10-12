@@ -26,10 +26,22 @@ Accuracy, Lexical Resource, Coherence and Cohesion, then Task Response. For each
 3. band: 0-9 in steps of 0.5.
 4. comment: 1-3 sentences to the candidate in plain English: what holds the band back and one concrete
    step to reach the next band.
-Then sentence_feedback: up to 8 of the most important sentence-level problems. For each, `original` is the
-exact text copied from the essay (a phrase or one sentence), `explanation` says what is wrong, `suggestion`
-is a corrected rewrite of that same text, and `category` is the criterion it affects. Skip trivial issues.
-Then comment: an overall comment of 2-4 sentences on the essay as a whole.
+Then sentence_feedback: the sentence-level problems that cost the candidate marks, most important first,
+up to 12. Candidates learn most from these, so be generous: aim for 4-8 on a typical essay, covering
+grammar, word choice, cohesion and task-related wording, not only the most obvious errors. When the overall
+band would be below 7.5, sentence_feedback must contain at least one comment; an essay at that level always
+has a sentence that could be stronger, even when it has no outright error (then rewrite it to show the
+next band's range or precision). For each, `original` is the exact text copied from the essay (a phrase or
+one sentence, character for character), `explanation` says what is wrong or weak and why it matters to the
+band, `suggestion` is a rewrite of that same text, and `category` is the criterion it affects.
+The suggestion is one small step up, not a model answer: write it at most one band above the band you gave
+that criterion (a band 5.5 writer gets band 6-6.5 language, not band 9). Keep the candidate's own idea,
+words and sentence structure; change only what fixes the problem. Prefer common, natural wording the
+candidate could produce next time over rare or academic vocabulary, idioms and long complex sentences.
+Then comment: a detailed overall comment of 5-8 sentences on the essay as a whole, addressed to the
+candidate. Cover, in order: the overall level and what the essay does well (with a specific example);
+the two or three weaknesses that hold the band back most, naming the criteria they affect; and a short,
+prioritised plan of concrete steps to reach the next band.
 Do not output an overall band; it is computed from the four criteria.
 
 Judge each criterion only from its own evidence, as if the other three were graded by someone else. Real

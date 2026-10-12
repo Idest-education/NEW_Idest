@@ -72,6 +72,24 @@ export interface GradingResult {
   submittedAt: string;
   result: { by: "ai" | "teacher"; scores: Scores; feedback: Feedback } | null;
 }
+export interface Quota {
+  /** Gradings left in the tighter window. */
+  remaining: number;
+  limit: number;
+  window: "day" | "hour";
+}
+export interface ChatTurn {
+  id: string;
+  question: string;
+  answer: string | null;
+  status: "pending" | "answered" | "failed";
+  createdAt: string;
+}
+export interface ChatThread {
+  turns: ChatTurn[];
+  limit: number;
+  remaining: number;
+}
 export interface Transcription {
   id: string;
   status: IntakeStatus;
@@ -273,14 +291,22 @@ export class ApiError extends Error {
 
 const COPY: Record<string, string> = {
   daily_limit_reached:
-    "You've used today's free gradings. Sign in for unlimited grading, or come back tomorrow.",
+    "You've reached today's grading limit. Come back tomorrow, or sign in as a teacher for a higher limit.",
+  hourly_limit_reached: "You've graded a lot this hour. Take a short break, then try again.",
   essay_rejected: "We detected abuse. Please be a nice person: your device and IP address have been flagged.",
   unsupported_image_type: "That image type isn't supported. Use a JPG, PNG, WebP, GIF or HEIC photo.",
   invalid_transcription: "Those photos can't be used any more. Upload them again.",
   queue_unavailable: "Grading is busy right now. Your essay is saved, so try again in a minute.",
   not_retryable: "This one is already being scored. Give it a moment.",
   not_found: "We couldn't find that. The link may be wrong.",
+  captcha_failed: "We couldn't confirm you're human. Reload the page, then try again.",
+  captcha_unavailable: "Our security check is unavailable right now. Try again in a minute, or sign in.",
   no_images: "Add at least one photo.",
+  chat_limit_reached: "You've used all your questions for this essay.",
+  chat_busy: "Io is still answering your last question.",
+  chat_unavailable: "Io can't answer right now. Try again in a minute.",
+  not_graded: "Wait for the grade, then ask.",
+  not_owner: "Only the person who graded this essay can ask about it.",
   no_files: "Add at least one file.",
   unsupported_file_type: "Some files aren't supported. Use images, PDF, Word (.doc, .docx) or Excel (.xls, .xlsx, .csv).",
   too_many_files: "A batch holds up to 30 files. Remove a few, then try again.",
@@ -319,13 +345,14 @@ export function describeError(err: unknown): string {
 }
 
 type GetToken = () => Promise<string | null>;
-type Body = { json?: unknown; form?: FormData };
+type Body = { json?: unknown; form?: FormData; captcha?: string };
 
 export function createApi(getToken: GetToken, base = API_URL, fetcher: typeof fetch = fetch) {
   async function send(method: string, path: string, body: Body = {}): Promise<Response> {
     const headers: Record<string, string> = {};
     const token = await getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
+    if (body.captcha) headers["CF-Turnstile-Response"] = body.captcha;
     let payload: BodyInit | undefined = body.form;
     if (body.json !== undefined) {
       headers["Content-Type"] = "application/json";
@@ -378,15 +405,19 @@ export function createApi(getToken: GetToken, base = API_URL, fetcher: typeof fe
       idempotencyKey: string;
       transcriptionId?: string;
       taskImage?: File;
-    }) =>
+    }, captcha?: string) =>
       call<{ id: string; status: SubmissionStatus }>("POST", "/grade", {
         form: form({ ...input }),
+        captcha,
       }),
-    transcribe: (images: File[]) =>
-      call<{ id: string; status: IntakeStatus }>("POST", "/grade/transcribe", { form: form({ images }) }),
+    transcribe: (images: File[], captcha?: string) =>
+      call<{ id: string; status: IntakeStatus }>("POST", "/grade/transcribe", { form: form({ images }), captcha }),
     transcription: (id: string) => call<Transcription>("GET", `/grade/transcribe/${id}`),
     result: (id: string) => call<GradingResult>("GET", `/grade/${id}`),
     retryGrading: (id: string) => call<{ id: string; status: SubmissionStatus }>("POST", `/grade/${id}/retry`),
+    quota: () => call<Quota>("GET", "/grade/quota"),
+    chat: (id: string) => call<ChatThread>("GET", `/grade/${id}/chat`),
+    ask: (id: string, question: string) => call<ChatTurn>("POST", `/grade/${id}/chat`, { json: { question } }),
     mine: (page = 1, limit = 50) => call<Page<MyGrading>>("GET", `/grade/mine?page=${page}&limit=${limit}`),
 
     batches: () => call<BatchSummary[]>("GET", "/batches"),

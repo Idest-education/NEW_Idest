@@ -7,7 +7,10 @@ import type { Request } from 'express';
  * Fly's proxy overwrites Fly-Client-IP, so the header cannot be spoofed there.
  */
 export function clientHash(req: Pick<Request, 'headers' | 'ip'>, secret: string): string {
+  return createHmac('sha256', secret).update(clientIp(req)).digest('hex');
+}
+
+export function clientIp(req: Pick<Request, 'headers' | 'ip'>): string {
   const header = req.headers['fly-client-ip'];
-  const ip = (Array.isArray(header) ? header[0] : header) ?? req.ip ?? 'unknown';
-  return createHmac('sha256', secret).update(ip).digest('hex');
+  return (Array.isArray(header) ? header[0] : header) ?? req.ip ?? 'unknown';
 }

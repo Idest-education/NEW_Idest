@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ClipboardEvent, type FormEvent } from "react";
-import { describeError, type TaskType } from "../lib/api";
+import { useClerk } from "@clerk/nextjs";
+import { ApiError, describeError, type TaskType } from "../lib/api";
 import { countWords } from "../lib/format";
-import { useApi } from "../lib/use-api";
+import { useApi, useLoad } from "../lib/use-api";
 import { ChartPicker, IMAGE_TYPES, pastedImage, TaskToggle } from "./composer-parts";
 import { useToast } from "./toast";
 import { Icon } from "./icon";
 import { Io } from "./io";
 import { useAccount } from "./session";
+import { captchaMessage, useTurnstile } from "./turnstile";
 import styles from "./composer.module.css";
 
 // The server treats 20 words or fewer as abuse; stop short text here with a kinder message.
@@ -33,7 +36,14 @@ type Photos = { state: "reading" } | { state: "done"; id: string } | { state: "f
 export function Composer({ variant = "app" }: { variant?: "app" | "landing" }) {
   const api = useApi();
   const router = useRouter();
-  const { profile, bumpRecents } = useAccount();
+  const { loaded, signedIn, profile, bumpRecents } = useAccount();
+  const gradeCheck = useTurnstile(loaded && !signedIn, "grade");
+  const photoCheck = useTurnstile(loaded && !signedIn, "transcribe");
+  const { openSignIn } = useClerk();
+  /** Friendly copy for a failure; a captcha the server rejected moves that check to its next fallback. */
+  const explain = (err: unknown, check: typeof gradeCheck) =>
+    err instanceof ApiError && err.code === "captcha_failed" ? captchaMessage(check.fail()) : describeError(err);
+  const quota = useLoad(loaded ? `quota:${signedIn}` : null, api.quota);
   // The server has no idea of the visitor's clock; it renders the afternoon greeting.
   const hour = useSyncExternalStore(
     noop,
@@ -79,7 +89,7 @@ export function Composer({ variant = "app" }: { variant?: "app" | "landing" }) {
     setPhotos({ state: "reading" });
     setChecked(false);
     try {
-      const { id } = await api.transcribe(files);
+      const { id } = await api.transcribe(files, await photoCheck.token());
       // Transcription runs on the server; check every 2 s for up to 3 minutes.
       for (let i = 0; i < 90 && alive.current; i++) {
         await new Promise((r) => setTimeout(r, 2000));
@@ -91,12 +101,13 @@ export function Composer({ variant = "app" }: { variant?: "app" | "landing" }) {
           setEssay(t.text ?? "");
           if (t.taskPrompt) setPrompt((p) => p || t.taskPrompt!);
           setPhotos({ state: "done", id });
+          quota.reload();
           return;
         }
       }
       throw new Error("Reading the photos is taking too long. Try again in a minute.");
     } catch (err) {
-      if (alive.current) setPhotos({ state: "failed", message: describeError(err) });
+      if (alive.current) setPhotos({ state: "failed", message: explain(err, photoCheck) });
     }
   }
 
@@ -116,18 +127,21 @@ export function Composer({ variant = "app" }: { variant?: "app" | "landing" }) {
 
     setBusy(true);
     try {
-      const { id } = await api.grade({
-        taskType,
-        taskPrompt: prompt.trim(),
-        essayText: essay,
-        idempotencyKey: attempt.current.key,
-        transcriptionId: photos?.state === "done" ? photos.id : undefined,
-        taskImage: taskType === "task_1" && chart ? chart : undefined,
-      });
+      const { id } = await api.grade(
+        {
+          taskType,
+          taskPrompt: prompt.trim(),
+          essayText: essay,
+          idempotencyKey: attempt.current.key,
+          transcriptionId: photos?.state === "done" ? photos.id : undefined,
+          taskImage: taskType === "task_1" && chart ? chart : undefined,
+        },
+        await gradeCheck.token(),
+      );
       bumpRecents();
       router.push(`/r/${id}`);
     } catch (err) {
-      setError(describeError(err));
+      setError(explain(err, gradeCheck));
       setBusy(false);
     }
   }
@@ -258,11 +272,39 @@ export function Composer({ variant = "app" }: { variant?: "app" | "landing" }) {
             <Icon name="error" /> <span>{error ?? (photos?.state === "failed" ? photos.message : "")}</span>
           </p>
         )}
+        {!signedIn && (gradeCheck.stage === "failed" || photoCheck.stage === "failed") && (
+          // A modal, so the essay typed so far stays on the page.
+          <button type="button" className="btn btn-primary btn-sm" style={{ margin: 4 }} onClick={() => openSignIn()}>
+            Sign in to continue
+          </button>
+        )}
+        {quota.data && (
+          <p className={`hint ${styles.quota}`} role="status">
+            {quota.data.remaining === 0 ? (
+              <>
+                You&apos;ve used all <span className="num">{quota.data.limit}</span> gradings{" "}
+                {quota.data.window === "day" ? "for today" : "for this hour"}.
+              </>
+            ) : (
+              <>
+                <span className="num">
+                  {quota.data.remaining} of {quota.data.limit}
+                </span>{" "}
+                {quota.data.remaining === 1 ? "grading" : "gradings"} left{" "}
+                {quota.data.window === "day" ? "today" : "this hour"}.
+              </>
+            )}
+            {!signedIn && (
+              <>
+                {" "}
+                <Link href="/sign-up">Sign up free</Link> to grade more and ask Io more questions.
+              </>
+            )}
+          </p>
+        )}
+        {gradeCheck.widget}
+        {photoCheck.widget}
       </form>
-
-      <p id="privacy" className={styles.privacy}>
-        We store essays and results to improve grading. Anyone with a result link can open it.
-      </p>
     </div>
   );
 }

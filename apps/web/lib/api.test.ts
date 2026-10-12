@@ -100,7 +100,8 @@ describe("request shapes", () => {
 
 describe("error mapping", () => {
   it.each([
-    ["daily_limit_reached", 429, /free gradings/],
+    ["daily_limit_reached", 429, /today's grading limit/],
+    ["hourly_limit_reached", 429, /this hour/],
     ["unsupported_image_type", 400, /image type isn't supported/],
     ["invalid_transcription", 400, /Upload them again/],
     ["queue_unavailable", 409, /Your essay is saved/],

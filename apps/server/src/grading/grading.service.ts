@@ -16,7 +16,8 @@ import { detectAbuse } from '../submissions/abuse-detection.js';
 import { GradeEssayDto } from './dto/grade-essay.dto.js';
 import { IntakeService } from '../intake/intake.service.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 const RETRYABLE = new Set<SubmissionStatus>([SubmissionStatus.failed, SubmissionStatus.submitted]);
 
 export interface Caller {
@@ -58,25 +59,41 @@ export class GradingService {
   }
 
   /**
-   * Anonymous callers get a daily allowance per IP hash; every LLM call
-   * (gradings and photo transcriptions) counts against it.
-   * shortcut: signed-in teachers are not metered, add a per-user cap if accounts get abused.
+   * Every LLM call (gradings and photo transcriptions) counts against a rolling
+   * daily cap (per IP hash when anonymous, per account when signed in) and an hourly cap for everyone.
+   * Returns whichever window has fewer calls left; on a tie, the daily one.
    */
-  async assertQuota(caller: Caller): Promise<void> {
-    if (this.ownerOf(caller)) return;
-    const limit = Number(this.config.get('PUBLIC_DAILY_LIMIT') ?? 10);
-    const since = new Date(Date.now() - DAY_MS);
-    const [gradings, transcriptions] = await Promise.all([
-      this.prisma.submission.count({
-        where: { source: SubmissionSource.public, clientHash: caller.clientHash, submittedAt: { gte: since } },
-      }),
-      this.prisma.intakeFile.count({
-        where: { batchId: null, clientHash: caller.clientHash, createdAt: { gte: since } },
-      }),
+  async quota(caller: Caller): Promise<{ remaining: number; limit: number; window: 'day' | 'hour' }> {
+    const ownerId = this.ownerOf(caller);
+    const who = ownerId ? { ownerId } : { clientHash: caller.clientHash };
+    const daily = Number(
+      ownerId ? (this.config.get('TEACHER_DAILY_LIMIT') ?? 100) : (this.config.get('PUBLIC_DAILY_LIMIT') ?? 10),
+    );
+    const hourly = Number(this.config.get('HOURLY_LIMIT') ?? 30);
+    const callsSince = async (since: Date) => {
+      const [gradings, transcriptions] = await Promise.all([
+        this.prisma.submission.count({
+          where: { source: SubmissionSource.public, ...who, submittedAt: { gte: since } },
+        }),
+        this.prisma.intakeFile.count({ where: { batchId: null, ...who, createdAt: { gte: since } } }),
+      ]);
+      return gradings + transcriptions;
+    };
+    const now = Date.now();
+    const [today, thisHour] = await Promise.all([
+      callsSince(new Date(now - DAY_MS)),
+      callsSince(new Date(now - HOUR_MS)),
     ]);
-    if (gradings + transcriptions >= limit) {
-      throw new HttpException({ error: 'daily_limit_reached', limit }, HttpStatus.TOO_MANY_REQUESTS);
-    }
+    const day = { remaining: Math.max(0, daily - today), limit: daily, window: 'day' as const };
+    const hour = { remaining: Math.max(0, hourly - thisHour), limit: hourly, window: 'hour' as const };
+    return hour.remaining < day.remaining ? hour : day;
+  }
+
+  async assertQuota(caller: Caller): Promise<void> {
+    const { remaining, limit, window } = await this.quota(caller);
+    if (remaining > 0) return;
+    const error = window === 'day' ? 'daily_limit_reached' : 'hourly_limit_reached';
+    throw new HttpException({ error, limit }, HttpStatus.TOO_MANY_REQUESTS);
   }
 
   async grade(caller: Caller, dto: GradeEssayDto, taskImage?: Express.Multer.File) {
