@@ -2,8 +2,14 @@ app = "idest-web"
 primary_region = "sin"
 
 [build]
+  # All public: Next.js inlines NEXT_PUBLIC_* into the browser bundle at build time.
   [build.args]
-    # Public by design; the secret half lives in idest-server's TURNSTILE_SECRET.
+    NEXT_PUBLIC_APP_URL = "https://idest.lucki.id.vn"
+    NEXT_PUBLIC_API_URL = "https://idest-server.fly.dev"
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsubHVja2kuaWQudm4k"
+    NEXT_PUBLIC_CLERK_SIGN_IN_URL = "/sign-in"
+    NEXT_PUBLIC_CLERK_SIGN_UP_URL = "/sign-up"
+    # The secret half lives in idest-server's TURNSTILE_SECRET.
     NEXT_PUBLIC_TURNSTILE_SITE_KEY = "0x4AAAAAAFUpeNNUHsO7kS29"
 
 [env]
